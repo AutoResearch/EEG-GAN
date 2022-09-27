@@ -178,6 +178,7 @@ class Trainer:
             gen_imgs = self.generator(z)
 
             # Loss for fake images
+            cond_data = data[:, :self.sequence_length - self.sequence_length_generated].view(batch_size, 1, 1, -1)
             fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
             fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
             fake_data = torch.cat((fake_data, fake_labels), dim=1)
