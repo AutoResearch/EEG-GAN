@@ -1,5 +1,9 @@
 import torch
+from matplotlib import pyplot as plt
+import torchaudio.functional as taf
 from torch import nn
+from scipy import signal
+import numpy as np
 from ttsgan_components import *
 
 
@@ -200,6 +204,7 @@ class TtsGenerator(nn.Module):
         x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
         output = self.deconv(x.permute(0, 3, 1, 2))
         output = output.view(-1, self.channels, H, W)
+        # output = self.actual_seq_len(output)
         return output
 
 
@@ -218,3 +223,31 @@ class TtsDiscriminator(nn.Sequential):
             Dis_TransformerEncoder(depth, emb_size=emb_size, drop_p=0.5, forward_drop_p=0.5, **kwargs),
             ClassificationHead(emb_size, n_classes)
         )
+
+
+class TtsGeneratorFiltered(TtsGenerator):
+
+    def __init__(self, seq_length=600, patch_size=15, channels=1, num_classes=9, latent_dim=16, embed_dim=10, depth=3,
+                 num_heads=5, forward_drop_rate=0.5, attn_drop_rate=0.5):
+        super(TtsGeneratorFiltered, self).__init__(seq_length=seq_length,
+                                                   patch_size=patch_size,
+                                                   channels=channels,
+                                                   num_classes=num_classes,
+                                                   latent_dim=latent_dim,
+                                                   embed_dim=embed_dim,
+                                                   depth=depth,
+                                                   num_heads=num_heads,
+                                                   forward_drop_rate=forward_drop_rate,
+                                                   attn_drop_rate=attn_drop_rate)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tanh = nn.Tanh()
+
+    def forward(self, z):
+        gen_imgs = super().forward(z)
+        gen_imgs = self.tanh(gen_imgs)
+        output = self.filter(gen_imgs)
+        return output
+
+    def filter(self, z):
+        """Filter the generated images to remove the noise. The last dimension of z carries the signal."""
+        return taf.bandpass_biquad(z, 512, 10)

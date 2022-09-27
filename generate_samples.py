@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from cwgan import Trainer
-from models import TtsGenerator
+from trainer import Trainer
+from models import TtsGenerator, TtsGeneratorFiltered
 from dataloader import Dataloader
 
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # file configuration
     filename_dataset = 'ganTrialERP.csv'  # dataset filename in directory 'data'
     filename_gen_samples = 'sample.csv'  # filename for generated samples, saved in directory 'generated_samples'
-    filename_generator = None           # filename of the generator;
+    filename_generator = None#'state_dict_tts_1400ep.pt'  # filename of the generator;
 
     num_samples_tot = 10  # total number of generated samples;
     # if num_samples_tot = None: num_samples_tot = number of samples in the dataset
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     print("Initializing generator...")
     generator = None
     if generator_type == 'tts':
-        generator = TtsGenerator(seq_length=dataset.shape[1]-n_conditions, latent_dim=latent_dim+n_conditions).to(device)
+        generator = TtsGeneratorFiltered(seq_length=dataset.shape[1]-n_conditions, latent_dim=latent_dim+n_conditions).to(device)
 
     # load generator weights
     path = 'trained_models'

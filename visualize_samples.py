@@ -2,8 +2,10 @@ import os
 
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
-from models import *
+from models import TtsGenerator as Generator
 from dataloader import Dataloader
 from generate_samples import GenerateSamples
 
@@ -205,6 +207,9 @@ class PlotGeneratedSamples:
         if isinstance(gen_samples, torch.Tensor):
             gen_samples = gen_samples.detach().cpu().numpy()
 
+        if len(gen_samples.shape) > 2:
+            gen_samples = gen_samples.reshape(-1, gen_samples.shape[-1])
+
         if not isinstance(gen_samples, pd.DataFrame):
             self.df = pd.DataFrame(gen_samples)
         else:
@@ -254,37 +259,42 @@ class PlotGeneratedSamples:
 
 
 if __name__ == '__main__':
+    # ----------------------------
     # configuration of program
+    # ----------------------------
+
     # if generate, experimental_data, load_file = False
-    # the program will get the samples from the checkpoint.pth file in the directory trained_models
+    # the program will get the samples from the checkpoint.pt file in the directory trained_models
     generate = False            # generate samples with generator
     experimental_data = False   # use samples of experimental data
-    if not experimental_data and not generate:
-        # if other two are False, manual configuration is needed.
-        # load samples from file; specified by filename or by selecting automatically most recent file
-        load_file = True
-        # else automatic configuration is done.
-    else:
-        # automatic configuration
-        if experimental_data and not generate:
-            # load experimental data
-            load_file = True
-        elif generate:
-            # do not load any file but generate samples
-            load_file = False
 
-    # data processing configuration
-    norm_data = True            # normalize data to the range [0, 1]
-    mvg_avg = False             # moving average filter with window size moving_average_window
-    moving_average_window = 1   # window size for moving average
+    load_file = True           # load samples from file; Only used if generate and experimental_data are False
 
+    # specify if specific file from dir 'generated_samples' should be visualized else None
+    filename = 'state_dict_tts_lp_seq_init.pt'
+
+    # ----------------------------
     # configuration of plotter
-    filename = None             # specify if specific file from dir 'generated_samples' should be visualized else None
-    n_conditions = 3            # number of columns with conditions BEFORE actual signal starts
+    # ----------------------------
+
+    n_conditions = 1            # number of columns with conditions BEFORE actual signal starts
     gan_or_emb = 'gan'          # GAN samples: 'gan'; Embedding network samples: 'emb'; 'emb' was not tested yet!
     n_samples = 10              # number of linearly drawn samples from given dataset
-    batch_size = None           # number of samples plotted in one figure
+    batch_size = 10           # number of samples plotted in one figure
     rows = 0                    # number of rows to skip in dataset; useful to skip samples from early training
+
+    # ----------------------------
+    # data processing configuration
+    # ----------------------------
+
+    norm_data = False            # normalize data to the range [0, 1]
+    mvg_avg = False             # moving average filter with window size moving_average_window
+    moving_average_window = 1   # window size for moving average
+    sequence_length = 24        # length of the sequence
+
+    # ----------------------------
+    # run program
+    # ----------------------------
 
     title = 'generated training samples'  # title of plot --> Is adjusted automatically according to configuration
     data = None                 # specified automatically according to configuration
@@ -293,28 +303,54 @@ if __name__ == '__main__':
     if experimental_data and generate:
         raise RuntimeError('You can not generate samples and use experimental data at the same time.')
 
+    if experimental_data and not generate:
+        # load experimental data
+        load_file = True
+    elif generate:
+        # do not load any file but generate samples
+        load_file = False
+
     if generate:
         # generate samples
-        # set plotting settings
-        load_file, filename, gan_or_emb, n_conditions, title = False, None, 'gan', 1, 'generated samples'
         # load generator
-        state_dict = torch.load(r"C:\Users\Daniel\PycharmProjects\GanInNeuro\models\checkpoint.pth", map_location=torch.device('cpu'))
-        generator = CondLstmGenerator(latent_dim=16, num_layers=2)
+        path = 'trained_models'
+        if filename.endswith('.pt'):
+            file = os.path.join(path, filename)
+        else:
+            file = os.path.join(path, 'checkpoint.pt')
+        state_dict = torch.load(file, map_location=torch.device('cpu'))
+        generator = Generator(seq_length=sequence_length,
+                              latent_dim=17,
+                              patch_size=12)
         generator.load_state_dict(state_dict['generator'])
         # generate samples
         generate_samples = GenerateSamples(generator)
         data = generate_samples.generate_samples()
 
+        # set plotting settings
+        load_file, gan_or_emb, n_conditions, title = False, 'gan', 1, 'generated samples'
+
     if experimental_data:
         load_file, n_conditions, gan_or_emb, title = False, 3, 'gan', 'experimental data'
-        filename = r"C:\Users\Daniel\PycharmProjects\GanInNeuro\data\ganTrialERP.csv"
-        dataloader = Dataloader(path=filename, diff_data=False, std_data=False, norm_data=True)
+        filename = r"C:\Users\Daniel\PycharmProjects\GanInNeuro\data\ganAverageERP.csv"
+        dataloader = Dataloader(path=filename, sequence_length=sequence_length, diff_data=False, std_data=False, norm_data=True)
         data = dataloader.get_data()
 
-    if not generate and not experimental_data and not load_file:
+    # Load data from state_dict
+    if not generate and not experimental_data and load_file and data is None:
+        # if filename extension is .pt --> load state_dict and get samples from it
+        if filename.endswith('.pt'):
+            path = 'trained_models'
+            data = np.array(torch.load(os.path.join(path, filename), map_location=torch.device('cpu'))['generated_samples'])
+            # filename = None  # set filename to None to avoid new loading of file within class
+            load_file = False  # Otherwise most recent file from directory 'generated_samples' will be loaded
+
+    # Load data from checkpoint.pt
+    if not generate and not experimental_data and not load_file and data is None:
         # get data from checkpoint
-        data = np.array(torch.load(r"C:\Users\Daniel\PycharmProjects\GanInNeuro\trained_models\checkpoint.pth",
-                        map_location=torch.device('cpu'))['generated_samples'])
+        path = 'trained_models'
+        filename = 'checkpoint.pt'
+        data = np.array(torch.load(os.path.join(path, filename), map_location=torch.device('cpu'))['generated_samples'])
 
     # setup plotter
     plotter = PlotGeneratedSamples(load_file=load_file, filename=filename,
@@ -330,7 +366,7 @@ if __name__ == '__main__':
     plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
 
     # plot data
-    plotter.set_title(title)
+    plotter.set_title(title + f'; {filename if filename is not None else ""}')
     # plotter.set_y_lim(max=int(1.5*batch_size), min=0)
     # plotter.set_y_lim(max=50, min=-10)
     plotter.plot(stacked=True, batch_size=batch_size, n_samples=n_samples, rows=rows)

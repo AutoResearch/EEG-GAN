@@ -9,7 +9,10 @@ class Dataloader:
     - transform data (e.g. standardize, normalize, differentiate) and save the parameters for inverse transformation
     - convert to tensor"""
 
-    def __init__(self, path, diff_data=False, std_data=False, norm_data=False, n_col_data=3, col_label='Condition'):
+    def __init__(self, path,
+                 sequence_length=-1,
+                 diff_data=False, std_data=False, norm_data=False,
+                 n_col_data=3, col_label='Condition'):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -18,10 +21,12 @@ class Dataloader:
             std_data (bool): Standardize data.
         """
 
+        self.n_col_data = n_col_data
+
         # Load data from csv as pandas dataframe and convert to tensor
         dataset = pd.read_csv(path)
         labels = torch.FloatTensor(dataset[col_label]).unsqueeze(-1)
-        dataset = torch.FloatTensor(dataset.to_numpy()[:, n_col_data:])
+        dataset = torch.FloatTensor(dataset.to_numpy()[:, self.n_col_data:])
 
         if diff_data:
             # Diff of data
@@ -53,8 +58,43 @@ class Dataloader:
         self.dataset = dataset
         self.labels = labels
 
-    def get_data(self):
-        return self.dataset
+    def windows_slices(self, sequence, window_size, stride=5):
+        """Create a moving window of size window_size with stride stride.
+        The last window is padded with 0 if it is smaller than window_size.
+
+        Args:
+            sequence (iterable): Input sequence.
+            window_size (int): Size of the window.
+            stride (int): Stride of the window.
+
+        Returns:
+            torch.Tensor: Tensor of windows.
+        """
+
+        # Create a moving window of size window_size with stride stride
+        n_labels = self.labels.shape[1]
+        sequence = sequence[:, n_labels:]
+        windows = torch.zeros(((sequence.shape[1] - window_size) // stride, sequence.shape[0], window_size + n_labels))
+        last_index = sequence.shape[1] - (window_size + stride) + 1
+        for i in range(0, last_index, stride):
+            # print(f"from {i} to {i+window_size}")
+            windows[- ((sequence.shape[1] - window_size - i) // stride)] = torch.cat((self.labels, sequence[:, i:i + window_size]), dim=-1)
+        if sequence.shape[1] < last_index + stride + window_size:
+            # if last window is smaller than window_size, pad with 0
+            last_window = torch.zeros_like(windows[-1])
+            last_window[:, :n_labels] = self.labels
+            last_window[:, n_labels:n_labels + sequence.shape[1] - i - window_size] = sequence[:, i + window_size:]
+            windows[-1] = last_window
+        return windows.view(-1, n_labels+window_size)
+
+    def get_data(self, sequence_length=-1, windows_slices=False, stride=1):
+        if windows_slices:
+            # if windows_slices is True, return windows of size sequence_length with stride 1
+            dataset = self.windows_slices(self.dataset, sequence_length, stride=5)
+        else:
+            # if windows_slices is False, return only one window of size sequence_length from the beginning
+            dataset = self.dataset[:, n_labels:sequence_length]
+        return dataset
 
     def get_labels(self):
         return self.labels
