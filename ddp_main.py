@@ -5,7 +5,7 @@ import torch.multiprocessing as mp
 
 from get_master import find_free_port
 from ddp_training import run, DDPTrainer as Trainer
-from models import TtsDiscriminator, TtsGenerator#, TtsGeneratorFiltered
+from models import TtsDiscriminator, TtsGeneratorFiltered as Generator#, TtsGeneratorFiltered
 from dataloader import Dataloader
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------------------------------------------
 
     # Training configuration
-    trained_gan = True             # Use an existing GAN/Checkpoints of previous training
+    trained_gan = False             # Use an existing GAN/Checkpoints of previous training
     train_gan = True                # Train the GAN in the optimization process
     trained_embedding = False       # Use an existing embedding
     use_embedding = False           # Train the embedding in the optimization process
@@ -36,6 +36,7 @@ if __name__ == '__main__':
     diff_data = False               # Differentiate data
     std_data = False                # Standardize data
     norm_data = True                # Normalize data
+    windows_slices = True           # Use window_slices of data with stride 1 as training samples
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
@@ -46,35 +47,46 @@ if __name__ == '__main__':
         raise Warning("Standardization and normalization are used at the same time.")
 
     # GAN configuration
-    world_size = 2  #torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count()
+    world_size = torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count()
+
+    # GAN configuration
     opt = {
-            'n_epochs': 2,              # number of training epochs of batch training
-            'sample_interval': 100,  # interval between recorded samples
-            'hidden_dim': 128,          # Dimension of hidden layers in discriminator and generator
-            'batch_size': 8,            # batch size for batch training
-            'learning_rate': 1e-4,      # learning rate of the generator and discriminator
-            'latent_dim': 16,           # Dimension of the latent space
-            'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
-            'n_conditions': 1,          # number of conditions for conditional GAN
-            'n_lstm': 2,                # number of lstm layers for lstm GAN
-            'patch_size': 15,           # Patch size for the transformer GAN (tts-gan)
-            'trained_gan': trained_gan, # Use an existing GAN/Checkpoints of previous training
-        }
+        'n_epochs': 2,  # number of training epochs of batch training
+        'sequence_length': 30,  # length of the sequences of the time-series data
+        'seq_len_generated': 6,  # length of the time-series data to-be-generated
+        'hidden_dim': 128,  # Dimension of hidden layers in discriminator and generator
+        'batch_size': 32,  # batch size for batch training
+        'learning_rate': 1e-4,  # learning rate of the generator and discriminator
+        'latent_dim': 16,  # Dimension of the latent space
+        'sample_interval': 10,  # interval between recorded samples
+        'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
+        'n_conditions': 1,  # number of conditions for conditional GAN
+        'n_lstm': 2,  # number of lstm layers for lstm GAN
+        'patch_size': 15  # Patch size for the transformer GAN (tts-gan)
+    }
 
     # Load dataset as tensor
-    path = r'data/ganAverageERP_mini.csv'
-    dataloader = Dataloader(path, diff_data, std_data, norm_data)
-    dataset = dataloader.get_data()
-    # make sequence length of dataset dividable by opt['patch_size'] by padding with zeros
-    while (dataset.shape[1] - opt['n_conditions']) % opt['patch_size'] != 0:
-        padding = torch.zeros(dataset.shape[0], 1)
-        dataset = torch.cat((dataset, padding), dim=1)
+    path = r'data/ganAverageERP.csv'
+    seq_len = opt['sequence_length'] if 'sequence_length' in opt else None
+    # seq_len_2 = opt['seq_len_generated'] if 'seq_len_generated' in opt else None
+    # seq_len = seq_len_1 - seq_len_2
+    dataloader = Dataloader(path, diff_data=diff_data, std_data=std_data, norm_data=norm_data)
+    dataset = dataloader.get_data(sequence_length=seq_len, windows_slices=windows_slices, stride=5)
+
+    if (opt['sequence_length']) % opt['patch_size'] != 0:
+        raise ValueError("Sequence length must be a multiple of patch size.")
 
     # Initialize generator, discriminator and trainer
-    generator = TtsGenerator(seq_length=dataset.shape[1]-opt['n_conditions'], latent_dim=opt['latent_dim']+opt['n_conditions'])
-    discriminator = TtsDiscriminator(seq_length=dataset.shape[1]-opt['n_conditions'])
+    state_dict = None
+    optG = None
+    optD = None
+    generator = Generator(seq_length=opt['seq_len_generated'],
+                          latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt[
+                              'seq_len_generated'],
+                          patch_size=opt['patch_size'])
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'])
     trainer = Trainer(generator, discriminator, dataset, opt)
-    print("Generator, discriminator and trainer initialized.")
+    print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Start training process
