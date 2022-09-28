@@ -151,6 +151,6 @@ if __name__ == '__main__':
 
     if train_gan:
         # start training
-        mp.spawn(run, args=(world_size, find_free_port(), trainer), nprocs=world_size, join=True)
+        mp.spawn(run, args=(world_size, find_free_port(), trainer, dataset), nprocs=world_size, join=True)
     else:
         print("GAN not trained.")
