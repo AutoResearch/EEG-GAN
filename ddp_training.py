@@ -32,6 +32,8 @@ class DDPTrainer(trainer.Trainer):
         self.generator_optimizer = None
         self.discriminator_optimizer = None
 
+        self.trained_gan = opt['trained_gan'] if 'trained_gan' in opt else False
+        
     # ---------------------
     #  DDP-specific modifications
     # ---------------------

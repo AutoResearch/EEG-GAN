@@ -112,7 +112,8 @@ if __name__ == '__main__':
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'n_conditions': 1 if not n_conditions else n_conditions,  # number of conditions for conditional GAN
         'n_lstm': 2,  # number of lstm layers for lstm GAN
-        'patch_size': 15 if not patch_size else patch_size  # Patch size for the transformer GAN (tts-gan)
+        'patch_size': 15 if not patch_size else patch_size,  # Patch size for the transformer GAN (tts-gan)
+        'trained_gan': False if trained_gan is None else trained_gan,  # Use an existing GAN/Checkpoints of previous training
     }
 
     # Load dataset as tensor
