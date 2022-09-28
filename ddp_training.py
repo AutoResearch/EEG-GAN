@@ -32,8 +32,6 @@ class DDPTrainer(trainer.Trainer):
         self.generator_optimizer = None
         self.discriminator_optimizer = None
 
-        self.trained_gan = opt['trained_gan'] if 'trained_gan' in opt else False
-        
     # ---------------------
     #  DDP-specific modifications
     # ---------------------
@@ -61,9 +59,9 @@ class DDPTrainer(trainer.Trainer):
         super().print_log(current_epoch, current_batch, num_batches, reduce_tensor[0], reduce_tensor[1])
 
 
-def run(rank, world_size, master_port, training, dataset):
+def run(rank, world_size, master_port, training, dataset, trained_gan=False):
     _setup(rank, world_size, master_port)
-    training = _setup_training(rank, training)
+    training = _setup_training(rank, training, trained_gan)
     _ddp_training(rank, training, dataset)
     dist.destroy_process_group()
 
@@ -93,7 +91,7 @@ def _setup(rank, world_size, master_port):
     dist.init_process_group("gloo", rank=rank, world_size=world_size, timeout=timedelta(seconds=30))
 
 
-def _setup_training(rank, training):
+def _setup_training(rank, training, trained_gan=False):
     # set device
     training.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     training.device = torch.device(training.device + ':' + str(rank))
@@ -101,6 +99,13 @@ def _setup_training(rank, training):
     # construct DDP model
     training.generator.to(rank)
     training.discriminator.to(rank)
+    if trained_gan:
+        state_dict = _ddp_load_checkpoint(training.generator, training.discriminator, training.generator_optimizer, training.discriminator_optimizer)
+        training.generator = state_dict[0]
+        training.discriminator = state_dict[1]
+        training.generator_optimizer = state_dict[2]
+        training.discriminator_optimizer = state_dict[3]
+
     training.generator = DDP(training.generator, device_ids=[rank])
     training.discriminator = DDP(training.discriminator, device_ids=[rank])
 
@@ -112,12 +117,6 @@ def _setup_training(rank, training):
                                                        lr=training.learning_rate,
                                                        betas=(training.b1, training.b2))
 
-    if training.trained_gan:
-        state_dict = _ddp_load_checkpoint(training.generator, training.discriminator, training.generator_optimizer, training.discriminator_optimizer)
-        training.generator = state_dict[0]
-        training.discriminator = state_dict[1]
-        training.generator_optimizer = state_dict[2]
-        training.discriminator_optimizer = state_dict[3]
 
     return training
 
