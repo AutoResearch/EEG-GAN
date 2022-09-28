@@ -143,20 +143,20 @@ class Trainer:
             gen_labels = torch.cat((data_labels, data[:, :self.sequence_length-self.sequence_length_generated]), dim=1).to(self.device)
 
             # Generate a batch of samples
-            if isinstance(self.generator, models.TtsGenerator):
-                z = torch.cat((z, gen_labels), dim=1)
-                gen_imgs = self.generator(z)
-            else:
-                gen_imgs = self.generator(z, gen_labels)
+            # if isinstance(self.generator, models.TtsGenerator):
+            z = torch.cat((z, gen_labels), dim=1)
+            gen_imgs = self.generator(z)
+            # else:
+            #     gen_imgs = self.generator(z, gen_labels)
 
-            if isinstance(self.discriminator, models.TtsDiscriminator):
-                cond_data = data[:, :self.sequence_length-self.sequence_length_generated].view(batch_size, 1, 1, -1)
-                fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
-                fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
-                fake_data = torch.cat((fake_data, fake_labels), dim=1)
-                validity = self.discriminator(fake_data)
-            else:
-                validity = self.discriminator(gen_imgs, gen_labels)
+            # if isinstance(self.discriminator, models.TtsDiscriminator):
+            cond_data = data[:, :self.sequence_length-self.sequence_length_generated].view(batch_size, 1, 1, -1)
+            fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
+            fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
+            fake_data = torch.cat((fake_data, fake_labels), dim=1)
+            validity = self.discriminator(fake_data)
+            # else:
+            #     validity = self.discriminator(gen_imgs, gen_labels)
 
             g_loss = self.loss.generator(validity)
             g_loss.backward()
@@ -173,32 +173,32 @@ class Trainer:
 
         self.discriminator_optimizer.zero_grad()
 
-        if isinstance(self.generator, models.TtsGenerator):
+        # if isinstance(self.generator, models.TtsGenerator):
             # Sample noise and labels as generator input
-            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
-                                            device=self.device, sequence_length=seq_length)
-            gen_labels = torch.cat((data_labels, data[:, :self.sequence_length - self.sequence_length_generated]), dim=1)
-            z = torch.cat((z, gen_labels), dim=1)
-            gen_imgs = self.generator(z)
+        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
+                                        device=self.device, sequence_length=seq_length)
+        gen_labels = torch.cat((data_labels, data[:, :self.sequence_length - self.sequence_length_generated]), dim=1)
+        z = torch.cat((z, gen_labels), dim=1)
+        gen_imgs = self.generator(z)
 
-            # Loss for fake images
-            cond_data = data[:, :self.sequence_length - self.sequence_length_generated].view(batch_size, 1, 1, -1)
-            fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
-            fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
-            fake_data = torch.cat((fake_data, fake_labels), dim=1)
-            validity_fake = self.discriminator(fake_data)
+        # Loss for fake images
+        cond_data = data[:, :self.sequence_length - self.sequence_length_generated].view(batch_size, 1, 1, -1)
+        fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
+        fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
+        fake_data = torch.cat((fake_data, fake_labels), dim=1)
+        validity_fake = self.discriminator(fake_data)
 
-            # Loss for real images
-            real_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
-            data = data.view(-1, 1, 1, data.shape[1])
-            real_data = torch.cat((data, real_labels), dim=1)
-            validity_real = self.discriminator(real_data)
-        else:
-            # Loss for real images
-            validity_real = self.discriminator(data, data_labels)
-
-            # Loss for fake images
-            validity_fake = self.discriminator(gen_imgs, gen_labels)
+        # Loss for real images
+        real_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
+        data = data.view(-1, 1, 1, data.shape[1])
+        real_data = torch.cat((data, real_labels), dim=1)
+        validity_real = self.discriminator(real_data)
+        # else:
+        #     # Loss for real images
+        #     validity_real = self.discriminator(data, data_labels)
+        #
+        #     # Loss for fake images
+        #     validity_fake = self.discriminator(gen_imgs, gen_labels)
 
         # Total discriminator loss and update
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
