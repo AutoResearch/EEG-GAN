@@ -81,7 +81,7 @@ def run(rank, world_size, master_port, training):
 
 def _ddp_training(rank, training: DDPTrainer):
 
-    _, _, gen_samples = training.training()
+    _, _, gen_samples = training.training(training.dataset)
 
     # save checkpoint
     if rank == 0:
