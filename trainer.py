@@ -121,6 +121,10 @@ class Trainer:
         batch_size = data.shape[0]
         seq_length = data.shape[1] if isinstance(self.generator, models.CondLstmGenerator) else 1
 
+        print('\n-----------------------------\n')
+        print(f'device is {self.device}')
+        print('\n-----------------------------\n')
+
         data.to(self.device)
         data_labels.to(self.device)
 
@@ -136,7 +140,7 @@ class Trainer:
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
                                             device=self.device, sequence_length=seq_length)
             # gen_labels = torch.randint(0, 2, (batch_size, 1)).to(self.device)
-            gen_labels = torch.cat((data_labels, data[:, :self.sequence_length-self.sequence_length_generated]), dim=1)
+            gen_labels = torch.cat((data_labels, data[:, :self.sequence_length-self.sequence_length_generated]), dim=1).to(self.device)
 
             # Generate a batch of samples
             if isinstance(self.generator, models.TtsGenerator):
