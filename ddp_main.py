@@ -1,4 +1,5 @@
 import sys
+import warnings
 from datetime import datetime
 import torch
 
@@ -85,7 +86,7 @@ if __name__ == '__main__':
 
     # Data configuration
     if windows_slices is None:
-        windows_slices = True  # Use window_slices of data with stride 1 as training samples
+        windows_slices = False  # Use window_slices of data with stride 1 as training samples
     diff_data = False  # Differentiate data
     std_data = False  # Standardize data
     norm_data = True  # Normalize data
@@ -106,7 +107,7 @@ if __name__ == '__main__':
         'seq_len_generated': 6 if not seq_len_generated else seq_len_generated,
         # length of the time-series data to-be-generated
         'hidden_dim': 128,  # Dimension of hidden layers in discriminator and generator
-        'batch_size': 32 if not batch_size else batch_size,  # batch size for batch training
+        'batch_size': 64 if not batch_size else batch_size,  # batch size for batch training
         'learning_rate': 1e-4 if not learning_rate else learning_rate,
         # learning rate of the generator and discriminator
         'latent_dim': 16,  # Dimension of the latent space
@@ -115,7 +116,6 @@ if __name__ == '__main__':
         'n_conditions': 1 if not n_conditions else n_conditions,  # number of conditions for conditional GAN
         'n_lstm': 2,  # number of lstm layers for lstm GAN
         'patch_size': 15 if not patch_size else patch_size,  # Patch size for the transformer GAN (tts-gan)
-        'trained_gan': False if trained_gan is None else trained_gan,  # Use an existing GAN/Checkpoints of previous training
         'world_size': world_size,  # number of processes for distributed training
     }
 
@@ -131,9 +131,13 @@ if __name__ == '__main__':
     # keep randomly 10% of the data
     # dataset = dataset[np.random.randint(0, dataset.shape[0], int(dataset.shape[0]*0.3))]
 
-    if (opt['sequence_length']) % opt['patch_size'] != 0:
-        raise ValueError(
-            f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({opt['patch_size']}).")
+    if opt['sequence_length'] % opt['patch_size'] != 0:
+        warnings.warn(
+            f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({opt['patch_size']}).\n"
+            f"The sequence length is padded with zeros to fit the condition.")
+        while opt['sequence_length'] % opt['patch_size'] != 0:
+            dataset = torch.cat((dataset, torch.zeros(dataset.shape[0], 1)), dim=-1)
+            opt['sequence_length'] += 1
 
     # Initialize generator, discriminator and trainer
     state_dict = None

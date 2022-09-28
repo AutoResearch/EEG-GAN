@@ -31,7 +31,7 @@ class DDPTrainer(trainer.Trainer):
         self.ddp_discriminator = None
         self.generator_optimizer = None
         self.discriminator_optimizer = None
-        
+
         self.world_size = opt['world_size'] if 'world_size' in opt else 1
 
     # ---------------------
@@ -49,6 +49,9 @@ class DDPTrainer(trainer.Trainer):
                 'generator_optimizer': self.generator_optimizer.state_dict(),
                 'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
                 'generated_samples': generated_samples,
+                'configuration': self.configuration,
+                'discriminator_loss': self.d_losses,
+                'generator_loss': self.g_losses,
             }, path_checkpoint)
         dist.barrier()
 
@@ -118,7 +121,6 @@ def _setup_training(rank, training, trained_gan=False):
     training.discriminator_optimizer = torch.optim.Adam(training.discriminator.parameters(),
                                                        lr=training.learning_rate,
                                                        betas=(training.b1, training.b2))
-
 
     return training
 

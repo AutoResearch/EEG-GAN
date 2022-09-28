@@ -58,6 +58,31 @@ class Dataloader:
         self.dataset = dataset
         self.labels = labels
 
+    def get_data(self, sequence_length=None, windows_slices=False, stride=1):
+        """returns the data as a tensor"""
+        if windows_slices:
+            # if windows_slices is True, return windows of size sequence_length with stride 1
+            if sequence_length < 0 or sequence_length + stride > self.dataset.shape[1]:
+                raise ValueError(f"If windows slices are used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}) + stride (={stride}).")
+            dataset = self.windows_slices(self.dataset, sequence_length, stride=5)
+        elif windows_slices is False and sequence_length:
+            # if windows_slices is False, return only one window of size sequence_length from the beginning
+            if sequence_length < 0 or sequence_length > self.dataset.shape[1]:
+                raise ValueError(f"If windows slices are not used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
+            dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
+        else:
+            dataset = self.dataset
+        return dataset
+
+    def get_labels(self):
+        return self.labels
+
+    def get_mean(self):
+        return self.dataset_mean
+
+    def get_std(self):
+        return self.dataset_std
+
     def windows_slices(self, sequence, window_size, stride=5):
         """Create a moving window of size window_size with stride stride.
         The last window is padded with 0 if it is smaller than window_size.
@@ -78,32 +103,15 @@ class Dataloader:
         last_index = sequence.shape[1] - (window_size + stride) + 1
         for i in range(0, last_index, stride):
             # print(f"from {i} to {i+window_size}")
-            windows[- ((sequence.shape[1] - window_size - i) // stride)] = torch.cat((self.labels, sequence[:, i:i + window_size]), dim=-1)
+            windows[- ((sequence.shape[1] - window_size - i) // stride)] = torch.cat(
+                (self.labels, sequence[:, i:i + window_size]), dim=-1)
         if sequence.shape[1] < last_index + stride + window_size:
             # if last window is smaller than window_size, pad with 0
             last_window = torch.zeros_like(windows[-1])
             last_window[:, :n_labels] = self.labels
             last_window[:, n_labels:n_labels + sequence.shape[1] - i - window_size] = sequence[:, i + window_size:]
             windows[-1] = last_window
-        return windows.view(-1, n_labels+window_size)
-
-    def get_data(self, sequence_length=-1, windows_slices=False, stride=1):
-        if windows_slices:
-            # if windows_slices is True, return windows of size sequence_length with stride 1
-            dataset = self.windows_slices(self.dataset, sequence_length, stride=5)
-        else:
-            # if windows_slices is False, return only one window of size sequence_length from the beginning
-            dataset = self.dataset[:, n_labels:sequence_length]
-        return dataset
-
-    def get_labels(self):
-        return self.labels
-
-    def get_mean(self):
-        return self.dataset_mean
-
-    def get_std(self):
-        return self.dataset_std
+        return windows.view(-1, n_labels + window_size)
 
     def inverse_norm(self, data):
         """Inverse normalize data. Used also for generated samples by the generator."""

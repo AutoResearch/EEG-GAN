@@ -60,10 +60,10 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         self.lambda_gp = lambda_gp
 
     def discriminator(self, *args):
-        real, fake, discriminator, real_images, fake_images, real_labels, fake_labels = args
-        return super().discriminator(real, fake) + self._gradient_penalty(discriminator, real_images, fake_images, real_labels, fake_labels)
+        real, fake, discriminator, real_images, fake_images = args
+        return super().discriminator(real, fake) + self._gradient_penalty(discriminator, real_images, fake_images)
 
-    def _gradient_penalty(self, discriminator, real_images, fake_images, real_labels, fake_labels):
+    def _gradient_penalty(self, discriminator, real_images, fake_images):
         """Calculates the gradient penalty for WGAN-GP"""
 
         # adjust dimensions of real_labels, fake_labels and eta to to match the dimensions of real_images
@@ -76,10 +76,6 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         # check that all inputs' devices are the same
         if real_images.device != fake_images.device:
             raise ValueError("real_images and fake_images must be on the same device!")
-        if real_images.device != real_labels.device:
-            raise ValueError("real_images and real_labels must be on the same device!")
-        if real_images.device != fake_labels.device:
-            raise ValueError("real_images and fake_labels must be on the same device!")
 
         eta = torch.FloatTensor(real_images.shape[0], real_images.shape[1]).uniform_(0, 1).to(real_images.device)
 

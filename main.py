@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 from datetime import datetime
 import pandas as pd
 import torch
@@ -96,7 +97,7 @@ if __name__ == '__main__':
 
     # Training configuration
     if trained_gan is None:
-        trained_gan = True              # Use an existing GAN/Checkpoints of previous training
+        trained_gan = False              # Use an existing GAN/Checkpoints of previous training
     if train_gan is None:
         train_gan = True                # Train the GAN in the optimization process
     trained_embedding = False       # Use an existing embedding
@@ -107,7 +108,7 @@ if __name__ == '__main__':
     std_data = False                # Standardize data
     norm_data = True                # Normalize data
     if windows_slices is None:
-        windows_slices = True           # Use window_slices of data with stride 1 as training samples
+        windows_slices = False           # Use window_slices of data with stride 1 as training samples
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
@@ -121,13 +122,13 @@ if __name__ == '__main__':
     # GAN configuration
     opt = {
             'n_epochs': 100 if not n_epochs else n_epochs,  # number of training epochs of batch training
-            'sequence_length': None if not sequence_length else sequence_length,  # length of the sequences of the time-series data
-            'seq_len_generated': 6 if not seq_len_generated else seq_len_generated,  # length of the time-series data to-be-generated
+            'sequence_length': 90 if not sequence_length else sequence_length,  # length of the sequences of the time-series data
+            'seq_len_generated': 10 if not seq_len_generated else seq_len_generated,  # length of the time-series data to-be-generated
             'hidden_dim': 128,          # Dimension of hidden layers in discriminator and generator
             'batch_size': 32 if not batch_size else batch_size,  # batch size for batch training
             'learning_rate': 1e-4 if not learning_rate else learning_rate,  # learning rate of the generator and discriminator
             'latent_dim': 16,           # Dimension of the latent space
-            'sample_interval': 10 if not sample_interval else sample_interval,  # interval between recorded samples
+            'sample_interval': 100 if not sample_interval else sample_interval,  # interval between recorded samples
             'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
             'n_conditions': 1 if not n_conditions else n_conditions,  # number of conditions for conditional GAN
             'n_lstm': 2,                # number of lstm layers for lstm GAN
@@ -146,8 +147,12 @@ if __name__ == '__main__':
     # keep randomly 10% of the data
     # dataset = dataset[np.random.randint(0, dataset.shape[0], int(dataset.shape[0]*0.3))]
 
-    if (opt['sequence_length']) % opt['patch_size'] != 0:
-        raise ValueError(f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({opt['patch_size']}).")
+    if opt['sequence_length'] % opt['patch_size'] != 0:
+        warnings.warn(f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({opt['patch_size']}).\n"
+                      f"The sequence length is padded with zeros to fit the condition.")
+        while opt['sequence_length'] % opt['patch_size'] != 0:
+            dataset = torch.cat((dataset, torch.zeros(dataset.shape[0], 1)), dim=-1)
+            opt['sequence_length'] += 1
 
     # Embedding network to reduce the dimension of time-series data
     # not tested yet
@@ -200,7 +205,7 @@ if __name__ == '__main__':
         # check if checkpoint-file exists
         if os.path.isfile(r'trained_models\checkpoint.pt'):
             # load state_dicts
-            state_dict = torch.load(r'trained_models\checkpoint.pt', map_location=trainer.device)
+            state_dict = torch.load(r'trained_models\checkpoint_01.pt', map_location=trainer.device)
             trainer.generator.load_state_dict(state_dict['generator'])
             trainer.discriminator.load_state_dict(state_dict['discriminator'])
             trainer.generator_optimizer.load_state_dict(state_dict['optimizer_generator'])

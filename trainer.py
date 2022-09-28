@@ -34,6 +34,7 @@ class Trainer:
         self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
+        self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
 
@@ -57,6 +58,24 @@ class Trainer:
             self.loss.set_lambda_gp(self.lambda_gp)
 
         self.prev_g_loss = 0
+        self.configuration = {
+            'device': self.device,
+            'sequence_length': self.sequence_length,
+            'sequence_length_generated': self.sequence_length_generated,
+            'batch_size': self.batch_size,
+            'epochs': self.epochs,
+            'sample_interval': self.sample_interval,
+            'learning_rate': self.learning_rate,
+            'n_conditions': self.n_conditions,
+            'latent_dim': self.latent_dim,
+            'critic_iterations': self.critic_iterations,
+            'lambda_gp': self.lambda_gp,
+            'b1': self.b1,
+            'b2': self.b2
+        }
+
+        self.d_losses = []
+        self.g_losses = []
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
@@ -73,8 +92,8 @@ class Trainer:
         for epoch in range(self.epochs):
             # for-loop for number of batch_size entries in sessions
             random.shuffle(dataset)
-            sessions = dataset[:, 1:]
-            labels = dataset[:, 0].unsqueeze(-1)
+            sessions = dataset[:, self.n_conditions:]
+            labels = dataset[:, :self.n_conditions]
             for i in range(0, len(sessions), self.batch_size):
                 # Check whether last batch contains less samples than batch_size
                 if i + self.batch_size > len(sessions):
@@ -93,10 +112,14 @@ class Trainer:
                     train_generator = False
                 d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
 
+                self.d_losses.append(d_loss)
+                self.g_losses.append(g_loss)
+
                 current_batch = i // self.batch_size + 1
                 self.print_log(epoch+1, current_batch, num_batches, d_loss, g_loss)
 
                 # Save a checkpoint of the trained GAN and the generated samples every sample interval
+                # TODO: implement special version for DDP-training with saving checkpoint only at rank 0
                 batches_done = epoch * num_batches + current_batch
                 if batches_done % self.sample_interval == 0:
                     gen_samples.append(gen_imgs[np.random.randint(0, batch_size), :].detach().cpu().numpy())
@@ -121,13 +144,9 @@ class Trainer:
         batch_size = data.shape[0]
         seq_length = data.shape[1] if isinstance(self.generator, models.CondLstmGenerator) else 1
 
-        print('\n-----------------------------\n')
-        print(f'device is {self.device}')
-        print('\n-----------------------------\n')
-
         data.to(self.device)
         data_labels.to(self.device)
-
+        gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
         if train_generator:
 
             # -----------------
@@ -139,8 +158,7 @@ class Trainer:
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
                                             device=self.device, sequence_length=seq_length)
-            # gen_labels = torch.randint(0, 2, (batch_size, 1)).to(self.device)
-            gen_labels = torch.cat((data_labels, data[:, :self.sequence_length-self.sequence_length_generated]), dim=1).to(self.device)
+            gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
 
             # Generate a batch of samples
             # if isinstance(self.generator, models.TtsGenerator):
@@ -150,10 +168,9 @@ class Trainer:
             #     gen_imgs = self.generator(z, gen_labels)
 
             # if isinstance(self.discriminator, models.TtsDiscriminator):
-            cond_data = data[:, :self.sequence_length-self.sequence_length_generated].view(batch_size, 1, 1, -1)
-            fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
-            fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
-            fake_data = torch.cat((fake_data, fake_labels), dim=1)
+            fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
+            fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+            fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
             validity = self.discriminator(fake_data)
             # else:
             #     validity = self.discriminator(gen_imgs, gen_labels)
@@ -174,24 +191,23 @@ class Trainer:
         self.discriminator_optimizer.zero_grad()
 
         # if isinstance(self.generator, models.TtsGenerator):
-            # Sample noise and labels as generator input
+        # Sample noise and labels as generator input
         z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
                                         device=self.device, sequence_length=seq_length)
-        gen_labels = torch.cat((data_labels, data[:, :self.sequence_length - self.sequence_length_generated]), dim=1)
-        z = torch.cat((z, gen_labels), dim=1)
+        gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
+        z = torch.cat((z, gen_labels), dim=1).to(self.device)
         gen_imgs = self.generator(z)
 
         # Loss for fake images
-        cond_data = data[:, :self.sequence_length - self.sequence_length_generated].view(batch_size, 1, 1, -1)
-        fake_data = torch.cat((cond_data, gen_imgs), dim=-1)
-        fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
-        fake_data = torch.cat((fake_data, fake_labels), dim=1)
+        fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
+        fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)
 
         # Loss for real images
-        real_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length)
-        data = data.view(-1, 1, 1, data.shape[1])
-        real_data = torch.cat((data, real_labels), dim=1)
+        real_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        data = data.view(-1, 1, 1, data.shape[1]).to(self.device)
+        real_data = torch.cat((data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)
         # else:
         #     # Loss for real images
@@ -202,7 +218,8 @@ class Trainer:
 
         # Total discriminator loss and update
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
-            d_loss = self.loss.discriminator(validity_real, validity_fake, self.discriminator, real_data, fake_data, data_labels, gen_labels)
+            # discriminator, real_images, fake_images, real_labels, fake_labels
+            d_loss = self.loss.discriminator(validity_real, validity_fake, self.discriminator, real_data, fake_data)
         else:
             d_loss = self.loss.discriminator(validity_real, validity_fake)
         d_loss.backward()
@@ -220,6 +237,9 @@ class Trainer:
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
             'generated_samples': generated_samples,
+            'configuration': self.configuration,
+            'discriminator_loss': self.d_losses,
+            'generator_loss': self.g_losses,
         }, path_checkpoint)
 
     def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
