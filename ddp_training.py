@@ -10,7 +10,10 @@ from torch.autograd import Variable
 
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
+
 import trainer
+from losses import WassersteinGradientPenaltyLoss as Loss
+import losses
 from get_master import find_free_port
 
 
@@ -18,27 +21,11 @@ class DDPTrainer(trainer.Trainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
     Source: https://arxiv.org/pdf/1704.00028.pdf"""
 
-    def __init__(self, generator, discriminator, dataset, opt):
+    def __init__(self, generator, discriminator, opt):
         super(trainer.Trainer, self).__init__()
+
         # training configuration
-        self.device = torch.device('cpu')  # just for initialization; later replaced by rank
-        self.trained_gan = opt['trained_gan'] if 'trained_gan' in opt else False
-        self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
-        self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
-        self.latent_dim = opt['latent_dim'] if 'latent_dim' in opt else 10
-        self.critic_iterations = opt['critic_iterations'] if 'critic_iterations' in opt else 5
-        self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
-        self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
-        self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
-        self.b1 = 0  # .5
-        self.b2 = 0.9  # .999
-
-        self.dataset = dataset
-
-        self.generator = generator
-        self.discriminator = discriminator
-
-        self.prev_g_loss = 0
+        super().__init__(generator, discriminator, opt, device='cpu')
 
         self.ddp_generator = None
         self.ddp_discriminator = None
@@ -72,16 +59,16 @@ class DDPTrainer(trainer.Trainer):
         super().print_log(current_epoch, current_batch, num_batches, reduce_tensor[0], reduce_tensor[1])
 
 
-def run(rank, world_size, master_port, training):
+def run(rank, world_size, master_port, training, dataset):
     _setup(rank, world_size, master_port)
     training = _setup_training(rank, training)
-    _ddp_training(rank, training)
+    _ddp_training(rank, training, dataset)
     dist.destroy_process_group()
 
 
-def _ddp_training(rank, training: DDPTrainer):
+def _ddp_training(rank, training: DDPTrainer, dataset):
 
-    _, _, gen_samples = training.training(training.dataset)
+    _, _, gen_samples = training.training(dataset)
 
     # save checkpoint
     if rank == 0:
