@@ -96,6 +96,8 @@ if __name__ == '__main__':
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
 
+    world_size = torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count()
+
     # GAN configuration
     opt = {
         'n_epochs': 100 if not n_epochs else n_epochs,  # number of training epochs of batch training
@@ -114,6 +116,7 @@ if __name__ == '__main__':
         'n_lstm': 2,  # number of lstm layers for lstm GAN
         'patch_size': 15 if not patch_size else patch_size,  # Patch size for the transformer GAN (tts-gan)
         'trained_gan': False if trained_gan is None else trained_gan,  # Use an existing GAN/Checkpoints of previous training
+        'world_size': world_size,  # number of processes for distributed training
     }
 
     # Load dataset as tensor
@@ -131,8 +134,6 @@ if __name__ == '__main__':
     if (opt['sequence_length']) % opt['patch_size'] != 0:
         raise ValueError(
             f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({opt['patch_size']}).")
-
-    world_size = torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count()
 
     # Initialize generator, discriminator and trainer
     state_dict = None
@@ -152,6 +153,6 @@ if __name__ == '__main__':
 
     if train_gan:
         # start training
-        mp.spawn(run, args=(world_size, find_free_port(), trainer, dataset), nprocs=world_size, join=True)
+        mp.spawn(run, args=(world_size, find_free_port(), trainer, dataset, trained_gan), nprocs=world_size, join=True)
     else:
         print("GAN not trained.")

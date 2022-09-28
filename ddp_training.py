@@ -31,6 +31,8 @@ class DDPTrainer(trainer.Trainer):
         self.ddp_discriminator = None
         self.generator_optimizer = None
         self.discriminator_optimizer = None
+        
+        self.world_size = opt['world_size'] if 'world_size' in opt else 1
 
     # ---------------------
     #  DDP-specific modifications
