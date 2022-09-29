@@ -102,8 +102,8 @@ class Trainer:
                     batch_size = self.batch_size
 
                 # draw batch_size samples from sessions
-                data = sessions[i:i + batch_size]
-                data_labels = labels[i:i + batch_size]
+                data = sessions[i:i + batch_size].to(self.device)
+                data_labels = labels[i:i + batch_size].to(self.device)
 
                 # update generator every n iterations as suggested in paper
                 if int(i / batch_size) % self.critic_iterations == 0:
@@ -132,9 +132,19 @@ class Trainer:
                         self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
                         checkpoint_01 = True
 
+        # delete checkpoint file that was not used in the last iteration and rename remaining checkpoint file
+        if checkpoint_01:
+            os.remove(os.path.join(path_checkpoint, checkpoint_01_file))
+            os.rename(os.path.join(path_checkpoint, checkpoint_02_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
+        else:
+            os.remove(os.path.join(path_checkpoint, checkpoint_02_file))
+            os.rename(os.path.join(path_checkpoint, checkpoint_01_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
+
+        # save final models and optimizer states as final result
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = r'trained_models\state_dict_'+timestamp+'.pt'
-        self.save_checkpoint(path_checkpoint=path, generated_samples=gen_samples)
+        file_state_dict = 'state_dict_' + timestamp + '.pt'
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, file_state_dict),
+                             generated_samples=gen_samples)
 
         return self.generator, self.discriminator, gen_samples
 
@@ -144,8 +154,6 @@ class Trainer:
         batch_size = data.shape[0]
         seq_length = data.shape[1] if isinstance(self.generator, models.CondLstmGenerator) else 1
 
-        data.to(self.device)
-        data_labels.to(self.device)
         gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
         if train_generator:
 
