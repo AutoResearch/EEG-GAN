@@ -17,14 +17,9 @@ class Trainer:
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
     Source: https://arxiv.org/pdf/1704.00028.pdf"""
 
-    def __init__(self, generator, discriminator, opt,
-                 optimizer_generator=None, optimizer_discriminator=None, device=None):
+    def __init__(self, generator, discriminator, opt):
         # training configuration
-        if not device:
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        else:
-            # for distributed training
-            self.device = device
+        self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else None
         self.sequence_length_generated = opt['seq_len_generated'] if 'seq_len_generated' in opt else None
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
@@ -48,10 +43,6 @@ class Trainer:
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
-        if optimizer_generator is not None:
-            self.generator_optimizer.load_state_dict(optimizer_generator)
-        if optimizer_discriminator is not None:
-            self.discriminator_optimizer.load_state_dict(optimizer_discriminator)
 
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -71,11 +62,16 @@ class Trainer:
             'critic_iterations': self.critic_iterations,
             'lambda_gp': self.lambda_gp,
             'b1': self.b1,
-            'b2': self.b2
+            'b2': self.b2,
+            'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
         }
 
         self.d_losses = []
         self.g_losses = []
+
+        # load checkpoint
+        if 'load_checkpoint' in opt and opt['load_checkpoint']:
+            self.load_checkpoint(opt['path_checkpoint'] if 'path_checkpoint' in opt else None)
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
@@ -133,20 +129,17 @@ class Trainer:
                         checkpoint_01 = True
 
         # delete checkpoint file that was not used in the last iteration and rename remaining checkpoint file
+        os.remove(os.path.join(path_checkpoint, 'checkpoint.pt'))
         if checkpoint_01:
+            # checkpoint_02 was used in the last iteration
             os.remove(os.path.join(path_checkpoint, checkpoint_01_file))
             os.rename(os.path.join(path_checkpoint, checkpoint_02_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
         else:
+            # checkpoint_01 was used in the last iteration
             os.remove(os.path.join(path_checkpoint, checkpoint_02_file))
             os.rename(os.path.join(path_checkpoint, checkpoint_01_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
 
-        # save final models and optimizer states as final result
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_state_dict = 'state_dict_' + timestamp + '.pt'
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, file_state_dict),
-                             generated_samples=gen_samples)
-
-        return self.generator, self.discriminator, gen_samples
+        return gen_samples
 
     def batch_train(self, data, data_labels, train_generator):
         """Trains the GAN-Model on one batch of data.
@@ -238,17 +231,28 @@ class Trainer:
     def save_checkpoint(self, path_checkpoint=None, generated_samples=None):
         if path_checkpoint is None:
             path_checkpoint = r'trained_models\checkpoint.pt'
-
         torch.save({
             'generator': self.generator.state_dict(),
             'discriminator': self.discriminator.state_dict(),
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
-            'generated_samples': generated_samples,
-            'configuration': self.configuration,
             'discriminator_loss': self.d_losses,
             'generator_loss': self.g_losses,
+            'generated_samples': generated_samples,
+            'configuration': self.configuration,
         }, path_checkpoint)
+
+    def load_checkpoint(self, path_checkpoint):
+        if os.path.isfile(path_checkpoint):
+            # load state_dicts
+            state_dict = torch.load(path_checkpoint, map_location=self.device)
+            self.generator.load_state_dict(state_dict['generator'])
+            self.discriminator.load_state_dict(state_dict['discriminator'])
+            self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
+            self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
+            print("Using pretrained GAN.")
+        else:
+            Warning("No checkpoint-file found. Using random initialization.")
 
     def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
         print(
