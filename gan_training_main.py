@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 from trainer import Trainer
-from models import TtsDiscriminator, TtsGenerator as Generator  #, TtsGeneratorFiltered
+from models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
 import torch.multiprocessing as mp
 
 from get_master import find_free_port
@@ -16,7 +16,6 @@ from ddp_training import run, DDPTrainer
 
 from models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
 from dataloader import Dataloader
-from EmbeddingNet import Encoder, Decoder, Trainer as EmbeddingNetTrainer
 import system_inputs
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
@@ -49,7 +48,7 @@ if __name__ == '__main__':
     """
 
     # get default system arguments
-    system_args = system_inputs.default_inputs()
+    system_args = system_inputs.default_inputs_main()
     default_args = {}
     for key, value in system_args.items():
         # value = [type, description, default value]
@@ -65,8 +64,9 @@ if __name__ == '__main__':
     print('-----------------------------------------\n')
     for arg in sys.argv:
         if arg == 'help':
-            system_inputs.print_table(system_args)
-            system_inputs.print_help()
+            helper = system_inputs.HelperMain('gan_training_main.py', system_args)
+            helper.print_table()
+            helper.print_help()
             exit()
         elif arg == 'ddp':
             ddp = True
@@ -82,9 +82,7 @@ if __name__ == '__main__':
         elif arg == 'filter_generator':
             print('Using low-pass-filtered generator')
             filter_generator = True
-        else:
-            print(f'Argument {arg} not recognized. Use the keyword "help" to see the available arguments.')
-        if '=' in arg:
+        elif '=' in arg:
             kw = arg.split('=')
             if kw[0] == 'ddp':
                 print(f'Use distributed data parallel training: {kw[1]}')
@@ -133,6 +131,8 @@ if __name__ == '__main__':
                 filter_generator = kw[1] == 'True'
             else:
                 print(f'Argument {kw[1]} not recognized. Use the keyword "help" to see the available arguments.')
+        else:
+            print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
 
     print('\n-----------------------------------------')
     print("System output:")
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     # seq_len_2 = opt['seq_len_generated'] if 'seq_len_generated' in opt else None
     # seq_len = seq_len_1 - seq_len_2
     dataloader = Dataloader(path, diff_data=diff_data, std_data=std_data, norm_data=norm_data)
-    dataset = dataloader.get_data(sequence_length=seq_len, windows_slices=windows_slices, stride=5)
+    dataset = dataloader.get_data(sequence_length=seq_len, windows_slices=windows_slices, stride=5, pre_pad=opt['sequence_length']-opt['seq_len_generated'])
     opt['sequence_length'] = dataset.shape[1] - opt['n_conditions']
 
     # keep randomly 10% of the data
@@ -256,7 +256,6 @@ if __name__ == '__main__':
                                          patch_size=opt['patch_size'])
     discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'])
     print("Generator and discriminator initialized.")
-
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Start training process

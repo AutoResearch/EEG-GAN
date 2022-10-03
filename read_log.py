@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def get_loss_from_log(file_name, token_start='loss: ', token_end=']', token_training_line='[Epoch'):
-    """read each line of log-file produced by GAN-training in main.py and output the D and G loss as floats.
+    """read each line of log-file produced by GAN-training in gan_training_main.py and output the D and G loss as floats.
     :param file_name: (String) name of log-file
     :param token_start: (String) token to start reading the loss from
     :param token_end: (String) token to end reading the loss from

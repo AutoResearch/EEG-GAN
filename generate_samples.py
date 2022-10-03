@@ -12,7 +12,7 @@ from dataloader import Dataloader
 class GenerateSamples:
     """This class is used to generate samples from a trained generator."""
 
-    def __init__(self, generator, sequence_length=600, latent_dim=16):
+    def __init__(self, generator, sequence_length, latent_dim):
         self.G = generator
         self.sequence_length = sequence_length
         self.latent_dim = latent_dim

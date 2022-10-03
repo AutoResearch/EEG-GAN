@@ -58,13 +58,17 @@ class Dataloader:
         self.dataset = dataset
         self.labels = labels
 
-    def get_data(self, sequence_length=None, windows_slices=False, stride=1):
+    def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0):
         """returns the data as a tensor"""
         if windows_slices:
+            # pre-pad data with pre_pad zeros
+            data = torch.zeros((self.dataset.shape[0], self.dataset.shape[-1] + pre_pad))
+            data[:, :self.labels.shape[1]] = self.labels
+            data[:, pre_pad+self.labels.shape[-1]:] = self.dataset[:, self.labels.shape[-1]:]
             # if windows_slices is True, return windows of size sequence_length with stride 1
             if sequence_length < 0 or sequence_length + stride > self.dataset.shape[1]:
                 raise ValueError(f"If windows slices are used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}) + stride (={stride}).")
-            dataset = self.windows_slices(self.dataset, sequence_length, stride=5)
+            dataset = self.windows_slices(data, sequence_length, stride=stride)
         elif windows_slices is False and sequence_length:
             # if windows_slices is False, return only one window of size sequence_length from the beginning
             if sequence_length < 0 or sequence_length > self.dataset.shape[1]:

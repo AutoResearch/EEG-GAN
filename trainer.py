@@ -61,6 +61,7 @@ class Trainer:
             'latent_dim': self.latent_dim,
             'critic_iterations': self.critic_iterations,
             'lambda_gp': self.lambda_gp,
+            'patch_size': opt['patch_size'] if 'patch_size' in opt else None,
             'b1': self.b1,
             'b2': self.b2,
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
@@ -129,14 +130,17 @@ class Trainer:
                         checkpoint_01 = True
 
         # delete checkpoint file that was not used in the last iteration and rename remaining checkpoint file
-        os.remove(os.path.join(path_checkpoint, 'checkpoint.pt'))
+        if os.path.exists(os.path.join(path_checkpoint, 'checkpoint.pt')):
+            os.remove(os.path.join(path_checkpoint, 'checkpoint.pt'))
         if checkpoint_01:
             # checkpoint_02 was used in the last iteration
-            os.remove(os.path.join(path_checkpoint, checkpoint_01_file))
+            if os.path.exists(os.path.join(path_checkpoint, checkpoint_01_file)):
+                os.remove(os.path.join(path_checkpoint, checkpoint_01_file))
             os.rename(os.path.join(path_checkpoint, checkpoint_02_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
         else:
             # checkpoint_01 was used in the last iteration
-            os.remove(os.path.join(path_checkpoint, checkpoint_02_file))
+            if os.path.exists(os.path.join(path_checkpoint, checkpoint_02_file)):
+                os.remove(os.path.join(path_checkpoint, checkpoint_02_file))
             os.rename(os.path.join(path_checkpoint, checkpoint_01_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
 
         return gen_samples

@@ -244,10 +244,20 @@ class TtsGeneratorFiltered(TtsGenerator):
 
     def forward(self, z):
         gen_imgs = super().forward(z)
+        # outputs need to be scaled between -1 and 1 for bandpass_biquad filter
         gen_imgs = self.tanh(gen_imgs)
         output = self.filter(gen_imgs)
         return output
 
-    def filter(self, z):
+    @staticmethod
+    def filter(z, scale=False):
         """Filter the generated images to remove the noise. The last dimension of z carries the signal."""
+        if not isinstance(z, torch.Tensor):
+            z = torch.tensor(z)
+        if scale:
+            # scale z between -1 and 1
+            if z.max() <= 1 and z.min() >= 0:
+                z = z * 2 - 1
+            elif z.max() > 0 and z.min() < 0:
+                z = z / torch.max(torch.abs(z))
         return taf.bandpass_biquad(z, 512, 10)

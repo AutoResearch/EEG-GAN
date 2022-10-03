@@ -1,11 +1,14 @@
 import os
+import sys
+import warnings
 
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from models import TtsGenerator as Generator
+import system_inputs
+import models
 from dataloader import Dataloader
 from generate_samples import GenerateSamples
 
@@ -37,7 +40,7 @@ class PlotGeneratedSamples:
         self.title = None
         self.ylim = None
 
-        self.file = None
+        self.file = filename
         if load_file:
             if filename is None:
                 self.file = self.read_files()[-1]  # Store most recent file indicated by timestamp
@@ -50,8 +53,8 @@ class PlotGeneratedSamples:
             self.df = self.read_file()
 
             print("File: " + self.file)
-        else:
-            print("No file loaded. Please use set_dataset to set the dataset.")
+        # else:
+        #     print("No file loaded. Please use set_dataset to set the dataset.")
 
         self.dataloader = None
         if get_original_dataset:
@@ -76,7 +79,7 @@ class PlotGeneratedSamples:
         else:
             return pd.read_csv(os.path.join(r'.\generated_samples', self.file), header=None).T
 
-    def plot(self, stacked=False, batch_size=None, rows=None, n_samples=None):
+    def plot(self, stacked=False, batch_size=None, rows=None, n_samples=None, save=False):
         """
         This function plots the generated samples
         :param stacked: (Bool) Defines if the samples are plotted in a stacked manner (incremented value range)
@@ -198,7 +201,14 @@ class PlotGeneratedSamples:
             # if self.ylim is not None:
             #     plt.ylim(self.ylim)
 
-            plt.show()
+            if save:
+                path = 'plots'
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                file = self.file.split(os.path.sep)[-1].split('.')[0]
+                plt.savefig(os.path.join(path, f'{file}_{i}.png'), dpi=600)
+            else:
+                plt.show()
 
     def set_dataset(self, gen_samples):
         """Set the dataset with the generated samples.
@@ -259,38 +269,114 @@ class PlotGeneratedSamples:
 
 
 if __name__ == '__main__':
+
+    # get default system arguments
+    system_args = system_inputs.default_inputs_visualize()
+    default_args = {}
+    for key, value in system_args.items():
+        # value = [type, description, default value]
+        default_args[key] = value[2]
+
+    # Get system arguments
+    file, generate, experiment, checkpoint, csv_file, save, \
+        n_samples, batch_size, starting_row, n_conditions, \
+        bandpass, mvg_avg, mvg_avg_window \
+        = None, None, None, None, None, None, None, None, None, None, None, None, None
+
+    print('\n-----------------------------------------')
+    print('Command line arguments:')
+    print('-----------------------------------------\n')
+    for arg in sys.argv:
+        if '.py' not in arg:
+            if arg == 'help':
+                helper = system_inputs.HelperVisualize('visualize_samples.py', system_inputs.default_inputs_visualize())
+                helper.print_table()
+                helper.print_help()
+                exit()
+            elif arg == 'generate':
+                print('Using generator to create samples')
+                generate = True
+            elif arg == 'experiment':
+                print('Drawing samples from experiment dataset')
+                experiment = True
+            elif arg == 'checkpoint':
+                print('Drawing samples from a training checkpoint file')
+                checkpoint = True
+            elif arg == 'csv_file':
+                print('Drawing samples from a csv-file')
+                csv_file = True
+            elif arg == 'bandpass':
+                print('Using bandpass filter on samples')
+                bandpass =True
+            elif arg == 'mvg_avg':
+                print('Using moving average filter on samples')
+                mvg_avg = True
+            elif arg == 'save':
+                print('Saving plots to directory "plots"')
+                save = True
+            elif '=' in arg:
+                kw = arg.split('=')
+                if kw[0] == 'file':
+                    print(f'Using file: {kw[1]}')
+                    file = kw[1]
+                elif kw[0] == 'n_conditions':
+                    print(f'Number of conditions: {kw[1]}')
+                    n_conditions = int(kw[1])
+                elif kw[0] == 'n_samples':
+                    print(f'Number of samples: {kw[1]}')
+                    n_samples = int(kw[1])
+                elif kw[0] == 'batch_size':
+                    print(f'Batch size: {kw[1]}')
+                    batch_size = int(kw[1])
+                elif kw[0] == 'starting_row':
+                    print(f'Start to draw samples from row: {kw[1]}')
+                    rows = int(kw[1])
+                elif kw[0] == 'mvg_avg_window':
+                    print(f'Window of moving average filter: {kw[1]}')
+                    mvg_avg_window = int(kw[1])
+                else:
+                    print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
+            else:
+                print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
+
     # ----------------------------
     # configuration of program
     # ----------------------------
 
-    # if generate, experimental_data, load_file = False
-    # the program will get the samples from the checkpoint.pt file in the directory trained_models
-    generate = False            # generate samples with generator
-    experimental_data = False   # use samples of experimental data
+    generate = default_args['generate'] if generate is None else generate
+    experiment = default_args['experiment'] if experiment is None else experiment
+    checkpoint = default_args['checkpoint'] if checkpoint is None else checkpoint
+    csv_file = default_args['csv_file'] if csv_file is None else csv_file
+    if sum([generate, experiment, checkpoint, csv_file]) > 1:
+        raise ValueError('Only one of the following options can be active: generate, experiment, checkpoint, csv_file')
+    elif sum([generate, experiment, checkpoint, csv_file]) == 0:
+        raise ValueError('One of the following options must be active: generate, experiment, checkpoint, csv_file')
 
-    load_file = True           # load samples from file; Only used if generate and experimental_data are False
-
-    # specify if specific file from dir 'generated_samples' should be visualized else None
-    filename = 'state_dict_tts_lp_seq_init.pt'
+    save = default_args['save'] if save is None else save
+    file = default_args['file'] if file is None else file
 
     # ----------------------------
     # configuration of plotter
     # ----------------------------
 
-    n_conditions = 1            # number of columns with conditions BEFORE actual signal starts
-    gan_or_emb = 'gan'          # GAN samples: 'gan'; Embedding network samples: 'emb'; 'emb' was not tested yet!
-    n_samples = 10              # number of linearly drawn samples from given dataset
-    batch_size = 10           # number of samples plotted in one figure
-    rows = 0                    # number of rows to skip in dataset; useful to skip samples from early training
+    n_conditions = default_args['n_conditions'] if n_conditions is None else n_conditions
+    n_samples = default_args['n_samples'] if n_samples is None else n_samples
+    batch_size = default_args['batch_size'] if batch_size is None else batch_size
+    rows = default_args['starting_row'] if starting_row is None else starting_row
+    gan_or_emb = 'gan'  # GAN samples: 'gan'; Embedding network samples: 'emb'; 'emb' was not tested yet!
 
     # ----------------------------
     # data processing configuration
     # ----------------------------
 
-    norm_data = False            # normalize data to the range [0, 1]
-    mvg_avg = False             # moving average filter with window size moving_average_window
-    moving_average_window = 1   # window size for moving average
+    bandpass = default_args['bandpass'] if bandpass is None else bandpass
+    mvg_avg = default_args['mvg_avg'] if mvg_avg is None else mvg_avg
+    moving_average_window = default_args['mvg_avg_window'] if mvg_avg_window is None else mvg_avg_window
+    norm_data = True            # normalize data to the range [0, 1]
     sequence_length = 24        # length of the sequence
+
+    if bandpass and mvg_avg:
+        warnings.warn('Both filters are active ("mvg_avg" and "bandpass"). Consider using only one.')
 
     # ----------------------------
     # run program
@@ -300,73 +386,95 @@ if __name__ == '__main__':
     data = None                 # specified automatically according to configuration
 
     # setup and configure according to generation or loading
-    if experimental_data and generate:
-        raise RuntimeError('You can not generate samples and use experimental data at the same time.')
-
-    if experimental_data and not generate:
+    if experiment or csv_file or checkpoint:
         # load experimental data
         load_file = True
-    elif generate:
+    else:
         # do not load any file but generate samples
         load_file = False
 
     if generate:
         # generate samples
         # load generator
-        path = 'trained_models'
-        if filename.endswith('.pt'):
-            file = os.path.join(path, filename)
-        else:
-            file = os.path.join(path, 'checkpoint.pt')
+        if file.split('/')[0] == file:
+            # use default path
+            path = 'trained_models'
+            if file.endswith('.pt'):
+                file = os.path.join(path, file)
+            elif file is None:
+                file = os.path.join(path, 'checkpoint.pt')
+            else:
+                raise ValueError("File must be either None for loading a checkpoint or a dictionary ending with .pt")
         state_dict = torch.load(file, map_location=torch.device('cpu'))
-        generator = Generator(seq_length=sequence_length,
-                              latent_dim=17,
-                              patch_size=12)
+        opt = state_dict['configuration']
+        generator = models.TtsGenerator(seq_length=opt['seq_len_generated'],
+                                        latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
+                                        patch_size=opt['patch_size'])
         generator.load_state_dict(state_dict['generator'])
+
+        if isinstance(generator, models.TtsGenerator):
+            raise RuntimeError('visualize_samples.py is not compatible with the "generate" keyword, right now. Please use the "checkpoint" keyword instead.')
+
         # generate samples
-        generate_samples = GenerateSamples(generator)
-        data = generate_samples.generate_samples()
+        generate_samples = GenerateSamples(generator, opt['seq_len_generated'], opt['latent_dim'])
+        data = generate_samples.generate_samples(n_samples, conditions=False)
 
         # set plotting settings
         load_file, gan_or_emb, n_conditions, title = False, 'gan', 1, 'generated samples'
 
-    if experimental_data:
+    if experiment:
         load_file, n_conditions, gan_or_emb, title = False, 3, 'gan', 'experimental data'
-        filename = r"C:\Users\Daniel\PycharmProjects\GanInNeuro\data\ganAverageERP.csv"
-        dataloader = Dataloader(path=filename, sequence_length=sequence_length, diff_data=False, std_data=False, norm_data=True)
+        path = 'data'
+        if not file.endswith('.csv'):
+            raise ValueError("Please specify a csv-file holding the experimental data.")
+        dataloader = Dataloader(path=os.path.join(path, file), sequence_length=sequence_length, norm_data=True)
         data = dataloader.get_data()
 
-    # Load data from state_dict
-    if not generate and not experimental_data and load_file and data is None:
+    if checkpoint:
+        # Load data from state_dict
         # if filename extension is .pt --> load state_dict and get samples from it
-        if filename.endswith('.pt'):
+        if not file.endswith('.pt'):
+            raise ValueError("Please specify a .pt-file holding a dictionary with the training data.")
+        if file.split('/')[0] == file:
+            # use default path
             path = 'trained_models'
-            data = np.array(torch.load(os.path.join(path, filename), map_location=torch.device('cpu'))['generated_samples'])
-            # filename = None  # set filename to None to avoid new loading of file within class
-            load_file = False  # Otherwise most recent file from directory 'generated_samples' will be loaded
+            file = os.path.join(path, file)
+        data = np.array(torch.load(file, map_location=torch.device('cpu'))['generated_samples'])
+        load_file = False  # Otherwise most recent file from directory 'generated_samples' will be loaded
 
-    # Load data from checkpoint.pt
-    if not generate and not experimental_data and not load_file and data is None:
-        # get data from checkpoint
-        path = 'trained_models'
-        filename = 'checkpoint.pt'
-        data = np.array(torch.load(os.path.join(path, filename), map_location=torch.device('cpu'))['generated_samples'])
+    if csv_file:
+        # Load training data from csv file
+        if not file.endswith('.csv'):
+            raise ValueError("Please specify a .csv-file holding the training data.")
+        if file.split('/')[0] == file:
+            # use default path
+            path = 'generated_samples'
+            file = os.path.join(path, file)
+        data = np.array(pd.read_csv(file, delimiter=',', header=None))
+        load_file = False
 
     # setup plotter
-    plotter = PlotGeneratedSamples(load_file=load_file, filename=filename,
+    plotter = PlotGeneratedSamples(load_file=load_file, filename=file,
                                    gan_or_emb=gan_or_emb, n_conditions=n_conditions,
                                    get_original_dataset=False)
 
     if data is not None:
         plotter.set_dataset(data)
 
-    # filter data with moving average from GenerateSamples class
-    plotter.set_dataset(GenerateSamples.moving_average(plotter.get_dataset(), w=moving_average_window))
-    # normalize each sample along time axis
-    plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
+    if mvg_avg:
+        # filter data with moving average from GenerateSamples class
+        plotter.set_dataset(GenerateSamples.moving_average(plotter.get_dataset(), w=moving_average_window))
+
+    if bandpass:
+        # filter data with bandpass filter from TtsGeneratorFiltered class
+        plotter.set_dataset(models.TtsGeneratorFiltered.filter(plotter.get_dataset(), scale=True))
+
+    if norm_data:
+        # normalize each sample along time axis
+        plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
 
     # plot data
-    plotter.set_title(title + f'; {filename if filename is not None else ""}')
+    plotter.set_title(title + f'; {file if file is not None else ""}')
     # plotter.set_y_lim(max=int(1.5*batch_size), min=0)
     # plotter.set_y_lim(max=50, min=-10)
-    plotter.plot(stacked=True, batch_size=batch_size, n_samples=n_samples, rows=rows)
+    plotter.plot(stacked=True, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)
