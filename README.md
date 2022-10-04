@@ -29,6 +29,7 @@ This repository has 3 scripts which are executable from the terminal.
 Use DDP-Training (Distributed Data Parallel Framework from PyTorch) if you want to apply the procedure to several GPUs.
 Each GPU will process the complete dataset during one epoch. Therefore, divide the number of epochs you would usually take for one GPU by the number of available GPUs to calculate the DDP-Training number of epochs (n_epochs = n_epochs/n_GPUs)
 
+In the training script you have the possibility to save samples during the training procedure each n batches. Please keep in mind, that saving these samples takes time. If you have 100 batches per epoch and thousands of epochs it should be enough to save one sample per epoch for a good reconstruction of the generated samples of the training progress. 
 
-
-
+The training progress itself is saved in checkpoint.pt files and the final result has the name state_dict_xxxxx.pt
+These files carry a python dictionary with all necessary information, models, generated samples, losses and so on.
