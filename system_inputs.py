@@ -48,7 +48,10 @@ class Helper:
         self.line()
         print('General information: '
               '\n\tBoolean arguments are given as a single keyword:'
-              '\n\tSet boolean keyword "test_keyword" to True\t->\tpython file.py test_keyword')
+              '\n\t\tSet boolean keyword "test_keyword" to True\t->\tpython file.py test_keyword'
+              '\n\tCommand line arguments are given as a keyword followed by an equal sign and the value:'
+              '\n\t\tSet command line argument "test_keyword" to "test_value"\t->\tpython file.py test_keyword=test_value'
+              '\n\t\tWhitespaces are not allowed between a keyword and its value.')
         self.line()
 
     def start_line(self):
@@ -113,14 +116,15 @@ class HelperVisualize(Helper):
               '\n\t\t\t"csv_file"\t->\tpath = "generated_samples"'
               '\n\t\tIf another keyword than "checkpoint" or "generate" is given a file must be specified,'
               '\n\t\tsince the default file is only compatible with these two keywords.')
-        print('1.\tIf a dataset is loaded (keywords "experiment", "checkpoint" or "csv_file"),'
+        print('2.\tIf a dataset is loaded (keywords "experiment", "checkpoint" or "csv_file"),'
               '\n\tthe keyword "n_samples" tells how many samples are drawn linearly from the dataset')
-        print('2.\tIf the keyword "starting_row" is given, the dataset will start from the given row.'
+        print('3.\tIf the keyword "starting_row" is given, the dataset will start from the given row.'
               '\n\tThis utility is useful to skip early training stage samples.'
               '\n\tThe value can also be negative.')
-        print('3.\tFollowing filters can be applied to the drawn or generated samples:'
+        print('4.\tFollowing filters can be applied to the drawn or generated samples:'
               '\n\t\t"bandpass":\tThe bandpass filter from models.TtsGeneratorFiltered is applied'
               '\n\t\t"mvg_avg":\tA moving average filter with the window length "mvg_avg_window" is applied')
+        print('5.\tThe keyword "plot_losses" currently works only with the keyword "checkpoint"')
         self.end_line()
 
 
@@ -139,8 +143,9 @@ def default_inputs_main():
         'sample_interval': [int, 'Interval of batches between saving samples', 100],
         'n_conditions': [int, 'Number of conditions', 1],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001],
-        'path_dataset': [str, 'Path to the dataset', 'data/ganAverageERP.csv'],
-        'path_checkpoint': [str, 'Path to the checkpoint', 'trained_models/checkpoint.pt'],
+        'path_dataset': [str, 'Path to the dataset', r'data\ganAverageERP.csv'],
+        'path_checkpoint': [str, 'Path to the checkpoint', r'trained_models\checkpoint.pt'],
+        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl'],
     }
 
     for key, value in kw_dict.items():
@@ -154,11 +159,12 @@ def default_inputs_visualize():
     # generate, experimental, load_file, filename, n_samples, batch_size, starting_row, n_conditions, filter, \
     # mvg_avg, mvg_avg_window
     kw_dict = {
-        'file': [str, 'File to be used', 'trained_models/checkpoint.pt'],
+        'file': [str, 'File to be used', r'trained_models\checkpoint.pt'],
         'checkpoint': [bool, 'Use samples from training checkpoint file', False],
         'generate': [bool, 'Use generator to create samples to visualize', False],
         'experiment': [bool, 'Use samples from experimental data', False],
         'csv_file': [bool, 'Use samples from csv-file', False],
+        'plot_losses': [bool, 'Plot training losses', False],
         'save': [bool, 'Save the generated plots in the directory "plots" instead of showing them', False],
         'bandpass': [bool, 'Use bandpass filter on samples', False],
         'mvg_avg': [bool, 'Use moving average filter on samples', False],
@@ -167,6 +173,15 @@ def default_inputs_visualize():
         'n_samples': [int, 'Total number of samples to be plotted', 10],
         'batch_size': [int, 'Number of samples in one plot', 10],
         'starting_row': [int, 'Starting row of the dataset', 0],
+    }
+
+    return kw_dict
+
+
+def default_inputs_checkpoint_to_csv():
+    kw_dict = {
+        'file': [str, 'File to be used', r'trained_models\checkpoint.pt'],
+        'key': [str, 'Key of the checkpoint file to be saved; The other option is "losses"; Can be also given like: =key_1,key_2', 'generated_samples'],
     }
 
     return kw_dict

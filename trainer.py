@@ -203,6 +203,8 @@ class Trainer:
         z = torch.cat((z, gen_labels), dim=1).to(self.device)
         gen_imgs = self.generator(z)
 
+        gen_samples = torch.cat((gen_labels, gen_imgs.view(gen_imgs.shape[0], gen_imgs.shape[-1])), dim=1).to(self.device)
+
         # Loss for fake images
         fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
         fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
@@ -230,7 +232,7 @@ class Trainer:
         d_loss.backward()
         self.discriminator_optimizer.step()
 
-        return d_loss.item(), g_loss, gen_imgs
+        return d_loss.item(), g_loss, gen_samples
 
     def save_checkpoint(self, path_checkpoint=None, generated_samples=None):
         if path_checkpoint is None:

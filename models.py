@@ -260,4 +260,6 @@ class TtsGeneratorFiltered(TtsGenerator):
                 z = z * 2 - 1
             elif z.max() > 0 and z.min() < 0:
                 z = z / torch.max(torch.abs(z))
+            elif z.max() > 0 and z.min() >= 0:
+                z = (z - z.mean()) / z.abs().max()
         return taf.bandpass_biquad(z, 512, 10)

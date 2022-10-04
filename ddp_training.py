@@ -72,21 +72,21 @@ class DDPTrainer(trainer.Trainer):
         self.discriminator_optimizer.load_state_dict(d_opt_state)
 
 
-def run(rank, world_size, master_port, training, dataset):
-    _setup(rank, world_size, master_port)
+def run(rank, world_size, master_port, backend, training, dataset):
+    _setup(rank, world_size, master_port, backend)
     training = _setup_training(rank, training)
     _ddp_training(training, dataset)
     dist.destroy_process_group()
 
 
-def _setup(rank, world_size, master_port):
+def _setup(rank, world_size, master_port, backend):
     # print(f"Initializing process group on rank {rank}")# on master port {self.master_port}.")
 
     os.environ['MASTER_ADDR'] = 'localhost'#'127.0.0.1'
     os.environ['MASTER_PORT'] = str(master_port)
 
     # create default process group
-    dist.init_process_group("gloo", rank=rank, world_size=world_size, timeout=timedelta(seconds=30))
+    dist.init_process_group(backend, rank=rank, world_size=world_size, timeout=timedelta(seconds=30))
 
 
 def _setup_training(rank, training):

@@ -57,7 +57,8 @@ if __name__ == '__main__':
     # Get system arguments
     ddp, n_epochs, sequence_length, seq_len_generated, load_checkpoint, path_checkpoint, train_gan, \
         windows_slices, patch_size, batch_size, learning_rate, sample_interval, n_conditions, path_dataset, \
-        filter_generator = None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
+        filter_generator, ddp_backend = \
+        None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
     print('\n-----------------------------------------')
     print('Command line arguments:')
@@ -126,6 +127,9 @@ if __name__ == '__main__':
             elif kw[0] == 'path_dataset':
                 print(f'Path to dataset: {kw[1]}')
                 path_dataset = kw[1]
+            elif kw[0] == 'ddp_backend':
+                print(f'Distributed data parallel backend: {kw[1]}')
+                ddp_backend = kw[1]
             elif kw[0] == 'filter_generator':
                 print(f'Filter generator: {kw[1]}')
                 filter_generator = kw[1] == 'True'
@@ -143,16 +147,11 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------------------------------------------
 
     # Training configuration
-    if ddp is None:
-        ddp = default_args['ddp']
-    if load_checkpoint is None:
-        # Use an existing GAN/Checkpoints of previous training
-        load_checkpoint = default_args['load_checkpoint']
-    if path_checkpoint is None:
-        path_checkpoint = default_args['path_checkpoint']
-    if train_gan is None:
-        # Train the GAN in the optimization process
-        train_gan = default_args['train_gan']
+    ddp = default_args['ddp'] if ddp is None else ddp
+    ddp_backend = default_args['ddp_backend'] if ddp_backend is None else ddp_backend
+    load_checkpoint = default_args['load_checkpoint'] if load_checkpoint is None else load_checkpoint
+    path_checkpoint = default_args['path_checkpoint'] if path_checkpoint is None else path_checkpoint
+    train_gan = default_args['train_gan'] if train_gan is None else train_gan
     # trained_embedding = False       # Use an existing embedding
     # use_embedding = False           # Train the embedding in the optimization process
 
@@ -268,7 +267,8 @@ if __name__ == '__main__':
         print('-----------------------------------------\n')
         if ddp:
             trainer = DDPTrainer(generator, discriminator, opt)
-            mp.spawn(run, args=(world_size, find_free_port(), trainer, dataset), nprocs=world_size, join=True)
+            mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, dataset),
+                     nprocs=world_size, join=True)
         else:
             trainer = Trainer(generator, discriminator, opt)
             gen_samples = trainer.training(dataset)
