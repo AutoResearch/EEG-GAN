@@ -60,83 +60,77 @@ if __name__ == '__main__':
         filter_generator, ddp_backend = \
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
+    # Training configuration
+    sequence_length = 100
+    seq_len_generated = -1
+    n_epochs = 2
+    sample_interval = 10
+    windows_slices = True
+
     print('\n-----------------------------------------')
     print('Command line arguments:')
     print('-----------------------------------------\n')
     for arg in sys.argv:
-        if arg == 'help':
-            helper = system_inputs.HelperMain('gan_training_main.py', system_args)
-            helper.print_table()
-            helper.print_help()
-            exit()
-        elif arg == 'ddp':
-            ddp = True
-        elif arg == 'load_checkpoint':
-            print('Loading checkpoint')
-            load_checkpoint = True
-        elif arg == 'train_gan':
-            print('Training GAN')
-            train_gan = True
-        elif arg == 'windows_slices':
-            print('Using window slices')
-            windows_slices = True
-        elif arg == 'filter_generator':
-            print('Using low-pass-filtered generator')
-            filter_generator = True
-        elif '=' in arg:
-            kw = arg.split('=')
-            if kw[0] == 'ddp':
-                print(f'Use distributed data parallel training: {kw[1]}')
-                ddp = kw[1] == 'True'
-            if kw[0] == 'n_epochs':
-                print(f'Number of epochs: {kw[1]}')
-                n_epochs = int(kw[1])
-            elif kw[0] == 'sequence_length':
-                print(f'Total sequence length: {kw[1]}')
-                sequence_length = int(kw[1])
-            elif kw[0] == 'seq_len_generated':
-                print(f'Sequence length to generate: {kw[1]}')
-                seq_len_generated = int(kw[1])
-            elif kw[0] == 'path_checkpoint':
-                print(f'Path to checkpoint: {kw[1]}')
-                path_checkpoint = kw[1]
-            elif kw[0] == 'load_checkpoint':
-                print(f'Use checkpoint: {kw[1]}')
-                load_checkpoint = kw[1] == 'True'
-            elif kw[0] == 'train_gan':
-                print(f'Train GAN: {kw[1]}')
-                train_gan = kw[1] == 'True'
-            elif kw[0] == 'windows_slices':
-                print(f'Use window slices: {kw[1]}')
-                windows_slices = kw[1] == 'True'
-            elif kw[0] == 'patch_size':
-                print(f'Patch size of transformer: {kw[1]}')
-                patch_size = int(kw[1])
-            elif kw[0] == 'batch_size':
-                print(f'Batch size: {kw[1]}')
-                batch_size = int(kw[1])
-            elif kw[0] == 'learning_rate':
-                print(f'Learning rate: {kw[1]}')
-                learning_rate = float(kw[1])
-            elif kw[0] == 'n_conditions':
-                print(f'Number of conditions: {kw[1]}')
-                n_conditions = int(kw[1])
-            elif kw[0] == 'sample_interval':
-                print(f'Sample interval: {kw[1]}')
-                sample_interval = int(kw[1])
-            elif kw[0] == 'path_dataset':
-                print(f'Path to dataset: {kw[1]}')
-                path_dataset = kw[1]
-            elif kw[0] == 'ddp_backend':
-                print(f'Distributed data parallel backend: {kw[1]}')
-                ddp_backend = kw[1]
-            elif kw[0] == 'filter_generator':
-                print(f'Filter generator: {kw[1]}')
-                filter_generator = kw[1] == 'True'
+        if '.py' not in arg:
+            if arg == 'help':
+                helper = system_inputs.HelperMain('gan_training_main.py', system_args)
+                helper.print_table()
+                helper.print_help()
+                exit()
+            elif arg == 'ddp':
+                print('DDP training')
+                ddp = True
+            elif arg == 'load_checkpoint':
+                print('Loading checkpoint')
+                load_checkpoint = True
+            elif arg == 'train_gan':
+                print('Training GAN')
+                train_gan = True
+            elif arg == 'windows_slices':
+                print('Using window slices')
+                windows_slices = True
+            elif arg == 'filter_generator':
+                print('Using low-pass-filtered generator')
+                filter_generator = True
+            elif '=' in arg:
+                kw = arg.split('=')
+                if kw[0] == 'n_epochs':
+                    print(f'Number of epochs: {kw[1]}')
+                    n_epochs = int(kw[1])
+                elif kw[0] == 'sequence_length':
+                    print(f'Total sequence length: {kw[1]}')
+                    sequence_length = int(kw[1])
+                elif kw[0] == 'seq_len_generated':
+                    print(f'Sequence length to generate: {kw[1]}')
+                    seq_len_generated = int(kw[1])
+                elif kw[0] == 'path_checkpoint':
+                    print(f'Path to checkpoint: {kw[1]}')
+                    path_checkpoint = kw[1]
+                elif kw[0] == 'patch_size':
+                    print(f'Patch size of transformer: {kw[1]}')
+                    patch_size = int(kw[1])
+                elif kw[0] == 'batch_size':
+                    print(f'Batch size: {kw[1]}')
+                    batch_size = int(kw[1])
+                elif kw[0] == 'learning_rate':
+                    print(f'Learning rate: {kw[1]}')
+                    learning_rate = float(kw[1])
+                elif kw[0] == 'n_conditions':
+                    print(f'Number of conditions: {kw[1]}')
+                    n_conditions = int(kw[1])
+                elif kw[0] == 'sample_interval':
+                    print(f'Sample interval: {kw[1]}')
+                    sample_interval = int(kw[1])
+                elif kw[0] == 'path_dataset':
+                    print(f'Path to dataset: {kw[1]}')
+                    path_dataset = kw[1]
+                elif kw[0] == 'ddp_backend':
+                    print(f'Distributed data parallel backend: {kw[1]}')
+                    ddp_backend = kw[1]
+                else:
+                    print(f'Argument {kw[1]} not recognized. Use the keyword "help" to see the available arguments.')
             else:
-                print(f'Argument {kw[1]} not recognized. Use the keyword "help" to see the available arguments.')
-        else:
-            print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
+                print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
 
     print('\n-----------------------------------------')
     print("System output:")
@@ -165,6 +159,9 @@ if __name__ == '__main__':
     # raise warning if no normalization and standardization is used at the same time
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
+
+    if (seq_len_generated == -1 or sequence_length == -1) and windows_slices:
+        raise ValueError('If window slices are used, the keywords "sequence_length" and "seq_len_generated" must be greater than 0.')
 
     # Look for cuda
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if not ddp else torch.device("cpu")
@@ -197,9 +194,9 @@ if __name__ == '__main__':
     # seq_len = seq_len_1 - seq_len_2
     dataloader = Dataloader(path, diff_data=diff_data, std_data=std_data, norm_data=norm_data)
     dataset = dataloader.get_data(sequence_length=seq_len, windows_slices=windows_slices, stride=5, pre_pad=opt['sequence_length']-opt['seq_len_generated'])
-    opt['sequence_length'] = dataset.shape[1] - opt['n_conditions']
+    opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
-    # keep randomly 10% of the data
+    # keep randomly 30% of the data
     # dataset = dataset[np.random.randint(0, dataset.shape[0], int(dataset.shape[0]*0.3))]
 
     if opt['sequence_length'] % opt['patch_size'] != 0:
@@ -208,6 +205,9 @@ if __name__ == '__main__':
         while opt['sequence_length'] % opt['patch_size'] != 0:
             dataset = torch.cat((dataset, torch.zeros(dataset.shape[0], 1)), dim=-1)
             opt['sequence_length'] += 1
+
+    if opt['seq_len_generated'] == -1:
+        opt['seq_len_generated'] = opt['sequence_length']
 
     # Embedding network to reduce the dimension of time-series data
     # not tested yet

@@ -77,7 +77,7 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         if real_images.device != fake_images.device:
             raise ValueError("real_images and fake_images must be on the same device!")
 
-        eta = torch.FloatTensor(real_images.shape[0], real_images.shape[1]).uniform_(0, 1).to(real_images.device)
+        eta = torch.FloatTensor(real_images.shape[0], 1).uniform_(0, 1).repeat((1, real_images.shape[1])).to(real_images.device)
 
         # interpolate between real and fake images/labels
         # interpolated_labels = real_labels  # (eta * real_labels + ((1 - eta) * fake_labels))
@@ -102,14 +102,13 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         # calculate probability of interpolated examples
         prob_interpolated = discriminator(interpolated)
 
+        fake = autograd.Variable(torch.ones((real_images.shape[0], 1)).to(real_images.device), requires_grad=False)
+
         # calculate gradients of probabilities with respect to examples
         gradients = autograd.grad(outputs=prob_interpolated,
                                   inputs=interpolated,
-                                  grad_outputs=torch.ones(prob_interpolated.size(),
-                                                          device=prob_interpolated.device,
-                                                          requires_grad=False),
+                                  grad_outputs=fake,
                                   create_graph=True,
                                   retain_graph=True)[0]
-
         grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.lambda_gp
         return grad_penalty

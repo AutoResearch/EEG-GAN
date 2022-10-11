@@ -10,10 +10,10 @@ import torch
 import system_inputs
 import models
 from dataloader import Dataloader
-from generate_samples import GenerateSamples
+from generate_samples_main import GenerateSamples
 
 
-class PlotGeneratedSamples:
+class PlotterGanTraining:
     """This class is used to read samples from a csv-file and plot them.
     Shape of the csv-file has to be (rows: samples, cols: (conditions, signal))"""
 
@@ -471,9 +471,9 @@ if __name__ == '__main__':
         load_file = False
 
     # setup plotter
-    plotter = PlotGeneratedSamples(load_file=load_file, filename=file,
-                                   gan_or_emb=gan_or_emb, n_conditions=n_conditions,
-                                   get_original_dataset=False)
+    plotter = PlotterGanTraining(load_file=load_file, filename=file,
+                                 gan_or_emb=gan_or_emb, n_conditions=n_conditions,
+                                 get_original_dataset=False)
 
     if data is not None:
         plotter.set_dataset(data)

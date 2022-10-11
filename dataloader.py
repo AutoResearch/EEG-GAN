@@ -71,8 +71,10 @@ class Dataloader:
             dataset = self.windows_slices(data, sequence_length, stride=stride)
         elif windows_slices is False and sequence_length:
             # if windows_slices is False, return only one window of size sequence_length from the beginning
-            if sequence_length < 0 or sequence_length > self.dataset.shape[1]:
-                raise ValueError(f"If windows slices are not used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
+            if sequence_length == -1:
+                sequence_length = self.dataset.shape[1] - self.labels.shape[1]
+            if sequence_length < 0 or sequence_length > self.dataset.shape[1] - self.labels.shape[1]:
+                raise ValueError(f"If windows slices are not used, the sequence_length must be smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
             dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
         else:
             dataset = self.dataset

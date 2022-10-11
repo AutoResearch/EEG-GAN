@@ -2,8 +2,9 @@ import os
 import random
 from datetime import datetime
 
-import numpy as np
 import torch
+import torch.distributed as dist
+import numpy as np
 
 import models
 import losses
@@ -24,6 +25,8 @@ class Trainer:
         self.sequence_length_generated = opt['seq_len_generated'] if 'seq_len_generated' in opt else None
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
         self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
+        self.use_checkpoint = opt['load_checkpoint'] if 'load_checkpoint' in opt else False
+        self.path_checkpoint = opt['path_checkpoint'] if 'path_checkpoint' in opt else None
         self.latent_dim = opt['latent_dim'] if 'latent_dim' in opt else 10
         self.critic_iterations = opt['critic_iterations'] if 'critic_iterations' in opt else 5
         self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
@@ -32,6 +35,7 @@ class Trainer:
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
+        self.rank = 0
 
         self.generator = generator
         self.discriminator = discriminator
@@ -71,8 +75,11 @@ class Trainer:
         self.g_losses = []
 
         # load checkpoint
-        if 'load_checkpoint' in opt and opt['load_checkpoint']:
-            self.load_checkpoint(opt['path_checkpoint'] if 'path_checkpoint' in opt else None)
+        try:
+            if self.use_checkpoint:
+                self.load_checkpoint(self.path_checkpoint)
+        except RuntimeError:
+            Warning("Could not load checkpoint. If DDP was used while saving and is used now for loading the checkpoint will be loaded in a following step.")
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
@@ -82,36 +89,38 @@ class Trainer:
 
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
-        checkpoint_01 = True
+        trigger_checkpoint_01 = True
         checkpoint_01_file = 'checkpoint_01.pt'
         checkpoint_02_file = 'checkpoint_02.pt'
 
         for epoch in range(self.epochs):
             # for-loop for number of batch_size entries in sessions
-            random.shuffle(dataset)
-            sessions = dataset[:, self.n_conditions:]
-            labels = dataset[:, :self.n_conditions]
-            for i in range(0, len(sessions), self.batch_size):
+            dataset = dataset[torch.randperm(dataset.shape[0])]
+            for i in range(0, dataset.shape[0], self.batch_size):
+                # print(f'rank {self.rank} starts new batch...')
                 # Check whether last batch contains less samples than batch_size
-                if i + self.batch_size > len(sessions):
-                    batch_size = len(sessions) - i  # set batch_size to the remaining number of entries
+                if i + self.batch_size > dataset.shape[0]:
+                    batch_size = dataset.shape[0] - i  # set batch_size to the remaining number of entries
                 else:
                     batch_size = self.batch_size
 
                 # draw batch_size samples from sessions
-                data = sessions[i:i + batch_size].to(self.device)
-                data_labels = labels[i:i + batch_size].to(self.device)
+                data = dataset[i:i + batch_size][:, self.n_conditions:].to(self.device)
+                data_labels = dataset[i:i + batch_size][:, :self.n_conditions].to(self.device)
 
                 # update generator every n iterations as suggested in paper
                 if int(i / batch_size) % self.critic_iterations == 0:
                     train_generator = True
                 else:
                     train_generator = False
+
                 d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
 
                 self.d_losses.append(d_loss)
                 self.g_losses.append(g_loss)
 
+                # if self.rank == 0:
+                # save checkpoint and print log if main rank (=0)
                 current_batch = i // self.batch_size + 1
                 self.print_log(epoch+1, current_batch, num_batches, d_loss, g_loss)
 
@@ -122,26 +131,14 @@ class Trainer:
                     gen_samples.append(gen_imgs[np.random.randint(0, batch_size), :].detach().cpu().numpy())
                     # save models and optimizer states as checkpoints
                     # toggle between checkpoint files to avoid corrupted file during training
-                    if checkpoint_01:
+                    if trigger_checkpoint_01:
                         self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), generated_samples=gen_samples)
-                        checkpoint_01 = False
+                        trigger_checkpoint_01 = False
                     else:
                         self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
-                        checkpoint_01 = True
+                        trigger_checkpoint_01 = True
 
-        # delete checkpoint file that was not used in the last iteration and rename remaining checkpoint file
-        if os.path.exists(os.path.join(path_checkpoint, 'checkpoint.pt')):
-            os.remove(os.path.join(path_checkpoint, 'checkpoint.pt'))
-        if checkpoint_01:
-            # checkpoint_02 was used in the last iteration
-            if os.path.exists(os.path.join(path_checkpoint, checkpoint_01_file)):
-                os.remove(os.path.join(path_checkpoint, checkpoint_01_file))
-            os.rename(os.path.join(path_checkpoint, checkpoint_02_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
-        else:
-            # checkpoint_01 was used in the last iteration
-            if os.path.exists(os.path.join(path_checkpoint, checkpoint_02_file)):
-                os.remove(os.path.join(path_checkpoint, checkpoint_02_file))
-            os.rename(os.path.join(path_checkpoint, checkpoint_01_file), os.path.join(path_checkpoint, 'checkpoint.pt'))
+        self.manage_checkpoints(trigger_checkpoint_01, path_checkpoint, [checkpoint_01_file, checkpoint_02_file], generated_samples=gen_samples)
 
         return gen_samples
 
@@ -173,6 +170,7 @@ class Trainer:
             #     gen_imgs = self.generator(z, gen_labels)
 
             # if isinstance(self.discriminator, models.TtsDiscriminator):
+            # print devices of tensors in torch.cat
             fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
             fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
@@ -231,15 +229,21 @@ class Trainer:
             d_loss = self.loss.discriminator(validity_real, validity_fake)
         d_loss.backward()
         self.discriminator_optimizer.step()
+        # print(f'rank {self.rank}: Updated Discriminator')
 
         return d_loss.item(), g_loss, gen_samples
 
-    def save_checkpoint(self, path_checkpoint=None, generated_samples=None):
+    def save_checkpoint(self, path_checkpoint=None, generated_samples=None, generator=None, discriminator=None):
         if path_checkpoint is None:
-            path_checkpoint = r'trained_models\checkpoint.pt'
+            path_checkpoint = 'trained_models'+os.path.sep+'checkpoint.pt'
+        if generator is None:
+            generator = self.generator
+        if discriminator is None:
+            discriminator = self.discriminator
+
         torch.save({
-            'generator': self.generator.state_dict(),
-            'discriminator': self.discriminator.state_dict(),
+            'generator': generator.state_dict(),
+            'discriminator': discriminator.state_dict(),
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
             'discriminator_loss': self.d_losses,
@@ -256,9 +260,22 @@ class Trainer:
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
-            print("Using pretrained GAN.")
+            print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
             Warning("No checkpoint-file found. Using random initialization.")
+
+    def manage_checkpoints(self, trigger, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
+        """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
+        but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
+        Therefore, there's no need for the saved samples."""
+
+        print("Managing checkpoints...")
+        # save current model as checkpoint.pt
+        self.save_checkpoint(path_checkpoint=path_checkpoint, generator=generator, discriminator=discriminator)
+
+        for f in checkpoint_files:
+            if os.path.exists(os.path.join(path_checkpoint, f)):
+                os.remove(os.path.join(path_checkpoint, f))
 
     def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
         print(

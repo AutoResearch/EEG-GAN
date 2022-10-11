@@ -27,30 +27,40 @@ class DDPTrainer(trainer.Trainer):
         # training configuration
         super().__init__(generator, discriminator, opt)
 
-        self.rank = None
-
         self.world_size = opt['world_size'] if 'world_size' in opt else 1
 
     # ---------------------
     #  DDP-specific modifications
     # ---------------------
 
-    def save_checkpoint(self, path_checkpoint=None, generated_samples=None):
-        if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, generated_samples)
-        dist.barrier()
+    def save_checkpoint(self, path_checkpoint=None, generated_samples=None, generator=None, discriminator=None):
+        # if self.rank == 0:
+        super().save_checkpoint(path_checkpoint, generated_samples, generator=self.generator.module, discriminator=self.discriminator.module)
+        # dist.barrier()
 
     def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
         # average the loss across all processes before printing
+
         reduce_tensor = torch.tensor([d_loss, g_loss], dtype=torch.float32, device=self.device)
         dist.all_reduce(reduce_tensor, op=dist.ReduceOp.SUM)
         reduce_tensor /= self.world_size
 
         super().print_log(current_epoch, current_batch, num_batches, reduce_tensor[0], reduce_tensor[1])
+        # print(f'Rank {self.rank} reached barrier print_log.')
+        # dist.barrier()
+        # print(f'Rank {self.rank} finished barrier print_log.')
+
+    def manage_checkpoints(self, trigger, path_checkpoint: str, checkpoint_files: list):
+        if self.rank == 0:
+            # print(f'Rank {self.rank} is managing checkpoints.')
+            super().manage_checkpoints(trigger, path_checkpoint, checkpoint_files)
+        #     print(f'Rank {self.rank} finished managing checkpoints.')
+        # print(f'Rank {self.rank} reached barrier.')
+        # dist.barrier()
 
     def set_device(self, rank):
         self.rank = rank
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu' + ':' + str(rank))
+        self.device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else f'cpu:{rank}')
 
     def set_ddp_framework(self):
         # set ddp generator and discriminator
@@ -63,9 +73,9 @@ class DDPTrainer(trainer.Trainer):
         g_opt_state = self.generator_optimizer.state_dict()
         d_opt_state = self.discriminator_optimizer.state_dict()
 
-        self.generator_optimizer = torch.optim.Adam(self.ddp_generator.parameters(),
+        self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
-        self.discriminator_optimizer = torch.optim.Adam(self.ddp_discriminator.parameters(),
+        self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
 
         self.generator_optimizer.load_state_dict(g_opt_state)
@@ -82,7 +92,7 @@ def run(rank, world_size, master_port, backend, training, dataset):
 def _setup(rank, world_size, master_port, backend):
     # print(f"Initializing process group on rank {rank}")# on master port {self.master_port}.")
 
-    os.environ['MASTER_ADDR'] = 'localhost'#'127.0.0.1'
+    os.environ['MASTER_ADDR'] = 'localhost'  # '127.0.0.1'
     os.environ['MASTER_PORT'] = str(master_port)
 
     # create default process group
@@ -96,6 +106,10 @@ def _setup_training(rank, training):
 
     # construct DDP model
     training.set_ddp_framework()
+
+    # load checkpoint
+    if training.use_checkpoint:
+        training.load_checkpoint(training.path_checkpoint)
 
     return training
 
