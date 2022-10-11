@@ -60,13 +60,6 @@ if __name__ == '__main__':
         filter_generator, ddp_backend = \
         None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None
 
-    # Training configuration
-    sequence_length = 100
-    seq_len_generated = -1
-    n_epochs = 2
-    sample_interval = 10
-    windows_slices = True
-
     print('\n-----------------------------------------')
     print('Command line arguments:')
     print('-----------------------------------------\n')

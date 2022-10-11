@@ -50,10 +50,10 @@ class DDPTrainer(trainer.Trainer):
         # dist.barrier()
         # print(f'Rank {self.rank} finished barrier print_log.')
 
-    def manage_checkpoints(self, trigger, path_checkpoint: str, checkpoint_files: list):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(trigger, path_checkpoint, checkpoint_files)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=generator, discriminator=discriminator)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()
