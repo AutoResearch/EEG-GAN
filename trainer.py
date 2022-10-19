@@ -55,6 +55,8 @@ class Trainer:
         self.prev_g_loss = 0
         self.configuration = {
             'device': self.device,
+            'generator': str(self.generator.__class__.__name__),
+            'discriminator': str(self.discriminator.__class__.__name__),
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
             'batch_size': self.batch_size,
@@ -78,11 +80,15 @@ class Trainer:
         try:
             if self.use_checkpoint:
                 self.load_checkpoint(self.path_checkpoint)
+                self.use_checkpoint = False
         except RuntimeError:
             Warning("Could not load checkpoint. If DDP was used while saving and is used now for loading the checkpoint will be loaded in a following step.")
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
+
+        self.generator.train()
+        self.discriminator.train()
 
         gen_samples = []
         num_batches = int(np.ceil(dataset.shape[0] / self.batch_size))

@@ -10,9 +10,8 @@ class Dataloader:
     - convert to tensor"""
 
     def __init__(self, path,
-                 sequence_length=-1,
                  diff_data=False, std_data=False, norm_data=False,
-                 n_col_data=3, col_label='Condition'):
+                 kw_timestep='Time', col_label='Condition'):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -21,17 +20,25 @@ class Dataloader:
             std_data (bool): Standardize data.
         """
 
-        self.n_col_data = n_col_data
-
         # Load data from csv as pandas dataframe and convert to tensor
-        dataset = pd.read_csv(path)
-        labels = torch.FloatTensor(dataset[col_label]).unsqueeze(-1)
-        dataset = torch.FloatTensor(dataset.to_numpy()[:, self.n_col_data:])
+        df = pd.read_csv(path)
+
+        # get first column index of a time step
+        self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]
+
+        if not isinstance(col_label, list):
+            col_label = [col_label]
+
+        # Get data and labels
+        dataset = torch.FloatTensor(df.to_numpy()[:, self.n_col_data:])
+        labels = torch.zeros((dataset.shape[0], len(col_label)))
+        for i, l in enumerate(col_label):
+            labels[:, i] = torch.FloatTensor(df[l])
 
         if diff_data:
             # Diff of data
             dataset = dataset[:, 1:] - dataset[:, :-1]
-        
+
         self.dataset_min = None
         self.dataset_max = None
         if norm_data:
@@ -41,7 +48,7 @@ class Dataloader:
             dataset = (dataset - dataset_min) / (dataset_max - dataset_min)
             self.dataset_min = dataset_min
             self.dataset_max = dataset_max
-            
+
         self.dataset_mean = None
         self.dataset_std = None
         if std_data:
@@ -82,6 +89,13 @@ class Dataloader:
 
     def get_labels(self):
         return self.labels
+
+    def downsample(self, target_sequence_length):
+        """Downsample data to target_sequence_length"""
+
+        # Downsample data
+        step_size = self.dataset.shape[1] // target_sequence_length
+        self.dataset = torch.concat((self.labels, self.dataset[:, self.labels.shape[1]::step_size]), dim=1)
 
     def get_mean(self):
         return self.dataset_mean
@@ -159,3 +173,9 @@ class Dataloader:
         else:
             data = np.cumsum(data, axis=dim)
         return data
+
+    def to_csv(self, path):
+        """Save data to csv file"""
+        if self.dataset is None:
+            raise ValueError("Dataset is None. Please load data first.")
+        pd.DataFrame(self.dataset.detach().cpu().numpy()).to_csv(path)

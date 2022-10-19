@@ -1,47 +1,56 @@
 """This file shows which inputs can be given to gan_training_main.py from the command line."""
 import os
+import sys
 
 
 class Helper:
-    def __init__(self, file, kw_dict):
-        self.file = file
+    def __init__(self, kw_dict):
         self.kw_dict = kw_dict
+
+        if self.kw_dict is not None:
+            # Check if default values are of the correct type
+            for key, value in kw_dict.items():
+                if type(value[2]) != value[0]:
+                    raise TypeError(
+                        f'Default value of {key} is not of given type {value[0]}. Please correct the default value.')
 
     def print_table(self):
         # Define what to print in table
+        if self.kw_dict is not None:
+            values = list(self.kw_dict.keys())
+            types = [self.kw_dict[key][0] for key in values]
+            descriptions = [self.kw_dict[key][1] for key in values]
+            defaults = [self.kw_dict[key][2] for key in values]
 
-        values = list(self.kw_dict.keys())
-        types = [self.kw_dict[key][0] for key in values]
-        descriptions = [self.kw_dict[key][1] for key in values]
-        defaults = [self.kw_dict[key][2] for key in values]
+            # Get longest string length of each column
+            max_len = [0, 0, 0, 0]
+            for i in range(len(self.kw_dict)):
+                max_len[0] = max(max_len[0], len(values[i]))
+                max_len[1] = max(max_len[1], len(str(types[i])))
+                max_len[2] = max(max_len[2], len(descriptions[i]))
+                max_len[3] = max(max_len[3], len(str(defaults[i])))
 
-        # Get longest string length of each column
-        max_len = [0, 0, 0, 0]
-        for i in range(len(self.kw_dict)):
-            max_len[0] = max(max_len[0], len(values[i]))
-            max_len[1] = max(max_len[1], len(str(types[i])))
-            max_len[2] = max(max_len[2], len(descriptions[i]))
-            max_len[3] = max(max_len[3], len(str(defaults[i])))
-
-        # Print table
-        self.start_line()
-        print(f"INPUT HELP - These are the inputs that can be given to {self.file} from the command line")
-        self.end_line()
-        # print header of table
-        print(
-            f'{"Input":<{max_len[0]}} | {"Type":<{max_len[1]}} | {"Description":<{max_len[2]}} | {"Default value":<{max_len[3]}}')
-        self.line()
-        # Print values of table
-        for i in range(len(values)):
-            # define spacing for each column
-            spacing = [' ' * (max_len[0] - len(values[i])), ' ' * (max_len[1] - len(str(types[i]))),
-                       ' ' * (max_len[2] - len(descriptions[i])), ' ' * (max_len[3] - len(str(defaults[i])))]
-            # print row
+            # Print table
+            self.start_line()
+            print(f"INPUT HELP - These are the inputs that can be given from the command line")
+            self.end_line()
+            # print header of table
             print(
-                f'{values[i]}{spacing[0]} | {str(types[i])}{spacing[1]} | {descriptions[i]}{spacing[2]} | {defaults[i]}{spacing[3]}')
+                f'{"Input":<{max_len[0]}} | {"Type":<{max_len[1]}} | {"Description":<{max_len[2]}} | {"Default value":<{max_len[3]}}')
+            self.line()
+            # Print values of table
+            for i in range(len(values)):
+                # define spacing for each column
+                spacing = [' ' * (max_len[0] - len(values[i])), ' ' * (max_len[1] - len(str(types[i]))),
+                           ' ' * (max_len[2] - len(descriptions[i])), ' ' * (max_len[3] - len(str(defaults[i])))]
+                # print row
+                print(
+                    f'{values[i]}{spacing[0]} | {str(types[i])}{spacing[1]} | {descriptions[i]}{spacing[2]} | {defaults[i]}{spacing[3]}')
 
-        # print end of table
-        self.line()
+            # print end of table
+            self.line()
+        else:
+            print("No inputs found.")
 
     def print_help(self):
         self.start_line()
@@ -53,7 +62,10 @@ class Helper:
               '\n\tSet boolean keyword "test_keyword" to True\t->\tpython file.py test_keyword'
               '\nCommand line arguments are given as a keyword followed by an equal sign and the value:'
               '\n\tSet command line argument "test_keyword" to "test_value"\t->\tpython file.py test_keyword=test_value'
-              '\n\tWhitespaces are not allowed between a keyword and its value.')
+              '\n\tWhitespaces are not allowed between a keyword and its value.'
+              '\nSome keywords can be given list-like: '
+              '\n\ttest_keyword=test_value1,test_value2'
+              '\n\tThese keywords are marked with ** in the table.')
         self.line()
 
     def start_line(self):
@@ -70,8 +82,8 @@ class Helper:
 
 
 class HelperMain(Helper):
-    def __init__(self, file, kw_dict):
-        super().__init__(file, kw_dict)
+    def __init__(self, kw_dict):
+        super().__init__(kw_dict)
 
     def print_help(self):
         """Print help message for gan_training_main.py regarding special features."""
@@ -135,8 +147,8 @@ class HelperMain(Helper):
 
 
 class HelperVisualize(Helper):
-    def __init__(self, file, kw_dict):
-        super().__init__(file, kw_dict)
+    def __init__(self, kw_dict):
+        super().__init__(kw_dict)
 
     def print_help(self):
         super().print_help()
@@ -144,7 +156,6 @@ class HelperVisualize(Helper):
               '\n\t1.1 It is possible to give only a file instead of a whole file path.'
               '\n\t\tIn this case, the default path is specified regarding the following keywords:'
               '\n\t\t"checkpoint"\t->\tpath = "trained_models"'
-              '\n\t\t"generate"\t->\tpath = "trained_models"'
               '\n\t\t"experiment"\t->\tpath = "data"'
               '\n\t\t"csv_file"\t->\tpath = "generated_samples"'
               '\n\t1.2 Specification of the keyword "file":'
@@ -167,51 +178,79 @@ class HelperVisualize(Helper):
         self.end_line()
 
 
+class HelperGenerateSamples(Helper):
+    def __init__(self, kw_dict):
+        super().__init__(kw_dict)
+
+    def print_help(self):
+        super().print_help()
+        print('1.\tThe keyword "file" carries some special features:'
+              '\n\t1.1 It is possible to give only a file instead of a whole file path'
+              '\n\t\tIn this case, the default path is "trained_models"'
+              '\n\t1.2 The specified file must be a checkpoint file which contains the generator state dict and its '
+              '\n\t    corresponding configuration dict')
+        print('2.\tThe keyword "sequence_length_total" defines the length of the generated sequences'
+              '\n\tThe default value is -1, which means that the max sequence length is chosen'
+              '\n\tThe max sequence length is determined by the used training data set given by the configuration dict')
+        print('3.\tThe keyword "condition" defines the condition for the generator:'
+              '\n\t3.1 Hereby, the value can be either a scalar or a comma-seperated list of scalars e.g., "condition=1,3.234,0"'
+              '\n\t    Current implementation: The single elements must be numeric'
+              '\n\t    The length of the condition must be equal to the "n_condition" parameter in the configuration dict'
+              '\n\t3.2 The value -1 means that the condition is chosen randomly'
+              '\n\t    This works currently only for binary conditions. '
+              '\n\t    Future implementations could carry this information in the configuration dict')
+        print('4.\tThe keyword "num_samples_parallel" defines the number of generated samples in one batch'
+              '\n\tThis parameter should be set according to the processing power of the used machine'
+              '\n\tEspecially, the generation of large number of sequences can be boosted by increasing this parameter')
+
+
 def default_inputs_main():
     kw_dict = {
-        'ddp': [bool, 'Activate distributed training', False],
-        'load_checkpoint': [bool, 'Load a pre-trained GAN', False],
-        'train_gan': [bool, 'Train a GAN', True],
-        'filter_generator': [bool, 'Use low-pass filter on the generator output', False],
-        'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False], ####
-        'n_epochs': [int, 'Number of epochs', 100], ####
-        'batch_size': [int, 'Batch size', 128], ####
-        'patch_size': [int, 'Patch size', 15],
-        'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1],
-        'seq_len_generated': [int, 'Length of the generated sequence', -1],
-        'sample_interval': [int, 'Interval of batches between saving samples', 1000], ####
-        'n_conditions': [int, 'Number of conditions', 1],
-        'learning_rate': [float, 'Learning rate of the GAN', 0.0001],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP.csv')], ####
-        'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt')],
-        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl'],
+        'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
+        'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
+        'train_gan': [bool, 'Train a GAN', True, 'Training a GAN'],
+        'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
+        'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
+        'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
+        'batch_size': [int, 'Batch size', 128, 'Batch size: '],
+        'patch_size': [int, 'Patch size', 15, 'Patch size: '],
+        'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
+        'seq_len_generated': [int, 'Length of the generated sequence', -1, 'Generated sequence length: '],
+        'sample_interval': [int, 'Interval of batches between saving samples', 1000, 'Sample interval: '],
+        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP.csv'), 'Dataset: '],
+        'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
+        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
+        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
     }
-
-    for key, value in kw_dict.items():
-        if type(value[2]) != value[0]:
-            raise TypeError(f'Default value of {key} is not of given type {value[0]}. Please correct the default value.')
 
     return kw_dict
 
 
 def default_inputs_visualize():
-    # generate, experimental, load_file, filename, n_samples, batch_size, starting_row, n_conditions, filter, \
-    # mvg_avg, mvg_avg_window
     kw_dict = {
-        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt')],
-        'checkpoint': [bool, 'Use samples from training checkpoint file', False],
-        'generate': [bool, 'Use generator to create samples to visualize', False],
-        'experiment': [bool, 'Use samples from experimental data', False],
-        'csv_file': [bool, 'Use samples from csv-file', False],
-        'plot_losses': [bool, 'Plot training losses', False],
-        'save': [bool, 'Save the generated plots in the directory "plots" instead of showing them', False],
-        'bandpass': [bool, 'Use bandpass filter on samples', False],
-        'mvg_avg': [bool, 'Use moving average filter on samples', False],
-        'mvg_avg_window': [int, 'Window of moving average filter', 100],
-        'n_conditions': [int, 'Number of conditions as first columns in data', 1],
-        'n_samples': [int, 'Total number of samples to be plotted', 10],
-        'batch_size': [int, 'Number of samples in one plot', 10],
-        'starting_row': [int, 'Starting row of the dataset', 0],
+        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'training_file': [str, 'Path to the original data', os.path.join('data', 'ganAverageERP.csv'), 'Training dataset: '],
+        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'checkpoint': [bool, 'Use samples from training checkpoint file', False, 'Using samples from checkpoint file'],
+        'experiment': [bool, 'Use samples from experimental data', False, 'Using samples from experimental data'],
+        'csv_file': [bool, 'Use samples from csv-file', False, 'Using samples from csv-file'],
+        'plot_losses': [bool, 'Plot training losses', False, 'Plotting training losses'],
+        'averaged': [bool, 'Average over all samples to get one averaged curve', False, 'Averaging over all samples'],
+        'pca': [bool, 'Use PCA to reduce the dimensionality of the data', False, 'Using PCA'],
+        'tsne': [bool, 'Use t-SNE to reduce the dimensionality of the data', False, 'Using t-SNE'],
+        'spectogram': [bool, 'Use spectogram to visualize the frequency distribution of the data', False, 'Using spectogram'],
+        'fft_hist': [bool, 'Use a FFT-histogram to visualize the frequency distribution of the data', False, 'Using FFT-Hist'],
+        'save': [bool, 'Save the generated plots in the directory "plots" instead of showing them', False, 'Saving plots'],
+        'bandpass': [bool, 'Use bandpass filter on samples', False, 'Using low-pass filter'],
+        'mvg_avg': [bool, 'Use moving average filter on samples', False, 'Using moving average filter'],
+        'mvg_avg_window': [int, 'Window of moving average filter', 100, 'Window of moving average filter: '],
+        'n_conditions': [int, 'Number of conditions as first columns in data', 1, 'Number of conditions: '],
+        'n_samples': [int, 'Total number of samples to be plotted', 10, 'Number of plotted samples: '],
+        'batch_size': [int, 'Number of samples in one plot', 10, 'Number of samples in one plot: '],
+        'starting_row': [int, 'Starting row of the dataset', 0, 'Starting to plot from row: '],
     }
 
     return kw_dict
@@ -219,11 +258,124 @@ def default_inputs_visualize():
 
 def default_inputs_checkpoint_to_csv():
     kw_dict = {
-        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt')],
-        'key': [str, 'Key of the checkpoint file to be saved; The other option is "losses"; Can be also given like: =key_1,key_2', 'generated_samples'],
+        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'key': [str, '** Key of the checkpoint file to be saved; The other option is "losses"', 'generated_samples', 'Key: '],
     }
 
     return kw_dict
+
+
+def default_inputs_generate_samples():
+    kw_dict = {
+        'file': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'path_samples': [str, 'File where to store the generated samples', os.path.join('generated_samples', 'samples_EVAL.csv'), 'Saving generated samples at file: '],
+        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
+        'sequence_length_total': [int, 'total sequence length of generated sample', -1, 'Total sequence length of a generated sample: '],
+        'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
+        'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],
+        'conditions': [int, '** Specific condition; -1 -> random condition (only for binary condition)', -1, 'Conditions: '],
+    }
+
+    return kw_dict
+
+
+def return_list(string_list, separator=','):
+    """Splits the list-like string by the separator and convert the string to the correct type.
+    Current implemented types are: int, float, bool, str.
+    These types are determined individually for each element of the list."""
+
+    ls = []
+
+    if not isinstance(string_list, str):
+        string_list = str(string_list)
+
+    for x in string_list.split(separator):
+        if x.isnumeric() or '-1' in x:
+            if '.' in x:
+                ls.append(float(x))
+            else:
+                ls.append(int(x))
+        elif x == 'True' or x == 'False':
+            ls.append(bool(x))
+        else:
+            ls.append(x)
+    return ls
+
+
+def parse_arguments(arguments, kw_dict=None, file=None):
+    """Parses the given arguments and returns a dictionary with the parsed arguments.
+    If the argument is not given, the default value is used.
+    If the argument is given, it is checked if it is of the correct type.
+    If the argument is a list, it is split by the comma and the elements are converted to the correct type."""
+    # print(arguments)
+
+    # get default system arguments
+    system_args = {}
+    if file is not None:
+        if file == 'visualize_main.py':
+            system_args = default_inputs_visualize()
+            helper = HelperVisualize(system_args)
+        elif file == 'gan_training_main.py':
+            system_args = default_inputs_main()
+            helper = HelperMain(system_args)
+        elif file == 'generate_samples_main.py':
+            system_args = default_inputs_generate_samples()
+            helper = HelperGenerateSamples(system_args)
+    else:
+        system_args = kw_dict
+        helper = Helper(kw_dict)
+
+    default_args = {}
+    for key, value in system_args.items():
+        # value = [type, description, default value]
+        if '**' in value[1]:
+            # return list if '**' in argument's description
+            default_args[key] = return_list(value[2])
+        else:
+            default_args[key] = value[2]
+
+    print('\n-----------------------------------------')
+    print('Command line arguments:')
+    print('-----------------------------------------\n')
+
+    for arg in arguments:
+        if '.py' not in arg:
+            if arg == 'help':
+                # get help
+                helper.print_table()
+                helper.print_help()
+                exit()
+            elif arg in system_args.keys():
+                # process boolean argument
+                print(system_args[arg][3])
+                default_args[arg] = True
+            elif '=' in arg:
+                # process keyword argument
+                kw = arg.split('=')
+                if kw[0] in system_args.keys():
+                    if '**' in system_args[kw[0]][1] or ',' in kw[1]:
+                        # process list if either
+                        # the keyword's description contains '**' or the argument contains a comma
+                        kw[1] = return_list(kw[1])
+                    else:
+                        # check type of argument
+                        if system_args[kw[0]][0] == int:
+                            kw[1] = int(kw[1])
+                        elif system_args[kw[0]][0] == float:
+                            kw[1] = float(kw[1])
+                        elif system_args[kw[0]][0] == bool:
+                            kw[1] = bool(kw[1])
+                        elif system_args[kw[0]][0] == str:
+                            kw[1] = str(kw[1])
+                    print(system_args[kw[0]][3] + str(kw[1]))
+                    default_args[kw[0]] = kw[1]
+                else:
+                    print(
+                        f'Keyword {kw[0]} not recognized. Please use the keyword "help" to see the available arguments.')
+            else:
+                print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
+
+    return default_args
 
 
 if __name__ == '__main__':

@@ -205,6 +205,9 @@ class TtsGenerator(nn.Module):
         output = self.deconv(x.permute(0, 3, 1, 2))
         output = output.view(-1, self.channels, H, W)
         # output = self.actual_seq_len(output)
+
+        # added by Daniel Weinhardt
+        # output = nn.Sigmoid()(output)
         return output
 
 
@@ -241,12 +244,14 @@ class TtsGeneratorFiltered(TtsGenerator):
                                                    attn_drop_rate=attn_drop_rate)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.tanh = nn.Tanh()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, z):
         gen_imgs = super().forward(z)
         # outputs need to be scaled between -1 and 1 for bandpass_biquad filter
         gen_imgs = self.tanh(gen_imgs)
         output = self.filter(gen_imgs)
+        output = self.sigmoid(output)
         return output
 
     @staticmethod

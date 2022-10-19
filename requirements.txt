@@ -7,3 +7,4 @@ torchvision~=0.13.1
 einops~=0.4.1
 torchsummary~=1.5.1
 torchaudio~=0.12.1
+scikit-learn~=1.1.2

@@ -10,7 +10,8 @@ import torch
 import system_inputs
 import models
 from dataloader import Dataloader
-from generate_samples_main import GenerateSamples
+from visualize_pca import visualization_dim_reduction
+from visualize_spectogram import plot_spectogram, plot_fft_hist
 
 
 class PlotterGanTraining:
@@ -210,7 +211,7 @@ class PlotterGanTraining:
             else:
                 plt.show()
 
-    def set_dataset(self, gen_samples):
+    def set_dataset(self, gen_samples, conditions=False):
         """Set the dataset with the generated samples.
         :param gen_samples: Tensor or Numpy.array or pd.DataFrame; Generated samples.
                             Shape: (rows: samples, cols: (conditions, signal))"""
@@ -225,14 +226,14 @@ class PlotterGanTraining:
         else:
             self.df = gen_samples
 
-    def get_dataset(self, column=False, index=False, n_conditions=0):
+    def get_dataset(self, labels=False):
         dataset = self.df.to_numpy()
         # if not column:
         #     dataset = dataset[1:, :]
         # if not index:
         #     dataset = dataset[:, 1:]
-        # if n_conditions > 0:
-        #     dataset = dataset[:, n_conditions:]
+        if not labels:
+            dataset = dataset[:, self.n_conditions:]
         return dataset
 
     def set_title(self, title):
@@ -268,120 +269,91 @@ class PlotterGanTraining:
         self.ylim = (min, max)
 
 
+def fun_plot_losses(d_loss, g_loss, save, path_save=None):
+    plt.plot(d_loss, label='discriminator loss')
+    plt.plot(g_loss, label='generator loss')
+    plt.title(plotter.title)
+    plt.legend()
+    if save:
+        if path_save is None:
+            path_save = 'losses.png'
+            path_save = os.path.join('plots', path_save)
+        plt.savefig(path_save, dpi=600)
+    else:
+        plt.show()
+
+
+def fun_plot_averaged(data, save=False, path_save=None):
+    plt.plot(data.mean(axis=0))
+    if save:
+        if path_save is None:
+            path_save = 'averaged.png'
+            path_save = os.path.join('plots', path_save)
+        plt.savefig(path_save, dpi=600)
+    else:
+        plt.show()
+
+
 if __name__ == '__main__':
 
-    # get default system arguments
-    system_args = system_inputs.default_inputs_visualize()
-    default_args = {}
-    for key, value in system_args.items():
-        # value = [type, description, default value]
-        default_args[key] = value[2]
-
-    # Get system arguments
-    file, generate, experiment, checkpoint, csv_file, plot_losses, save, \
-        n_samples, batch_size, starting_row, n_conditions, \
-        bandpass, mvg_avg, mvg_avg_window \
-        = None, None, None, None, None, None, None, None, None, None, None, None, None, None
+    # sys.argv = ["experiment", "file=ganAverageERP.csv", "spectogram"]
+    default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
 
     print('\n-----------------------------------------')
-    print('Command line arguments:')
+    print("System output:")
     print('-----------------------------------------\n')
-    for arg in sys.argv:
-        if '.py' not in arg:
-            if arg == 'help':
-                helper = system_inputs.HelperVisualize('visualize_main.py', system_inputs.default_inputs_visualize())
-                helper.print_table()
-                helper.print_help()
-                exit()
-            elif arg == 'generate':
-                print('Using generator to create samples')
-                generate = True
-            elif arg == 'experiment':
-                print('Drawing samples from experiment dataset')
-                experiment = True
-            elif arg == 'checkpoint':
-                print('Drawing samples from a training checkpoint file')
-                checkpoint = True
-            elif arg == 'csv_file':
-                print('Drawing samples from a csv-file')
-                csv_file = True
-            elif arg == 'bandpass':
-                print('Using bandpass filter on samples')
-                bandpass =True
-            elif arg == 'mvg_avg':
-                print('Using moving average filter on samples')
-                mvg_avg = True
-            elif arg == 'plot_losses':
-                print('Plotting losses')
-                plot_losses = True
-            elif arg == 'save':
-                print('Saving plots to directory "plots"')
-                save = True
-            elif '=' in arg:
-                kw = arg.split('=')
-                if kw[0] == 'file':
-                    print(f'Using file: {kw[1]}')
-                    file = kw[1]
-                elif kw[0] == 'n_conditions':
-                    print(f'Number of conditions: {kw[1]}')
-                    n_conditions = int(kw[1])
-                elif kw[0] == 'n_samples':
-                    print(f'Number of samples: {kw[1]}')
-                    n_samples = int(kw[1])
-                elif kw[0] == 'batch_size':
-                    print(f'Batch size: {kw[1]}')
-                    batch_size = int(kw[1])
-                elif kw[0] == 'starting_row':
-                    print(f'Start to draw samples from row: {kw[1]}')
-                    rows = int(kw[1])
-                elif kw[0] == 'mvg_avg_window':
-                    print(f'Window of moving average filter: {kw[1]}')
-                    mvg_avg_window = int(kw[1])
-                else:
-                    print(f'Keyword {kw[0]} not recognized. Please use the keyword "help" to see the available arguments.')
-            else:
-                print(f'Keyword {arg} not recognized. Please use the keyword "help" to see the available arguments.')
 
-    # ----------------------------
-    # configuration of program
-    # ----------------------------
+    experiment = default_args['experiment']
+    checkpoint = default_args['checkpoint']
+    csv_file = default_args['csv_file']
 
-    generate = default_args['generate'] if generate is None else generate
-    experiment = default_args['experiment'] if experiment is None else experiment
-    checkpoint = default_args['checkpoint'] if checkpoint is None else checkpoint
-    csv_file = default_args['csv_file'] if csv_file is None else csv_file
+    if sum([experiment, checkpoint, csv_file]) > 1:
+        raise ValueError('Only one of the following options can be active: experiment, checkpoint, csv_file')
+    elif sum([experiment, checkpoint, csv_file]) == 0:
+        raise ValueError('One of the following options must be active: experiment, checkpoint, csv_file')
 
-    if sum([generate, experiment, checkpoint, csv_file]) > 1:
-        raise ValueError('Only one of the following options can be active: generate, experiment, checkpoint, csv_file')
-    elif sum([generate, experiment, checkpoint, csv_file]) == 0:
-        raise ValueError('One of the following options must be active: generate, experiment, checkpoint, csv_file')
+    save = default_args['save']
+    file = default_args['file']
+    plot_losses = default_args['plot_losses']
+    averaged = default_args['averaged']
+    pca = default_args['pca']
+    tsne = default_args['tsne']
+    spectogram = default_args['spectogram']
+    fft_hist = default_args['fft_hist']
 
-    save = default_args['save'] if save is None else save
-    file = default_args['file'] if file is None else file
-    plot_losses = default_args['plot_losses'] if plot_losses is None else plot_losses
+    training_file = default_args['training_file']
+    if training_file == training_file.split(os.path.sep)[0]:
+        # get default file if only filename is given
+        training_file = os.path.join('data', training_file)
 
     # ----------------------------
     # configuration of plotter
     # ----------------------------
 
-    n_conditions = default_args['n_conditions'] if n_conditions is None else n_conditions
-    n_samples = default_args['n_samples'] if n_samples is None else n_samples
-    batch_size = default_args['batch_size'] if batch_size is None else batch_size
-    rows = default_args['starting_row'] if starting_row is None else starting_row
+    n_conditions = default_args['n_conditions']
+    n_samples = default_args['n_samples']
+    batch_size = default_args['batch_size']
+    rows = default_args['starting_row']
     gan_or_emb = 'gan'  # GAN samples: 'gan'; Embedding network samples: 'emb'; 'emb' was not tested yet!
 
     # ----------------------------
     # data processing configuration
     # ----------------------------
 
-    bandpass = default_args['bandpass'] if bandpass is None else bandpass
-    mvg_avg = default_args['mvg_avg'] if mvg_avg is None else mvg_avg
-    moving_average_window = default_args['mvg_avg_window'] if mvg_avg_window is None else mvg_avg_window
+    bandpass = default_args['bandpass']
+    mvg_avg = default_args['mvg_avg']
+    moving_average_window = default_args['mvg_avg_window']
     norm_data = not plot_losses            # normalize data to the range [0, 1]
     sequence_length = 24        # length of the sequence
 
     if bandpass and mvg_avg:
         warnings.warn('Both filters are active ("mvg_avg" and "bandpass"). Consider using only one.')
+
+    if pca and tsne:
+        warnings.warn('Both dimensionality reduction methods are active ("pca" and "tsne"). "pca" will be used.')
+
+    if plot_losses and (pca or tsne):
+        raise RuntimeError('Dimensionality reduction methods cannot be used when plotting losses.')
 
     # ----------------------------
     # run program
@@ -399,44 +371,15 @@ if __name__ == '__main__':
         # do not load any file but generate samples
         load_file = False
 
-    if generate:
-        # generate samples
-        # load generator
-        if file.split(os.path.sep)[0] == file:
-            # use default path
-            path = 'trained_models'
-            if file.endswith('.pt'):
-                file = os.path.join(path, file)
-            elif file is None:
-                file = os.path.join(path, 'checkpoint.pt')
-            else:
-                raise ValueError("File must be either None for loading a checkpoint or a dictionary ending with .pt")
-        state_dict = torch.load(file, map_location=torch.device('cpu'))
-        opt = state_dict['configuration']
-        generator = models.TtsGenerator(seq_length=opt['seq_len_generated'],
-                                        latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
-                                        patch_size=opt['patch_size'])
-        generator.load_state_dict(state_dict['generator'])
-
-        if isinstance(generator, models.TtsGenerator):
-            raise RuntimeError('visualize_main.py is not compatible with the "generate" keyword, right now. Please use the "checkpoint" keyword instead.')
-
-        # generate samples
-        generate_samples = GenerateSamples(generator, opt['seq_len_generated'], opt['latent_dim'])
-        data = generate_samples.generate_samples(n_samples, conditions=False)
-
-        # set plotting settings
-        load_file, gan_or_emb, n_conditions, title = False, 'gan', 1, 'generated samples'
-
     if experiment:
-        load_file, n_conditions, gan_or_emb, title = False, 3, 'gan', 'experimental data'
+        load_file, n_conditions, gan_or_emb, title = False, len(default_args['conditions']), 'gan', 'experimental data'
         if file.split(os.path.sep)[0] == file:
             # use default path
             path = 'data'
             file = os.path.join(path, file)
         if not file.endswith('.csv'):
             raise ValueError("Please specify a csv-file holding the experimental data.")
-        dataloader = Dataloader(path=file, sequence_length=sequence_length, norm_data=True)
+        dataloader = Dataloader(path=file, kw_timestep=default_args['kw_timestep_dataset'], col_label=default_args['conditions'], norm_data=True)
         data = dataloader.get_data()
 
     if checkpoint:
@@ -478,31 +421,54 @@ if __name__ == '__main__':
     if data is not None:
         plotter.set_dataset(data)
 
-    if mvg_avg:
-        # filter data with moving average from GenerateSamples class
-        plotter.set_dataset(GenerateSamples.moving_average(plotter.get_dataset(), w=moving_average_window))
+    # if mvg_avg:
+    #     # filter data with moving average from GenerateSamples class
+    #     plotter.set_dataset(GenerateSamples.moving_average(plotter.get_dataset(), w=moving_average_window))
 
     if bandpass:
         # filter data with bandpass filter from TtsGeneratorFiltered class
         plotter.set_dataset(models.TtsGeneratorFiltered.filter(plotter.get_dataset(), scale=True))
 
-    if norm_data:
-        # normalize each sample along time axis
-        plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
+    # if norm_data:
+    #     # normalize each sample along time axis
+    #     plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
 
     # plot data
-    if not plot_losses:
-        plotter.set_title(title + f'; {file if file is not None else ""}')
-        # plotter.set_y_lim(max=int(1.5*batch_size), min=0)
-        # plotter.set_y_lim(max=50, min=-10)
-        plotter.plot(stacked=stacked, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)
+    if plot_losses:
+        filename = file.split(os.path.sep)[-1].split('.')[0] + '_losses.png'
+        filename = os.path.join('plots', filename)
+        fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename)
+    elif averaged:
+        filename = file.split(os.path.sep)[-1].split('.')[0] + '_averaged.png'
+        filename = os.path.join('plots', filename)
+        fun_plot_averaged(plotter.get_dataset(), save, filename)
+    elif spectogram:
+        filename = file.split(os.path.sep)[-1].split('.')[0] + '_spectogram.png'
+        filename = os.path.join('plots', filename)
+        plot_spectogram(plotter.get_dataset(), save, filename)
+    elif fft_hist:
+        filename = file.split(os.path.sep)[-1].split('.')[0] + '_fft_hist.png'
+        filename = os.path.join('plots', filename)
+        plot_fft_hist(plotter.get_dataset(), save, filename)
+    elif pca or tsne:
+        ori_data = Dataloader(path=training_file, norm_data=True).get_data().unsqueeze(-1).detach().cpu().numpy()[:, n_conditions:, :]
+        gen_data = plotter.get_dataset()
+        gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)[:, n_conditions:, :]
+        if ori_data.shape[1] > gen_data.shape[1]:
+            ori_data = ori_data[:, :gen_data.shape[1], :]
+        elif ori_data.shape[1] < gen_data.shape[1]:
+            gen_data = gen_data[:, :ori_data.shape[1], :]
+        if pca:
+            filename = file.split(os.path.sep)[-1].split('.')[0] + '_pca.png'
+            filename = os.path.join('plots',  filename)
+            visualization_dim_reduction(ori_data, gen_data, 'pca', save, filename)
+        elif tsne:
+            filename = file.split(os.path.sep)[-1].split('.')[0] + '_tsne.png'
+            filename = os.path.join('plots',  filename)
+            visualization_dim_reduction(ori_data, gen_data, 'tsne', save, filename)
     else:
-        plt.plot(plotter.get_dataset()[0, :], label='discriminator loss')
-        plt.plot(plotter.get_dataset()[1, :], label='generator loss')
-        plt.title(plotter.title)
-        plt.legend()
-        if save:
-            file = os.path.join('plots', 'losses.png')
-            plt.savefig('losses.png')
-        else:
-            plt.show()
+        plotter.set_title(title + f'; {file if file is not None else ""}')
+        plotter.plot(stacked=stacked, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)
+
+    if save:
+        print(f"Saved plot to {filename}")

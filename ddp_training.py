@@ -34,8 +34,8 @@ class DDPTrainer(trainer.Trainer):
     # ---------------------
 
     def save_checkpoint(self, path_checkpoint=None, generated_samples=None, generator=None, discriminator=None):
-        # if self.rank == 0:
-        super().save_checkpoint(path_checkpoint, generated_samples, generator=self.generator.module, discriminator=self.discriminator.module)
+        if self.rank == 0:
+            super().save_checkpoint(path_checkpoint, generated_samples, generator=self.generator.module, discriminator=self.discriminator.module)
         # dist.barrier()
 
     def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
@@ -53,7 +53,7 @@ class DDPTrainer(trainer.Trainer):
     def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=generator, discriminator=discriminator)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()
@@ -125,5 +125,5 @@ def _ddp_training(training: DDPTrainer, dataset):
         filename = f'state_dict_ddp_{training.epochs}ep_' + timestamp + '.pt'
         training.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
-    print("GAN training finished.")
-    print("Model states and generated samples saved to file.")
+        print("GAN training finished.")
+        print("Model states and generated samples saved to file.")
