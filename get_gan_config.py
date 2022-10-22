@@ -3,9 +3,13 @@ import sys
 
 import torch
 
+import system_inputs
+
 if __name__ == "__main__":
-    # Default file
-    file = os.path.join('trained_models', 'checkpoint.pt')
+
+    default_args = system_inputs.parse_arguments(sys.argv, kw_dict=system_inputs.default_inputs_get_gan_config())
+
+    file = default_args['file']
 
     for arg in sys.argv:
         if not arg.endswith('.py'):

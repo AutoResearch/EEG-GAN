@@ -204,7 +204,7 @@ class HelperGenerateSamples(Helper):
               '\n\tEspecially, the generation of large number of sequences can be boosted by increasing this parameter')
 
 
-def default_inputs_main():
+def default_inputs_training_gan():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
@@ -213,13 +213,36 @@ def default_inputs_main():
         'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
-        'patch_size': [int, 'Patch size', 15, 'Patch size: '],
+        'patch_size': [int, 'Patch size', 20, 'Patch size: '],
         'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
         'seq_len_generated': [int, 'Length of the generated sequence', -1, 'Generated sequence length: '],
         'sample_interval': [int, 'Interval of batches between saving samples', 1000, 'Sample interval: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP.csv'), 'Dataset: '],
+        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP_len100.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
+        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
+        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+    }
+
+    return kw_dict
+
+
+def default_inputs_training_classifier():
+    kw_dict = {
+        'experiment': [bool, "Use experiment's samples as dataset", False, "Use experiment's samples as dataset"],
+        'generated': [bool, 'Use generated samples as dataset', False, 'Use generated samples as dataset'],
+        'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
+        'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
+        'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
+        'batch_size': [int, 'Batch size', 128, 'Batch size: '],
+        'patch_size': [int, 'Patch size', 20, 'Patch size: '],
+        'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
+        'sample_interval': [int, 'Interval of epochs between saving samples', 1000, 'Sample interval: '],
+        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP_len100.csv'), 'Dataset: '],
+        'path_test': [str, 'Path to the test dataset if using generated samples', 'None', 'Test dataset: '],
+        'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_classifier', 'checkpoint.pt'), 'Checkpoint: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
@@ -251,6 +274,8 @@ def default_inputs_visualize():
         'n_samples': [int, 'Total number of samples to be plotted', 10, 'Number of plotted samples: '],
         'batch_size': [int, 'Number of samples in one plot', 10, 'Number of samples in one plot: '],
         'starting_row': [int, 'Starting row of the dataset', 0, 'Starting to plot from row: '],
+        'tsne_perplexity': [int, 'Perplexity of t-SNE', 40, 'Perplexity of t-SNE: '],
+        'tsne_iterations': [int, 'Number of iterations of t-SNE', 1000, 'Number of iterations of t-SNE: '],
     }
 
     return kw_dict
@@ -274,6 +299,14 @@ def default_inputs_generate_samples():
         'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
         'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],
         'conditions': [int, '** Specific condition; -1 -> random condition (only for binary condition)', -1, 'Conditions: '],
+    }
+
+    return kw_dict
+
+
+def default_inputs_get_gan_config():
+    kw_dict = {
+        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
     }
 
     return kw_dict
@@ -316,7 +349,7 @@ def parse_arguments(arguments, kw_dict=None, file=None):
             system_args = default_inputs_visualize()
             helper = HelperVisualize(system_args)
         elif file == 'gan_training_main.py':
-            system_args = default_inputs_main()
+            system_args = default_inputs_training_gan()
             helper = HelperMain(system_args)
         elif file == 'generate_samples_main.py':
             system_args = default_inputs_generate_samples()

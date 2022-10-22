@@ -391,11 +391,21 @@ if __name__ == '__main__':
             # use default path
             path = 'trained_models'
             file = os.path.join(path, file)
+        state_dict = torch.load(file, map_location=torch.device('cpu'))
         if not plot_losses:
-            data = np.array(torch.load(file, map_location=torch.device('cpu'))['generated_samples'])
+            data = np.array(state_dict['generated_samples'])
         else:
-            d_loss = torch.load(file, map_location=torch.device('cpu'))['discriminator_loss']
-            g_loss = torch.load(file, map_location=torch.device('cpu'))['generator_loss']
+            state_dict = torch.load(file, map_location=torch.device('cpu'))
+            keys = list(state_dict.keys())
+            if 'discriminator_loss' in keys and 'generator_loss' in keys:
+                d_loss = state_dict['discriminator_loss']
+                g_loss = state_dict['generator_loss']
+            elif 'train_loss' in keys and 'test_loss' in keys:
+                d_loss = state_dict['train_loss']
+                g_loss = state_dict['test_loss']
+            elif 'loss' in keys:
+                d_loss = np.array(state_dict['loss'])[:, 0].tolist()
+                g_loss = np.array(state_dict['loss'])[:, 1].tolist()
             data = np.array([d_loss, g_loss])
             title = 'training losses'
             stacked = False
@@ -465,7 +475,7 @@ if __name__ == '__main__':
         elif tsne:
             filename = file.split(os.path.sep)[-1].split('.')[0] + '_tsne.png'
             filename = os.path.join('plots',  filename)
-            visualization_dim_reduction(ori_data, gen_data, 'tsne', save, filename)
+            visualization_dim_reduction(ori_data, gen_data, 'tsne', save, filename, perplexity=default_args['tsne_perplexity'], iterations=default_args['tsne_iterations'])
     else:
         plotter.set_title(title + f'; {file if file is not None else ""}')
         plotter.plot(stacked=stacked, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)

@@ -111,8 +111,8 @@ class Trainer:
                     batch_size = self.batch_size
 
                 # draw batch_size samples from sessions
-                data = dataset[i:i + batch_size][:, self.n_conditions:].to(self.device)
-                data_labels = dataset[i:i + batch_size][:, :self.n_conditions].to(self.device)
+                data = dataset[i:i + batch_size, self.n_conditions:].to(self.device)
+                data_labels = dataset[i:i + batch_size, :self.n_conditions].to(self.device)
 
                 # update generator every n iterations as suggested in paper
                 if int(i / batch_size) % self.critic_iterations == 0:

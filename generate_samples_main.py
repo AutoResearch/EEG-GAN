@@ -78,7 +78,7 @@ if __name__ == '__main__':
     if n_conditions != len(condition):
         raise ValueError(f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
 
-    cond_labels = torch.zeros((num_samples_parallel, n_conditions))
+    cond_labels = torch.zeros((num_samples_parallel, n_conditions)).to(device)
 
     for n in range(num_samples_parallel):
         for i, x in enumerate(condition):
@@ -95,10 +95,10 @@ if __name__ == '__main__':
     for i in range(num_sequences):
         print(f"Generating sequence {i+1} of {num_sequences}...")
         # init sequence for windows_slices
-        sequence = torch.zeros((num_samples_parallel, seq_len_cond))
+        sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
         while sequence.shape[1] < sequence_length_total + seq_len_cond:
             # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-            z = Trainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim)
+            z = Trainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim, device=device)
             z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
             samples = generator(z)
             sequence = torch.cat((sequence, samples.view(num_samples_parallel, -1)), dim=1)

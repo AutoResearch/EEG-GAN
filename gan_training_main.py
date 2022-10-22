@@ -28,7 +28,7 @@ Instructions to start the training:
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    # sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
+    sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
@@ -106,9 +106,11 @@ if __name__ == '__main__':
     if opt['sequence_length'] % opt['patch_size'] != 0:
         warnings.warn(f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
                       f"The sequence length is padded with zeros to fit the condition.")
+        padding = 0
         while opt['sequence_length'] % default_args['patch_size'] != 0:
-            dataset = torch.cat((dataset, torch.zeros(dataset.shape[0], 1)), dim=-1)
-            opt['sequence_length'] += 1
+            padding += 1
+        opt['sequence_length'] += padding
+        dataset = torch.cat((dataset, torch.zeros(dataset.shape[0], padding)), dim=1)
 
     if opt['seq_len_generated'] == -1:
         opt['seq_len_generated'] = opt['sequence_length']
@@ -157,7 +159,7 @@ if __name__ == '__main__':
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
                                          latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
                                          patch_size=opt['patch_size'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'])
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=1+opt['n_conditions'])
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------

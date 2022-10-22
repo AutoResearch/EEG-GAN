@@ -9,7 +9,7 @@ class Dataloader:
     - transform data (e.g. standardize, normalize, differentiate) and save the parameters for inverse transformation
     - convert to tensor"""
 
-    def __init__(self, path,
+    def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
                  kw_timestep='Time', col_label='Condition'):
         """Load data from csv as pandas dataframe and convert to tensor.
@@ -20,50 +20,51 @@ class Dataloader:
             std_data (bool): Standardize data.
         """
 
-        # Load data from csv as pandas dataframe and convert to tensor
-        df = pd.read_csv(path)
+        if path is not None:
+            # Load data from csv as pandas dataframe and convert to tensor
+            df = pd.read_csv(path)
 
-        # get first column index of a time step
-        self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]
+            # get first column index of a time step
+            self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]
 
-        if not isinstance(col_label, list):
-            col_label = [col_label]
+            if not isinstance(col_label, list):
+                col_label = [col_label]
 
-        # Get data and labels
-        dataset = torch.FloatTensor(df.to_numpy()[:, self.n_col_data:])
-        labels = torch.zeros((dataset.shape[0], len(col_label)))
-        for i, l in enumerate(col_label):
-            labels[:, i] = torch.FloatTensor(df[l])
+            # Get data and labels
+            dataset = torch.FloatTensor(df.to_numpy()[:, self.n_col_data:])
+            labels = torch.zeros((dataset.shape[0], len(col_label)))
+            for i, l in enumerate(col_label):
+                labels[:, i] = torch.FloatTensor(df[l])
 
-        if diff_data:
-            # Diff of data
-            dataset = dataset[:, 1:] - dataset[:, :-1]
+            if diff_data:
+                # Diff of data
+                dataset = dataset[:, 1:] - dataset[:, :-1]
 
-        self.dataset_min = None
-        self.dataset_max = None
-        if norm_data:
-            # Normalize data
-            dataset_min = torch.min(dataset)
-            dataset_max = torch.max(dataset)
-            dataset = (dataset - dataset_min) / (dataset_max - dataset_min)
-            self.dataset_min = dataset_min
-            self.dataset_max = dataset_max
+            self.dataset_min = None
+            self.dataset_max = None
+            if norm_data:
+                # Normalize data
+                dataset_min = torch.min(dataset)
+                dataset_max = torch.max(dataset)
+                dataset = (dataset - dataset_min) / (dataset_max - dataset_min)
+                self.dataset_min = dataset_min
+                self.dataset_max = dataset_max
 
-        self.dataset_mean = None
-        self.dataset_std = None
-        if std_data:
-            # standardize data
-            dataset_mean = dataset.mean(dim=0).unsqueeze(0)
-            dataset_std = dataset.std(dim=0).unsqueeze(0)
-            self.dataset_mean = dataset_mean
-            self.dataset_std = dataset_std
-            dataset = (dataset - dataset_mean) / dataset_std
+            self.dataset_mean = None
+            self.dataset_std = None
+            if std_data:
+                # standardize data
+                dataset_mean = dataset.mean(dim=0).unsqueeze(0)
+                dataset_std = dataset.std(dim=0).unsqueeze(0)
+                self.dataset_mean = dataset_mean
+                self.dataset_std = dataset_std
+                dataset = (dataset - dataset_mean) / dataset_std
 
-        # concatenate labels to data
-        dataset = torch.concat((labels, dataset), 1)
+            # concatenate labels to data
+            dataset = torch.concat((labels, dataset), 1)
 
-        self.dataset = dataset
-        self.labels = labels
+            self.dataset = dataset
+            self.labels = labels
 
     def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0):
         """returns the data as a tensor"""
@@ -89,6 +90,28 @@ class Dataloader:
 
     def get_labels(self):
         return self.labels
+
+    def dataset_split(self, dataset=None, train_size=0.8, test_size=None, shuffle=True):
+        """Split dataset into train and test set. Returns the indices of the split."""
+
+        if dataset is None:
+            dataset = self.dataset
+
+        if test_size is None:
+            test_size = 1 - train_size
+
+        if train_size + test_size > 1:
+            raise ValueError(f"train_size + test_size (={train_size}+{test_size}) must be >= 1.")
+
+        # Split dataset into train and test set
+        train_size = int(train_size * dataset.shape[0])
+        test_size = int(test_size * dataset.shape[0])
+        indices = np.array(range(dataset.shape[0]))
+        if shuffle:
+            np.random.shuffle(indices)
+        train_idx, test_idx = indices[:train_size], indices[train_size:train_size + test_size]
+
+        return train_idx, test_idx
 
     def downsample(self, target_sequence_length):
         """Downsample data to target_sequence_length"""

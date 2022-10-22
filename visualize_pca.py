@@ -22,7 +22,7 @@ from sklearn.decomposition import PCA
 from dataloader import Dataloader
 
 
-def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_name=None, alpha_values=None):
+def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_name=None, perplexity=40, iterations=1000):
     """Using PCA or tSNE for generated and original data visualization.
     Args:
     - ori_data: original data
@@ -83,7 +83,7 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
         prep_data_final = np.concatenate((prep_data, prep_data_hat), axis=0)
 
         # TSNE anlaysis
-        tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
+        tsne = TSNE(n_components=2, verbose=1, perplexity=perplexity, n_iter=iterations)
         tsne_results = tsne.fit_transform(prep_data_final)
 
         # Plotting
