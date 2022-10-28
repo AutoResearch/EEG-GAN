@@ -77,6 +77,14 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
         plt.ylabel('y_pca')
     #         plt.show()
 
+        # save results to csv files
+        # if save:
+        #     # if save_name is None:
+        #     filename = 'pca_results.csv'
+        #     columns = ['x_real', 'y_real', 'x_fake', 'y_fake']
+        #     df = pd.DataFrame(np.concatenate((pca_results, pca_hat_results), axis=1), columns=columns)
+        #     df.to_csv(filename, index=False)
+
     elif analysis == 'tsne':
 
         # Do t-SNE Analysis together
@@ -111,8 +119,8 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
 
 if __name__ == "__main__":
 
-    ori_file = 'data/ganAverageERP.csv'
-    gen_file = 'generated_samples/samples_EVAL.csv'
+    ori_file = 'data/ganTrialERP_len100.csv'
+    gen_file = 'generated_samples/sd_len100_19000ep.csv'
 
     for arg in sys.argv:
         if not arg.endswith('.py'):
@@ -124,11 +132,11 @@ if __name__ == "__main__":
                     gen_file = arg[1]
 
     # Load data
-    dataloader = Dataloader(path=ori_file, sequence_length=None, norm_data=True)
+    dataloader = Dataloader(path=ori_file, norm_data=True)
     ori_data = dataloader.get_data().unsqueeze(-1).detach().cpu().numpy()[:, 1:, :]
     # ori_data = np.load('data/real_data.npy')
-    gen_data = pd.read_csv(gen_file, header=None).to_numpy()[1:, 2:]
+    gen_data = pd.read_csv(gen_file, header=None).to_numpy()[1:, 1:]
     gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)
 
     # Visualization
-    visualization(ori_data, gen_data, analysis='tsne')
+    visualization_dim_reduction(ori_data, gen_data, analysis='pca', save=True)

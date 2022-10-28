@@ -38,6 +38,16 @@ def _setup_trainer(rank, trainer: DDPTrainer):
 
 
 def _ddp_training(trainer: DDPTrainer, train_data, train_labels, test_data, test_labels):
+    # take partition of dataset for each process
+    # start_index = int(len(train_data) / trainer.world_size * trainer.rank)
+    # end_index = int(len(train_data) / trainer.world_size * (trainer.rank + 1))
+    # train_data = train_data[start_index:end_index]
+    # train_labels = train_labels[start_index:end_index]
+    #
+    # if trainer.batch_size > len(train_data):
+    #     raise ValueError(f"Batch size {trainer.batch_size} is larger than the partition size {len(train_data)}.")
+
+    # train
     loss = trainer.train(train_data, train_labels, test_data, test_labels)
 
     # save checkpoint

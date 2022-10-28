@@ -66,7 +66,7 @@ class Dataloader:
             self.dataset = dataset
             self.labels = labels
 
-    def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0):
+    def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0, shuffle=True):
         """returns the data as a tensor"""
         if windows_slices:
             # pre-pad data with pre_pad zeros
@@ -86,6 +86,10 @@ class Dataloader:
             dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
         else:
             dataset = self.dataset
+
+        # shuffle dataset
+        if shuffle:
+            dataset = dataset[torch.randperm(dataset.shape[0])]
         return dataset
 
     def get_labels(self):

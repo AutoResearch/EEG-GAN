@@ -269,9 +269,11 @@ class PlotterGanTraining:
         self.ylim = (min, max)
 
 
-def fun_plot_losses(d_loss, g_loss, save, path_save=None):
-    plt.plot(d_loss, label='discriminator loss')
-    plt.plot(g_loss, label='generator loss')
+def fun_plot_losses(d_loss, g_loss, save, path_save=None, legend=None):
+    if legend is None:
+        legend = ['Discriminator loss', 'Generator loss']
+    plt.plot(d_loss, label=legend[0])
+    plt.plot(g_loss, label=legend[1])
     plt.title(plotter.title)
     plt.legend()
     if save:
@@ -335,6 +337,7 @@ if __name__ == '__main__':
     batch_size = default_args['batch_size']
     rows = default_args['starting_row']
     gan_or_emb = 'gan'  # GAN samples: 'gan'; Embedding network samples: 'emb'; 'emb' was not tested yet!
+    legend = None
 
     # ----------------------------
     # data processing configuration
@@ -400,12 +403,15 @@ if __name__ == '__main__':
             if 'discriminator_loss' in keys and 'generator_loss' in keys:
                 d_loss = state_dict['discriminator_loss']
                 g_loss = state_dict['generator_loss']
+                legend = ['discriminator loss', 'generator loss']
             elif 'train_loss' in keys and 'test_loss' in keys:
                 d_loss = state_dict['train_loss']
                 g_loss = state_dict['test_loss']
+                legend = ['train loss', 'test loss']
             elif 'loss' in keys:
                 d_loss = np.array(state_dict['loss'])[:, 0].tolist()
                 g_loss = np.array(state_dict['loss'])[:, 1].tolist()
+                legend = ['train loss', 'test loss']
             data = np.array([d_loss, g_loss])
             title = 'training losses'
             stacked = False
@@ -447,7 +453,7 @@ if __name__ == '__main__':
     if plot_losses:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_losses.png'
         filename = os.path.join('plots', filename)
-        fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename)
+        fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename, legend)
     elif averaged:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_averaged.png'
         filename = os.path.join('plots', filename)

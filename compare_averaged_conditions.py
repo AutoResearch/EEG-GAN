@@ -9,8 +9,8 @@ if __name__ == "__main__":
     # average over all samples
 
     # for generated samples
-    data_all = [r'C:\Users\Daniel\PycharmProjects\GanInNeuro\generated_samples\sd_len100_10000ep_cond1_20k.csv',
-                r'C:\Users\Daniel\PycharmProjects\GanInNeuro\generated_samples\sd_len100_10000ep_cond0_20k.csv']
+    data_all = [r'C:\Users\Daniel\PycharmProjects\GanInNeuro\generated_samples\sd_len100_30000ep_cond1.csv',
+                r'C:\Users\Daniel\PycharmProjects\GanInNeuro\generated_samples\sd_len100_30000ep_cond0.csv']
 
     # for experiment files
     # data_all = [r'C:\Users\Daniel\PycharmProjects\GanInNeuro\data\ganTrialERP_len100.csv']
@@ -39,5 +39,5 @@ if __name__ == "__main__":
         erp.append(f)
         plt.plot(f)
     plt.legend(legend)
-    plt.savefig(r'C:\Users\Daniel\PycharmProjects\GanInNeuro\plots\AllCondErp_averaged_generated.png')
+    plt.savefig(r'C:\Users\Daniel\PycharmProjects\GanInNeuro\plots\ERP_averaged_generated_30000ep.png')
     plt.show()

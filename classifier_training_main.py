@@ -6,10 +6,9 @@ from datetime import datetime
 import pandas as pd
 import torch
 import torch.multiprocessing as mp
-from torch import nn
 
 import system_inputs
-from models import TtsDiscriminator, TtsGenerator
+from models import TtsClassifier
 from get_master import find_free_port
 from dataloader import Dataloader
 from trainer_classifier import Trainer, DDPTrainer
@@ -20,14 +19,12 @@ from ddp_training_classifier import run
 
 if __name__ == "__main__":
 
-    # sys.argv = ["generated", "path_dataset=generated_samples/sd_len100_10000ep.csv", "patch_size=20", "n_epochs=2", "sample_interval=1", "load_checkpoint", "path_test=trained_classifier\sd_onlyreal_10000ep.pt"]
+    # sys.argv = ["generated", "path_test=trained_classifier\cl_exp_109ep.pt", "path_dataset=generated_samples\sd_len100_10000ep.csv", "n_epochs=2", "sample_interval=10"]
+    # sys.argv = ["experiment", "path_dataset=data\ganTrialERP_len100.csv", "n_epochs=2", "sample_interval=10"]
     default_args = system_inputs.parse_arguments(sys.argv, system_inputs.default_inputs_training_classifier())
 
-    if default_args['experiment'] and default_args['generated']:
-        raise ValueError("The experiment and generated flags cannot be both True")
-
-    if not default_args['experiment'] and not default_args['generated']:
-        raise ValueError("The experiment and generated flags cannot be both False")
+    if not default_args['experiment'] and not default_args['generated'] and not default_args['testing']:
+        raise ValueError("At least one of the following flags must be set: 'experiment', 'generated', 'testing'.")
 
     if default_args['load_checkpoint']:
         print(f"Resuming training from checkpoint {default_args['path_checkpoint']}.")
@@ -36,6 +33,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if not default_args['ddp'] else torch.device("cpu")
     world_size = torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_dict = 'trained_classifier'
 
     opt = {
         'n_epochs': default_args['n_epochs'],
@@ -52,62 +50,83 @@ if __name__ == "__main__":
         'device': device,
     }
 
-    # if default_args['experiment']:
+    # TODO: implement data concatenation of experiment and generator data
     # Load dataset as tensor
+    train_data = None
+    train_labels = None
+    test_data = None
+    test_labels = None
+
+    # if in testing mode and path_test is None, use the dataset from the specified checkpoint
+    if default_args['testing'] and default_args['path_test'] == 'None':
+        default_args['path_test'] = default_args['path_checkpoint']
+        opt['path_test'] = default_args['path_checkpoint']
+
+    # Get test data if provided
+    if default_args['path_test'] != 'None':
+        if default_args['path_test'].endswith('.pt'):
+            # load checkpoint and extract test_dataset
+            test_data = torch.load(default_args['path_test'], map_location=device)['test_dataset'][:,
+                        opt['n_conditions']:].float()
+            test_labels = torch.load(default_args['path_test'], map_location=device)['test_dataset'][:,
+                          :opt['n_conditions']].float()
+        elif default_args['path_test'].endswith('.csv'):
+            # load csv
+            test_data = torch.tensor(pd.read_csv(default_args['path_test']).to_numpy()[:, opt['n_conditions']:]).float()
+            test_labels = torch.tensor(pd.read_csv(default_args['path_test']).to_numpy()[:, :opt['n_conditions']]).float()
+
     if default_args['experiment']:
         # Get experiment's data as training data
         dataloader = Dataloader(default_args['path_dataset'],
                                 kw_timestep=default_args['kw_timestep_dataset'],
                                 col_label=default_args['conditions'],
                                 norm_data=True)
-        train_idx, test_idx = dataloader.dataset_split(train_size=.8)
+        if test_data is None:
+            train_idx, test_idx = dataloader.dataset_split(train_size=.8)
 
-        train_data = dataloader.get_data()[train_idx][:, dataloader.labels.shape[1]:]
-        train_labels = dataloader.get_data()[train_idx][:, :dataloader.labels.shape[1]]
-        test_data = dataloader.get_data()[test_idx][:, dataloader.labels.shape[1]:]
-        test_labels = dataloader.get_data()[test_idx][:, :dataloader.labels.shape[1]]
+            train_data = dataloader.get_data()[train_idx][:, dataloader.labels.shape[1]:]
+            train_labels = dataloader.get_data()[train_idx][:, :dataloader.labels.shape[1]]
+            test_data = dataloader.get_data()[test_idx][:, dataloader.labels.shape[1]:]
+            test_labels = dataloader.get_data()[test_idx][:, :dataloader.labels.shape[1]]
 
     if default_args['generated']:
         # Get generated data as training data
         train_data = torch.tensor(pd.read_csv(default_args['path_dataset']).to_numpy()[:, opt['n_conditions']:]).float()
         train_labels = torch.tensor(pd.read_csv(default_args['path_dataset']).to_numpy()[:, :opt['n_conditions']]).float()
-        if default_args['path_test'] != 'None':
-            # Get test data if provided
-            if default_args['path_test'].endswith('.pt'):
-                # load checkpoint and extract test_dataset
-                test_data = torch.load(default_args['path_test'], map_location=device)['test_dataset'][:, opt['n_conditions']:].float()
-                test_labels = torch.load(default_args['path_test'], map_location=device)['test_dataset'][:, :opt['n_conditions']].float()
-            elif default_args['path_test'].endswith('.csv'):
-                # load csv
-                test_data = torch.tensor(pd.read_csv(default_args['path_test']).to_numpy()[:, opt['n_conditions']:]).float()
-                test_labels = torch.tensor(pd.read_csv(default_args['path_test']).to_numpy()[:, :opt['n_conditions']]).float()
-        else:
+        if test_data is None:
             # Split train data into train and test
-            dataloader = Dataloader()
-            train_idx, test_idx = dataloader.dataset_split(train_data, train_size=.8)
+            train_idx, test_idx = Dataloader().dataset_split(train_data, train_size=.8)
             test_data = train_data[test_idx].view(train_data[test_idx].shape).float()
             test_labels = train_labels[test_idx].view(train_labels[test_idx].shape).float()
             train_data = train_data[train_idx].view(train_data[train_idx].shape).float()
             train_labels = train_labels[train_idx].view(train_labels[train_idx].shape).float()
 
-    opt['sequence_length'] = train_data.shape[1]# - len(default_args['conditions'])
+    opt['sequence_length'] = test_data.shape[1]# - len(default_args['conditions'])
 
     if opt['sequence_length'] % opt['patch_size'] != 0:
         warnings.warn(
             f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
             f"The sequence is padded with zeros to fit the condition.")
         padding = 0
-        while opt['sequence_length'] % default_args['patch_size'] != 0:
+        while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
             padding += 1
         opt['sequence_length'] += padding
-        train_dataset = torch.cat((train_data, torch.zeros(train_data.shape[0], padding)), dim=-1)
-        test_dataset = torch.cat((test_data, torch.zeros(test_data.shape[0], padding)), dim=-1)
+        train_data = torch.cat((train_data, torch.zeros(train_data.shape[0], padding)), dim=-1)
+        test_data = torch.cat((test_data, torch.zeros(test_data.shape[0], padding)), dim=-1)
 
     # Load model and optimizer
-    classifier = TtsDiscriminator(seq_length=opt['sequence_length'],
-                                  patch_size=opt['patch_size'],
-                                  n_classes=int(opt['n_conditions']*2),
-                                  softmax=True).to(device)
+    classifier = TtsClassifier(seq_length=opt['sequence_length'],
+                               patch_size=opt['patch_size'],
+                               n_classes=int(opt['n_conditions']),
+                               softmax=True).to(device)
+
+    # Test model
+    if default_args['testing']:
+        classifier.load_state_dict(torch.load(default_args['path_checkpoint'], map_location=device)['model'])
+        trainer = Trainer(classifier, opt)
+        test_loss, test_acc = trainer.test(test_data, test_labels)
+        print(f"Test loss: {test_loss:.4f} - Test accuracy: {test_acc:.4f}")
+        exit()
 
     # Train model
     if default_args['ddp']:
@@ -134,3 +153,5 @@ if __name__ == "__main__":
         print("Classifier training finished.")
         print("Model states, losses and test dataset saved to file: "
               f"\n{filename}.")
+
+

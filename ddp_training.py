@@ -12,6 +12,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 import trainer
+from dataloader import Dataloader
 from losses import WassersteinGradientPenaltyLoss as Loss
 import losses
 from get_master import find_free_port
@@ -38,17 +39,14 @@ class DDPTrainer(trainer.Trainer):
             super().save_checkpoint(path_checkpoint, generated_samples, generator=self.generator.module, discriminator=self.discriminator.module)
         # dist.barrier()
 
-    def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
+    def print_log(self, current_epoch, d_loss, g_loss):
+        # if self.rank == 0:
         # average the loss across all processes before printing
-
         reduce_tensor = torch.tensor([d_loss, g_loss], dtype=torch.float32, device=self.device)
         dist.all_reduce(reduce_tensor, op=dist.ReduceOp.SUM)
         reduce_tensor /= self.world_size
 
-        super().print_log(current_epoch, current_batch, num_batches, reduce_tensor[0], reduce_tensor[1])
-        # print(f'Rank {self.rank} reached barrier print_log.')
-        # dist.barrier()
-        # print(f'Rank {self.rank} finished barrier print_log.')
+        super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
 
     def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
         if self.rank == 0:
@@ -82,10 +80,10 @@ class DDPTrainer(trainer.Trainer):
         self.discriminator_optimizer.load_state_dict(d_opt_state)
 
 
-def run(rank, world_size, master_port, backend, training, dataset):
+def run(rank, world_size, master_port, backend, training, opt):
     _setup(rank, world_size, master_port, backend)
     training = _setup_training(rank, training)
-    _ddp_training(training, dataset)
+    _ddp_training(training, opt)
     dist.destroy_process_group()
 
 
@@ -108,14 +106,31 @@ def _setup_training(rank, training):
     training.set_ddp_framework()
 
     # load checkpoint
-    if training.use_checkpoint:
-        training.load_checkpoint(training.path_checkpoint)
+    # if training.use_checkpoint:
+    #     training.load_checkpoint(training.path_checkpoint)
 
     return training
 
 
-def _ddp_training(training: DDPTrainer, dataset):
+def _ddp_training(training: DDPTrainer, opt):
+    # calculate partition of dataset for each process
+    # make sure all partitions are the same size
+    # partition_size = opt['n_samples'] // training.world_size
+    # start_index = int(opt['n_samples'] / training.world_size * training.rank)
+    # end_index = start_index + partition_size
 
+    # load dataset
+    dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
+                            norm_data=True)
+    dataset = dataloader.get_data()#[start_index:end_index]
+    opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+
+    # print(f"Rank {training.rank} has {len(dataset)} samples and index {start_index} to {end_index}.")
+
+    if training.batch_size > len(dataset):
+        raise ValueError(f"Batch size {training.batch_size} is larger than the partition size {len(dataset)}.")
+
+    # train
     gen_samples = training.training(dataset)
 
     # save checkpoint

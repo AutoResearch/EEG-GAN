@@ -7,11 +7,13 @@ from torch import nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+import models
+
 
 class Trainer:
     def __init__(self, model, opt):
         self.model = model
-        self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.loss_fn = torch.nn.MSELoss()
         self.device = opt['device']
 
         self.optimizer = torch.optim.Adam(model.parameters(), lr=opt['learning_rate'])
@@ -55,10 +57,16 @@ class Trainer:
             raise RuntimeError("Test data and labels must have the same number of samples.")
 
         loss_train = 9e9
+        loss_test = 9e9
+        accuracy = 0
         loss = []
 
         for epoch in range(self.epochs):
             # Train
+            # shuffle train_data and train_labels
+            idx = torch.randperm(train_data.shape[0])
+            train_data = train_data[idx]
+            train_labels = train_labels[idx]
             for batch in range(0, train_data.shape[0], self.batch_size):
                 # Check if remaining samples are enough for a batch and adjust if not
                 if batch + self.batch_size > train_data.shape[0]:
@@ -70,14 +78,14 @@ class Trainer:
                 labels = train_labels[batch_size:batch_size + self.batch_size].to(self.device)
                 loss_train = self.batch_train(data, labels)
 
-            # Test
-            loss_test, accuracy = self.test(test_data, test_labels)
+                # Test
+                loss_test, accuracy = self.test(test_data, test_labels)
 
-            loss.append((loss_train, loss_test))
+                loss.append((loss_train, loss_test, accuracy))
 
-            # save checkpoint every n epochs
-            if epoch % self.sample_interval == 0:
-                self.save_checkpoint(self.path_checkpoint, test_data, loss)
+                # save checkpoint every n epochs
+                if epoch % self.sample_interval == 0:
+                    self.save_checkpoint(self.path_checkpoint, torch.concat((test_labels, test_data), dim=1), loss)
 
             print(f"Epoch [{epoch + 1}/{self.epochs}]: "
                   f"Loss train: {loss_train:.4f}, "
@@ -98,7 +106,7 @@ class Trainer:
         # shape of labels/output: (batch_size, n_conditions)
         output = self.model(data.view(data.shape[0], 1, 1, data.shape[-1]))
         # output = output.argmax(dim=1).float()
-        loss = self.loss_fn(output, labels.squeeze(-1).long())
+        loss = self.loss_fn(output, labels)
 
         # optimize
         self.optimizer.zero_grad()
@@ -112,9 +120,16 @@ class Trainer:
         data, labels = data.to(self.device), labels.to(self.device)
 
         output = self.model(data.view(data.shape[0], 1, 1, data.shape[-1]))
-        loss = self.loss_fn(output, labels.squeeze(-1).long())
+        loss = self.loss_fn(output, labels)
 
-        accuracy = (output.argmax(dim=1) == labels.squeeze(-1)).sum() / labels.shape[0]
+        # accuracy
+        # if isinstance(self.model, models.TtsClassifier):
+            # for binary classifier
+        output = output.round()
+        # else:
+        #     # for softmax classifier
+        #     output = output.argmax(dim=1).float()
+        accuracy = (output == labels).sum() / labels.shape[0]
 
         return loss.item(), accuracy.item()
 
@@ -157,9 +172,8 @@ class DDPTrainer(Trainer):
 
     def print_log(self, current_epoch, train_loss, test_loss, test_accuracy):
         # average the loss across all processes before printing
-
         reduce_tensor = torch.tensor([train_loss, test_loss, test_accuracy], dtype=torch.float32, device=self.device)
         dist.all_reduce(reduce_tensor, op=dist.ReduceOp.SUM)
         reduce_tensor /= self.world_size
-
-        super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1], reduce_tensor[2])
+        if self.rank == 0:
+            super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1], reduce_tensor[2])

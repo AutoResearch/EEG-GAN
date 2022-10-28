@@ -233,6 +233,7 @@ def default_inputs_training_classifier():
         'experiment': [bool, "Use experiment's samples as dataset", False, "Use experiment's samples as dataset"],
         'generated': [bool, 'Use generated samples as dataset', False, 'Use generated samples as dataset'],
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
+        'testing': [bool, 'Only test. No training', False, 'Testing only'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],

@@ -28,7 +28,7 @@ Instructions to start the training:
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
+    # sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
@@ -83,6 +83,8 @@ if __name__ == '__main__':
         'sample_interval': default_args['sample_interval'],
         'n_conditions': len(default_args['conditions']),
         'patch_size': default_args['patch_size'],
+        'kw_timestep': default_args['kw_timestep_dataset'],
+        'conditions': default_args['conditions'],
         'hidden_dim': 128,          # Dimension of hidden layers in discriminator and generator
         'latent_dim': 16,           # Dimension of the latent space
         'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
@@ -91,14 +93,15 @@ if __name__ == '__main__':
     }
 
     # Load dataset as tensor
-    kw_timestep = default_args['kw_timestep_dataset']
-    conditions = default_args['conditions']
-    seq_len = opt['sequence_length'] if 'sequence_length' in opt else None
-    dataloader = Dataloader(default_args['path_dataset'], kw_timestep=kw_timestep, col_label=conditions, norm_data=norm_data)
+    dataloader = Dataloader(default_args['path_dataset'],
+                            kw_timestep=default_args['kw_timestep_dataset'],
+                            col_label=default_args['conditions'],
+                            norm_data=norm_data)
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    opt['n_samples'] = dataset.shape[0]
 
     # keep randomly 30% of the data
     # dataset = dataset[np.random.randint(0, dataset.shape[0], int(dataset.shape[0]*0.3))]
@@ -173,10 +176,14 @@ if __name__ == '__main__':
         print('-----------------------------------------\n')
         if ddp:
             trainer = DDPTrainer(generator, discriminator, opt)
-            mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, dataset),
+            if default_args['load_checkpoint']:
+                trainer.load_checkpoint(default_args['path_checkpoint'])
+            mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, opt),
                      nprocs=world_size, join=True)
         else:
             trainer = Trainer(generator, discriminator, opt)
+            if default_args['load_checkpoint']:
+                trainer.load_checkpoint(default_args['path_checkpoint'])
             gen_samples = trainer.training(dataset)
 
             # save final models, optimizer states, generated samples, losses and configuration as final result

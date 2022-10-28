@@ -121,7 +121,8 @@ class Dis_TransformerEncoder(nn.Sequential):
 
 
 class ClassificationHead(nn.Sequential):
-    def __init__(self, emb_size=100, n_classes=2, softmax=False):
+    """Used for the discriminator in the GAN-framework"""
+    def __init__(self, emb_size=100, n_classes=2):
         super().__init__()
         self.clshead = nn.Sequential(
             Reduce('b n e -> b e', reduction='mean'),
@@ -129,16 +130,24 @@ class ClassificationHead(nn.Sequential):
             nn.Linear(emb_size, n_classes)
         )
 
-        # if softmax:
-        #     self.clshead.add_module('softmax', nn.Softmax(dim=1))
+    def forward(self, x):
+        out = self.clshead(x)
+        return out
 
-        self.softmax = nn.Softmax(dim=1) if softmax else None
+
+class ClassifierHead(nn.Sequential):
+    """Used for binary classification applications"""
+    def __init__(self, emb_size=100, n_classes=2, softmax=False):
+        super().__init__()
+        self.clshead = nn.Sequential(
+            Reduce('b n e -> b e', reduction='mean'),
+            nn.LayerNorm(emb_size),
+            nn.Linear(emb_size, n_classes),
+            nn.Sigmoid(),
+        )
 
     def forward(self, x):
         out = self.clshead(x)
-        if self.softmax is not None:
-            out = self.softmax(out)
-            # out = torch.argmax(out, dim=1).float()
         return out
 
 

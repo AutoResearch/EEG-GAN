@@ -224,7 +224,24 @@ class TtsDiscriminator(nn.Sequential):
         super().__init__(
             PatchEmbedding_Linear(in_channels, patch_size, emb_size, seq_length),
             Dis_TransformerEncoder(depth, emb_size=emb_size, drop_p=0.5, forward_drop_p=0.5, **kwargs),
-            ClassificationHead(emb_size, n_classes, **kwargs)
+            ClassificationHead(emb_size, n_classes)
+        )
+
+
+class TtsClassifier(nn.Sequential):
+    """Transformer discriminator. Source: https://arxiv.org/abs/2202.02691"""
+    def __init__(self,
+                 in_channels=1,
+                 patch_size=15,
+                 emb_size=50,
+                 seq_length=600,
+                 depth=3,
+                 n_classes=1,
+                 **kwargs):
+        super().__init__(
+            PatchEmbedding_Linear(in_channels, patch_size, emb_size, seq_length),
+            Dis_TransformerEncoder(depth, emb_size=emb_size, drop_p=0.5, forward_drop_p=0.5, **kwargs),
+            ClassifierHead(emb_size, n_classes, **kwargs)
         )
 
 

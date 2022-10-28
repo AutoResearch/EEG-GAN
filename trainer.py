@@ -76,13 +76,13 @@ class Trainer:
         self.d_losses = []
         self.g_losses = []
 
-        # load checkpoint
-        try:
-            if self.use_checkpoint:
-                self.load_checkpoint(self.path_checkpoint)
-                self.use_checkpoint = False
-        except RuntimeError:
-            Warning("Could not load checkpoint. If DDP was used while saving and is used now for loading the checkpoint will be loaded in a following step.")
+        # # load checkpoint
+        # try:
+        #     if self.use_checkpoint:
+        #         self.load_checkpoint(self.path_checkpoint)
+        #         self.use_checkpoint = False
+        # except RuntimeError:
+        #     Warning("Could not load checkpoint. If DDP was used while saving and is used now for loading the checkpoint will be loaded in a following step.")
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
@@ -125,24 +125,19 @@ class Trainer:
                 self.d_losses.append(d_loss)
                 self.g_losses.append(g_loss)
 
-                # if self.rank == 0:
-                # save checkpoint and print log if main rank (=0)
-                current_batch = i // self.batch_size + 1
-                self.print_log(epoch+1, current_batch, num_batches, d_loss, g_loss)
+            # Save a checkpoint of the trained GAN and the generated samples every sample interval
+            if epoch % self.sample_interval == 0:
+                gen_samples.append(gen_imgs[np.random.randint(0, batch_size), :].detach().cpu().numpy())
+                # save models and optimizer states as checkpoints
+                # toggle between checkpoint files to avoid corrupted file during training
+                if trigger_checkpoint_01:
+                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), generated_samples=gen_samples)
+                    trigger_checkpoint_01 = False
+                else:
+                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
+                    trigger_checkpoint_01 = True
 
-                # Save a checkpoint of the trained GAN and the generated samples every sample interval
-                # TODO: implement special version for DDP-training with saving checkpoint only at rank 0
-                batches_done = epoch * num_batches + current_batch
-                if batches_done % self.sample_interval == 0:
-                    gen_samples.append(gen_imgs[np.random.randint(0, batch_size), :].detach().cpu().numpy())
-                    # save models and optimizer states as checkpoints
-                    # toggle between checkpoint files to avoid corrupted file during training
-                    if trigger_checkpoint_01:
-                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), generated_samples=gen_samples)
-                        trigger_checkpoint_01 = False
-                    else:
-                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
-                        trigger_checkpoint_01 = True
+            self.print_log(epoch + 1, d_loss, g_loss)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
 
@@ -283,11 +278,10 @@ class Trainer:
             if os.path.exists(os.path.join(path_checkpoint, f)):
                 os.remove(os.path.join(path_checkpoint, f))
 
-    def print_log(self, current_epoch, current_batch, num_batches, d_loss, g_loss):
+    def print_log(self, current_epoch, d_loss, g_loss):
         print(
-            "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
+            "[Epoch %d/%d] [D loss: %f] [G loss: %f]"
             % (current_epoch, self.epochs,
-               current_batch, num_batches,
                d_loss, g_loss)
         )
 
