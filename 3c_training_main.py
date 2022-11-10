@@ -11,7 +11,7 @@ from helpers import system_inputs
 from nn_architecture.models import TtsClassifier, TtsDiscriminator
 from helpers.get_master import find_free_port
 from helpers.dataloader import Dataloader
-from helpers.trainer_classifier import Trainer, DDPTrainer
+from helpers.trainer_3c import Trainer, DDPTrainer
 from helpers.ddp_training_classifier import run
 
 """Train a classifier to distinguish samples between two conditions"""
@@ -19,8 +19,8 @@ from helpers.ddp_training_classifier import run
 
 if __name__ == "__main__":
 
-    # sys.argv = ["generated", "path_test=trained_classifier\cl_exp_109ep.pt", "path_dataset=generated_samples\sd_len100_10000ep.csv", "n_epochs=2", "sample_interval=10"]
-    # sys.argv = ["experiment", "path_dataset=data\ganTrialERP_len100_train_shuffled.csv", "path_test=data\ganTrialERP_len100_test_shuffled.csv", "n_epochs=1", "sample_interval=10"]
+    # sys.argv = ["experiment", "path_dataset=data\ganTrialERP_len100_test_shuffled.csv", "path_test=data\ganTrialERP_len100_train_shuffled.csv", "n_epochs=1", "sample_interval=10", "path_critic=trained_models\sd_len100_train20_500ep.pt"]#, "load_checkpoint", "path_checkpoint=trained_3c\\3c_exp_train20_3ep.pt"]
+    # sys.argv = ["generated", "path_test=trained_classifier\\cl_exp_109ep.pt", "path_dataset=generated_samples\\sd_len100_10000ep.csv", "n_epochs=2", "sample_interval=10"]
     default_args = system_inputs.parse_arguments(sys.argv, system_inputs.default_inputs_training_classifier())
 
     if not default_args['experiment'] and not default_args['generated'] and not default_args['testing']:
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if not default_args['ddp'] else torch.device("cpu")
     world_size = torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count()
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    default_dict = 'trained_classifier'
+    default_dict = 'trained_3c'
 
     opt = {
         'n_epochs': default_args['n_epochs'],
@@ -41,6 +41,7 @@ if __name__ == "__main__":
         'load_checkpoint': default_args['load_checkpoint'],
         'path_checkpoint': default_args['path_checkpoint'],
         'path_dataset': default_args['path_dataset'],
+        'path_test': default_args['path_test'],
         'batch_size': default_args['batch_size'],
         'learning_rate': default_args['learning_rate'],
         'n_conditions': len(default_args['conditions']),
@@ -88,7 +89,7 @@ if __name__ == "__main__":
                                 col_label=default_args['conditions'],
                                 norm_data=True)
         if test_data is None:
-            _, _, train_idx, test_idx = dataloader.dataset_split(train_size=.8)
+            train_idx, test_idx = dataloader.dataset_split(train_size=.8)
 
             train_data = dataloader.get_data()[train_idx][:, dataloader.labels.shape[1]:]
             train_labels = dataloader.get_data()[train_idx][:, :dataloader.labels.shape[1]]
@@ -104,7 +105,7 @@ if __name__ == "__main__":
         train_labels = torch.tensor(pd.read_csv(default_args['path_dataset']).to_numpy()[:, :opt['n_conditions']]).float()
         if test_data is None:
             # Split train data into train and test
-            _, _, train_idx, test_idx = Dataloader().dataset_split(train_data, train_size=.8)
+            train_idx, test_idx = Dataloader().dataset_split(train_data, train_size=.8)
             test_data = train_data[test_idx].view(train_data[test_idx].shape).float()
             test_labels = train_labels[test_idx].view(train_labels[test_idx].shape).float()
             train_data = train_data[train_idx].view(train_data[train_idx].shape).float()
@@ -124,23 +125,37 @@ if __name__ == "__main__":
         test_data = torch.cat((test_data, torch.zeros(test_data.shape[0], padding)), dim=-1)
 
     # Load model and optimizer
+    # if not default_args['testing']:
+    critic_configuration = torch.load(default_args['path_critic'], map_location='cpu')
+
+    critic = TtsDiscriminator(seq_length=critic_configuration['configuration']['sequence_length'],
+                              patch_size=critic_configuration['configuration']['patch_size'],
+                              in_channels=1 + critic_configuration['configuration']['n_conditions'])
+    critic.load_state_dict(critic_configuration['discriminator'])
+    critic.eval()
     classifier = TtsClassifier(seq_length=opt['sequence_length'],
                                patch_size=opt['patch_size'],
                                n_classes=int(opt['n_conditions']),
+                               in_channels=3,
                                softmax=True).to(device)
 
     # Test model
     if default_args['testing']:
-        classifier.load_state_dict(torch.load(default_args['path_checkpoint'], map_location=device)['model'])
-        trainer = Trainer(classifier, opt)
-        test_loss, test_acc = trainer.test(test_data, test_labels)
+        classifier.load_state_dict(torch.load(default_args['path_checkpoint'], map_location=device)['classifier'])
+        trainer = Trainer(classifier, critic, opt)
+        fake_labels = torch.where(test_labels == 0, 1, 0)
+        scores = trainer.compute_scores(test_data, test_labels, fake_labels)
+        test_data_temp = test_data.view(-1, 1, 1, test_data.shape[-1])
+        scores = scores.view(-1, 2, 1, 1).repeat(1, 1, 1, test_data.shape[-1]).to(trainer.device)
+        test_data_temp = torch.concat((test_data_temp, scores), dim=1).to(trainer.device)
+        test_loss, test_acc = trainer.test(test_data_temp, test_labels)
         print(f"Test loss: {test_loss:.4f} - Test accuracy: {test_acc:.4f}")
         exit()
 
     # Train model
     if default_args['ddp']:
         # DDP Training
-        trainer = DDPTrainer(classifier, opt)
+        trainer = DDPTrainer(classifier, critic, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
         mp.spawn(run,
@@ -148,16 +163,16 @@ if __name__ == "__main__":
                  nprocs=world_size, join=True)
     else:
         # Regular training
-        trainer = Trainer(classifier, opt)
+        trainer = Trainer(classifier, critic, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
         loss = trainer.train(train_data, train_labels, test_data, test_labels)
 
         # Save model
-        path = 'trained_classifier'
-        filename = 'classifier_' + timestamp + '.pt'
+        path = 'trained_3c'
+        filename = '3c_' + timestamp + '.pt'
         filename = os.path.join(path, filename)
-        trainer.save_checkpoint(filename, test_data, loss)
+        trainer.save_checkpoint(filename, torch.concat((test_labels, test_data), dim=1), loss)
 
         print("Classifier training finished.")
         print("Model states, losses and test dataset saved to file: "

@@ -5,13 +5,12 @@ from datetime import datetime
 import torch
 import torch.multiprocessing as mp
 
-from trainer import Trainer
-from get_master import find_free_port
-from ddp_training import run, DDPTrainer
-from models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
-from dataloader import Dataloader
-import system_inputs
-
+from helpers.trainer import Trainer
+from helpers.get_master import find_free_port
+from helpers.ddp_training import run, DDPTrainer
+from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
+from helpers.dataloader import Dataloader
+from helpers import system_inputs
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
 
@@ -85,6 +84,7 @@ if __name__ == '__main__':
         'patch_size': default_args['patch_size'],
         'kw_timestep': default_args['kw_timestep_dataset'],
         'conditions': default_args['conditions'],
+        'lambda_gp': 10,
         'hidden_dim': 128,          # Dimension of hidden layers in discriminator and generator
         'latent_dim': 16,           # Dimension of the latent space
         'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
@@ -96,7 +96,9 @@ if __name__ == '__main__':
     dataloader = Dataloader(default_args['path_dataset'],
                             kw_timestep=default_args['kw_timestep_dataset'],
                             col_label=default_args['conditions'],
-                            norm_data=norm_data)
+                            norm_data=norm_data,
+                            std_data=std_data,
+                            diff_data=diff_data)
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
@@ -157,12 +159,13 @@ if __name__ == '__main__':
     if not filter_generator:
         generator = TtsGenerator(seq_length=opt['seq_len_generated'],
                                  latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
-                                 patch_size=opt['patch_size'])
+                                 patch_size=opt['patch_size'],
+                                 channels=1)  # TODO: Channel recovery: set channels to number of channels in dataset
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
                                          latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
                                          patch_size=opt['patch_size'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=1+opt['n_conditions'])
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=1+opt['n_conditions'])  # TODO: Channel recovery: set in_channels to (number of channels)*2 in dataset
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
@@ -189,7 +192,7 @@ if __name__ == '__main__':
             # save final models, optimizer states, generated samples, losses and configuration as final result
             path = 'trained_models'
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'state_dict_{trainer.epochs}ep_' + timestamp + '.pt'
+            filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
             trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
         print("GAN training finished.")

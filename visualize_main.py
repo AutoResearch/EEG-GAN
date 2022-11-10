@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-import system_inputs
-import models
-from dataloader import Dataloader
-from visualize_pca import visualization_dim_reduction
-from visualize_spectogram import plot_spectogram, plot_fft_hist
+from helpers import system_inputs
+from nn_architecture import models
+from helpers.dataloader import Dataloader
+from helpers.visualize_pca import visualization_dim_reduction
+from helpers.visualize_spectogram import plot_spectogram, plot_fft_hist
 
 
 class PlotterGanTraining:
@@ -172,6 +172,7 @@ class PlotterGanTraining:
                 batch_size = n_samples
                 Warning('batch_size is bigger than n_samples. Setting batch_size = n_samples')
 
+        filenames = []
         for i in range(0, df.shape[0], batch_size):
             batch = df[i:i + batch_size]
             if stacked:
@@ -184,7 +185,7 @@ class PlotterGanTraining:
                         if sampling:
                             axs[batch_size-1-j].text(df.shape[1], batch[j].mean(), f'sample: {rows+index[i+j]}', horizontalalignment='right')
                 elif self.filetype == 'emb':
-                    # plot the real and the reconstructed sample
+                    # plot the real and the reconstructed sample from an embedding network
                     for j in range(0, batch.shape[0], 2):
                         axs[batch_size-1-j].plot(batch[j], 'c')
                         axs[batch_size-1-j].plot(batch[j + 1], 'orange')
@@ -207,9 +208,12 @@ class PlotterGanTraining:
                 if not os.path.exists(path):
                     os.makedirs(path)
                 file = self.file.split(os.path.sep)[-1].split('.')[0]
-                plt.savefig(os.path.join(path, f'{file}_{i}.png'), dpi=600)
+                filenames.append(os.path.join(path, f'{file}_{i}.png'))
+                plt.savefig(filenames[-1], dpi=600)
             else:
                 plt.show()
+
+        return filenames
 
     def set_dataset(self, gen_samples, conditions=False):
         """Set the dataset with the generated samples.
@@ -284,9 +288,12 @@ def fun_plot_losses(d_loss, g_loss, save, path_save=None, legend=None):
     else:
         plt.show()
 
+    return d_loss, g_loss
+
 
 def fun_plot_averaged(data, save=False, path_save=None):
-    plt.plot(data.mean(axis=0))
+    data = data.mean(axis=0)
+    plt.plot(data)
     if save:
         if path_save is None:
             path_save = 'averaged.png'
@@ -295,10 +302,12 @@ def fun_plot_averaged(data, save=False, path_save=None):
     else:
         plt.show()
 
+    return data
+
 
 if __name__ == '__main__':
 
-    # sys.argv = ["experiment", "file=ganAverageERP.csv", "spectogram"]
+    # sys.argv = ["csv_file", "file=sd_len100_10000ep_cond0_20k.csv", "training_file=generated_samples\sd_len100_10000ep_cond1_20k.csv", "pca"]
     default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
 
     print('\n-----------------------------------------')
@@ -315,6 +324,7 @@ if __name__ == '__main__':
         raise ValueError('One of the following options must be active: experiment, checkpoint, csv_file')
 
     save = default_args['save']
+    # save_data = default_args['save_data']
     file = default_args['file']
     plot_losses = default_args['plot_losses']
     averaged = default_args['averaged']
@@ -344,13 +354,13 @@ if __name__ == '__main__':
     # ----------------------------
 
     bandpass = default_args['bandpass']
-    mvg_avg = default_args['mvg_avg']
-    moving_average_window = default_args['mvg_avg_window']
+    # mvg_avg = default_args['mvg_avg']
+    # moving_average_window = default_args['mvg_avg_window']
     norm_data = not plot_losses            # normalize data to the range [0, 1]
     sequence_length = 24        # length of the sequence
 
-    if bandpass and mvg_avg:
-        warnings.warn('Both filters are active ("mvg_avg" and "bandpass"). Consider using only one.')
+    # if bandpass and mvg_avg:
+    #     warnings.warn('Both filters are active ("mvg_avg" and "bandpass"). Consider using only one.')
 
     if pca and tsne:
         warnings.warn('Both dimensionality reduction methods are active ("pca" and "tsne"). "pca" will be used.')
@@ -450,24 +460,32 @@ if __name__ == '__main__':
     #     plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
 
     # plot data
+    legend_data = None
     if plot_losses:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_losses.png'
         filename = os.path.join('plots', filename)
-        fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename, legend)
+        legend_data = legend
+        curve_data = fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename, legend)
     elif averaged:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_averaged.png'
         filename = os.path.join('plots', filename)
-        fun_plot_averaged(plotter.get_dataset(), save, filename)
+        legend_data = ['averaged']
+        curve_data = fun_plot_averaged(plotter.get_dataset(), save, filename)
     elif spectogram:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_spectogram.png'
         filename = os.path.join('plots', filename)
-        plot_spectogram(plotter.get_dataset(), save, filename)
+        curve_data = plot_spectogram(plotter.get_dataset(), save, filename)
     elif fft_hist:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_fft_hist.png'
         filename = os.path.join('plots', filename)
-        plot_fft_hist(plotter.get_dataset(), save, filename)
+        curve_data = plot_fft_hist(plotter.get_dataset(), save, filename)
     elif pca or tsne:
-        ori_data = Dataloader(path=training_file, norm_data=True).get_data().unsqueeze(-1).detach().cpu().numpy()[:, n_conditions:, :]
+        try:
+            ori_data = Dataloader(path=training_file, norm_data=True).get_data().unsqueeze(-1).detach().cpu().numpy()[:, n_conditions:, :]
+        except Exception as e:
+            print("Training file was not of type experiment data. Trying to load generated samples.")
+            ori_data = pd.read_csv(training_file, delimiter=',', index_col=0).to_numpy()
+            ori_data = ori_data.reshape(-1, ori_data.shape[1], 1)
         gen_data = plotter.get_dataset()
         gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)[:, n_conditions:, :]
         if ori_data.shape[1] > gen_data.shape[1]:
@@ -477,14 +495,19 @@ if __name__ == '__main__':
         if pca:
             filename = file.split(os.path.sep)[-1].split('.')[0] + '_pca.png'
             filename = os.path.join('plots',  filename)
-            visualization_dim_reduction(ori_data, gen_data, 'pca', save, filename)
+            legend = ['original data', 'generated data']
+            curve_data = visualization_dim_reduction(ori_data, gen_data, 'pca', save, filename)
         elif tsne:
             filename = file.split(os.path.sep)[-1].split('.')[0] + '_tsne.png'
             filename = os.path.join('plots',  filename)
-            visualization_dim_reduction(ori_data, gen_data, 'tsne', save, filename, perplexity=default_args['tsne_perplexity'], iterations=default_args['tsne_iterations'])
+            legend = ['original data', 'generated data']
+            curve_data = visualization_dim_reduction(ori_data, gen_data, 'tsne', save, filename, perplexity=default_args['tsne_perplexity'], iterations=default_args['tsne_iterations'])
     else:
         plotter.set_title(title + f'; {file if file is not None else ""}')
-        plotter.plot(stacked=stacked, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)
+        filename = plotter.plot(stacked=stacked, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)
 
     if save:
-        print(f"Saved plot to {filename}")
+        if not isinstance(filename, list):
+            filename = [filename]
+        for f in filename:
+            print(f"Saved plot to {f}")
