@@ -16,8 +16,6 @@ This repository has 3 scripts which are executable from the terminal.
 
 3. generate_samples_main.py: This script initializes a trained generator to create synthetic samples
 
-4. checkpoint_to_csv.py: This script is used to convert the data from the checkpoint files to csv-files (so the data can be processed outside of the repo's environment)
-
 # Instructions
 
 1. Download/install the whole repo
