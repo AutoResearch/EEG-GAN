@@ -5,15 +5,13 @@ import numpy as np
 import pandas as pd
 import torch
 
-import system_inputs
-from trainer import Trainer
-from models import TtsGenerator, TtsGeneratorFiltered
-from dataloader import Dataloader
-
+from helpers import system_inputs
+from helpers.trainer import Trainer
+from nn_architecture.models import TtsGenerator, TtsGeneratorFiltered
 
 if __name__ == '__main__':
 
-    # sys.argv = ["file=sd_len100_fullseq_9300ep.pt", "conditi"]
+    # sys.argv = ["file=sd_len100_train20_500ep.pt", "average=10", "all_cond_per_z"]
     default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
 
     print('\n-----------------------------------------')
@@ -24,6 +22,9 @@ if __name__ == '__main__':
     num_samples_total = default_args['num_samples_total']
     num_samples_parallel = default_args['num_samples_parallel']
     kw_timestep_dataset = default_args['kw_timestep_dataset']
+    average_over = default_args['average']
+    all_cond_per_z = default_args['all_cond_per_z']
+
     condition = default_args['conditions']
     if not isinstance(condition, list):
         condition = [condition]
@@ -34,6 +35,9 @@ if __name__ == '__main__':
         file = os.path.join(path, file)
 
     path_samples = default_args['path_samples']
+    if path_samples == 'None':
+        # Use checkpoint filename as path
+        path_samples = os.path.basename(file).split('.')[0] + '.csv'
     if path_samples.split(os.path.sep)[0] == path_samples:
         # use default path if no path is given
         path = 'generated_samples'
@@ -84,8 +88,8 @@ if __name__ == '__main__':
         for i, x in enumerate(condition):
             if x == -1:
                 # random condition (works currently only for binary conditions)
-                x = np.random.randint(0, 2)
-            cond_labels[n, i] = x
+                # x = np.random.randint(0, 2)
+                cond_labels[n, i] = 0 if n % 2 == 0 else 1
 
     # generate samples
     num_sequences = int(np.floor(num_samples_total / num_samples_parallel))
@@ -97,19 +101,31 @@ if __name__ == '__main__':
         # init sequence for windows_slices
         sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
         while sequence.shape[1] < sequence_length_total + seq_len_cond:
-            # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-            z = Trainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim, device=device)
+            samples = torch.zeros((num_samples_parallel, seq_len_gen)).to(device)
+            z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
+            if all_cond_per_z:
+                for j in range(0, num_samples_parallel-1, 2):
+                    # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
+                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                    z[j] = latent_var
+                    z[j+1] = latent_var
+            else:
+                for j in range(num_samples_parallel):
+                    # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
+                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                    z[j] = latent_var
             z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
-            samples = generator(z)
-            sequence = torch.cat((sequence, samples.view(num_samples_parallel, -1)), dim=1)
+            samples += generator(z).view(num_samples_parallel, -1)
+            samples /= average_over
+            sequence = torch.cat((sequence, samples), dim=1)
         sequence = sequence[:, seq_len_cond:seq_len_cond+sequence_length_total]
         sequence = torch.cat((cond_labels, sequence), dim=1)
         all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel, :] = sequence.detach().cpu().numpy()
 
     # save samples
     print("Saving samples...")
-    path = 'generated_samples'
-    file = os.path.join(path, os.path.basename(file).split('.')[0] + '.csv')
-    pd.DataFrame(all_samples).to_csv(file, index=False)
+    # path = 'generated_samples'
+    # file = os.path.join(path, os.path.basename(file).split('.')[0] + '.csv')
+    pd.DataFrame(all_samples).to_csv(path_samples, index=False)
 
-    print("Generated samples were saved to " + file)
+    print("Generated samples were saved to " + path_samples)

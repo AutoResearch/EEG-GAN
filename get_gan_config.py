@@ -3,7 +3,7 @@ import sys
 
 import torch
 
-import system_inputs
+from helpers import system_inputs
 
 if __name__ == "__main__":
 
