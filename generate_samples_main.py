@@ -88,14 +88,15 @@ if __name__ == '__main__':
         for i, x in enumerate(condition):
             if x == -1:
                 # random condition (works currently only for binary conditions)
-                # x = np.random.randint(0, 2)
-                cond_labels[n, i] = 0 if n % 2 == 0 else 1
+                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
+                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
 
     # generate samples
     num_sequences = int(np.floor(num_samples_total / num_samples_parallel))
     all_samples = np.zeros((num_samples_parallel * num_sequences, sequence_length_total + n_conditions))
     print("Generating samples...")
 
+    # Generation of samples begins
     for i in range(num_sequences):
         print(f"Generating sequence {i+1} of {num_sequences}...")
         # init sequence for windows_slices
@@ -110,13 +111,13 @@ if __name__ == '__main__':
                     z[j] = latent_var
                     z[j+1] = latent_var
             else:
+                # For normal sample generation - use this loop
                 for j in range(num_samples_parallel):
                     # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
                     latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
                     z[j] = latent_var
             z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
             samples += generator(z).view(num_samples_parallel, -1)
-            samples /= average_over
             sequence = torch.cat((sequence, samples), dim=1)
         sequence = sequence[:, seq_len_cond:seq_len_cond+sequence_length_total]
         sequence = torch.cat((cond_labels, sequence), dim=1)

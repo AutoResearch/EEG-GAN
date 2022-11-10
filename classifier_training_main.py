@@ -110,6 +110,8 @@ if __name__ == "__main__":
             train_data = train_data[train_idx].view(train_data[train_idx].shape).float()
             train_labels = train_labels[train_idx].view(train_labels[train_idx].shape).float()
 
+    # TODO: implement data concatenation of experiment and generator data
+
     opt['sequence_length'] = test_data.shape[1]# - len(default_args['conditions'])
 
     if opt['sequence_length'] % opt['patch_size'] != 0:
@@ -124,6 +126,7 @@ if __name__ == "__main__":
         test_data = torch.cat((test_data, torch.zeros(test_data.shape[0], padding)), dim=-1)
 
     # Load model and optimizer
+    # TODO: For new classifier, replace the following line with the new classifier
     classifier = TtsClassifier(seq_length=opt['sequence_length'],
                                patch_size=opt['patch_size'],
                                n_classes=int(opt['n_conditions']),
@@ -151,6 +154,7 @@ if __name__ == "__main__":
         trainer = Trainer(classifier, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
+        # TODO: Adjust train-method to your needs
         loss = trainer.train(train_data, train_labels, test_data, test_labels)
 
         # Save model
