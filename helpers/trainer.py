@@ -143,6 +143,7 @@ class Trainer:
         """Trains the GAN-Model on one batch of data.
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
+        channels = data.shape[2]
         seq_length = 1
 
         gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
@@ -155,13 +156,14 @@ class Trainer:
             self.generator_optimizer.zero_grad()
 
             # Sample noise and labels as generator input
-            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
+            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim*channels,
                                             device=self.device, sequence_length=seq_length)
+            z = z.reshape((batch_size,self.latent_dim,channels))
             gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
 
             # Generate a batch of samples
             # if isinstance(self.generator, models.TtsGenerator):
-            # TODO: for channel recovery: concatenate z and ALL channels along dim=0
+            #
             z = torch.cat((z, gen_labels), dim=1)
             gen_imgs = self.generator(z)
             # TODO: for channel recovery: Output of G is 4-dim: (batch_size, n_channels, 1, seq_length)
