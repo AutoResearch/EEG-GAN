@@ -211,6 +211,7 @@ def default_inputs_training_gan():
         'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
         'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
+        'n_channels': [int, 'Number of channels', 1, 'Number of channels: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'patch_size': [int, 'Patch size', 20, 'Patch size: '],
         'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],

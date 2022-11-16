@@ -72,6 +72,7 @@ if __name__ == '__main__':
     # GAN configuration
     opt = {
         'n_epochs': default_args['n_epochs'],
+        'n_channels': default_args['n_channels'],
         'sequence_length': default_args['sequence_length'],
         'seq_len_generated': default_args['seq_len_generated'],
         'load_checkpoint': default_args['load_checkpoint'],

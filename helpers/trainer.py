@@ -29,6 +29,7 @@ class Trainer:
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
+        self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
