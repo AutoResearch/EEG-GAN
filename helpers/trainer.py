@@ -202,10 +202,12 @@ class Trainer:
 
         # if isinstance(self.generator, models.TtsGenerator):
         # Sample noise and labels as generator input
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
+        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim * channels,
                                         device=self.device, sequence_length=seq_length)
+        z = z.reshape((batch_size, self.latent_dim, channels))
         gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
         z = torch.cat((z, gen_labels), dim=1).to(self.device)
+        z = z.permute(0, 2, 1)
         gen_imgs = self.generator(z)
 
         # TODO: for channel recovery: Take only the fixed channels and replace the broken ones with the fixed ones
