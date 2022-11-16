@@ -143,8 +143,7 @@ class Trainer:
         """Trains the GAN-Model on one batch of data.
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
-        # TODO: for channel recovery: comment if-case out -> To get a 2D latent variable
-        seq_length = data.shape[1] if isinstance(self.generator, models.CondLstmGenerator) else 1
+        seq_length = 1
 
         gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
         if train_generator:
