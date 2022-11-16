@@ -34,7 +34,6 @@ class Dataloader:
             remainder = df.shape[0] % channels  # if there is an incomplete set of channels at the end
             df = df.head(df.shape[0] - remainder)  # remove incomplete set of channels
             df_numpy = df.to_numpy().reshape((df.shape[0]//channels, df.shape[1], channels))
-            print(df_numpy.shape)
             dataset = torch.FloatTensor(df_numpy[:, self.n_col_data:])
             labels = torch.zeros((df.shape[0], len(col_label)))
             for i, l in enumerate(col_label):
