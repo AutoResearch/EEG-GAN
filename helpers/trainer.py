@@ -165,8 +165,9 @@ class Trainer:
             # if isinstance(self.generator, models.TtsGenerator):
             #
             z = torch.cat((z, gen_labels), dim=1)
+            z = z.permute(0,2,1)
             gen_imgs = self.generator(z)
-            # TODO: for channel recovery: Output of G is 4-dim: (batch_size, n_channels, 1, seq_length)
+            #
             # else:
             #     gen_imgs = self.generator(z, gen_labels)
 
