@@ -215,10 +215,10 @@ class Trainer:
         # TODO: for channel recovery: Additional information for D could be which channel was fixed -> twice as many labels for D
         # TODO: for channel recovery: Take cond data and reshape to 4D tensor: (batch_size, 1, n_channels, seq_length)
 
-        gen_samples = torch.cat((gen_labels, gen_imgs.view(gen_imgs.shape[0], gen_imgs.shape[-1])), dim=1).to(self.device)
+        gen_samples = torch.cat((gen_labels, gen_imgs.view(gen_imgs.shape[0],gen_imgs.shape[1], gen_imgs.shape[-1]).permute(0,2,1)), dim=1).to(self.device)
 
         # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
+        fake_data = torch.cat((gen_cond_data.view(batch_size, channels, 1, -1), gen_imgs), dim=-1).to(self.device)
         fake_labels = data_labels.view(-1, channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)
