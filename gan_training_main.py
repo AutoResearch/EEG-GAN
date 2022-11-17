@@ -99,7 +99,8 @@ if __name__ == '__main__':
                             col_label=default_args['conditions'],
                             norm_data=norm_data,
                             std_data=std_data,
-                            diff_data=diff_data)
+                            diff_data=diff_data,
+                            channels=default_args['n_channels'])
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
@@ -161,12 +162,13 @@ if __name__ == '__main__':
         generator = TtsGenerator(seq_length=opt['seq_len_generated'],
                                  latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
                                  patch_size=opt['patch_size'],
-                                 channels=1)  # TODO: Channel recovery: set channels to number of channels in dataset
+                                 channels=opt['n_channels'])  # TODO: Channel recovery: set channels to number of channels in dataset
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
                                          latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
-                                         patch_size=opt['patch_size'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=1+opt['n_conditions'])  # TODO: Channel recovery: set in_channels to (number of channels)*2 in dataset
+                                         patch_size=opt['patch_size'],
+                                         channels=opt['n_channels'])
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=(1+opt['n_conditions'])*opt['n_channels'])  # TODO: Channel recovery: set in_channels to (number of channels)*2 in dataset
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------

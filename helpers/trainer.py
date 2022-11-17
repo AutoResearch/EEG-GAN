@@ -144,7 +144,7 @@ class Trainer:
         """Trains the GAN-Model on one batch of data.
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
-        channels = data.shape[2]
+        channels = self.n_channels
         seq_length = 1
 
         gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
@@ -167,7 +167,7 @@ class Trainer:
             #
             z = torch.cat((z, gen_labels), dim=1)
             z = z.permute(0,2,1)
-            gen_imgs = self.generator(z)
+            gen_imgs = self.generator(z)[:batch_size]
             #
             # else:
             #     gen_imgs = self.generator(z, gen_labels)
@@ -209,14 +209,13 @@ class Trainer:
         gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
         z = torch.cat((z, gen_labels), dim=1).to(self.device)
         z = z.permute(0, 2, 1)
-        gen_imgs = self.generator(z)
+        gen_imgs = self.generator(z)[:batch_size]
 
         # TODO: for channel recovery: Take only the fixed channels and replace the broken ones with the fixed ones
         # TODO: for channel recovery: Give the new matrix as input to D
         # TODO: for channel recovery: Additional information for D could be which channel was fixed -> twice as many labels for D
         # TODO: for channel recovery: Take cond data and reshape to 4D tensor: (batch_size, 1, n_channels, seq_length)
-
-        gen_samples = torch.cat((gen_labels.permute(0, 2, 1), gen_imgs.view(gen_imgs.shape[0],gen_imgs.shape[1], gen_imgs.shape[-1]).permute(0,2,1)), dim=1).to(self.device)
+        gen_samples = torch.cat((gen_labels.permute(0, 2, 1), gen_imgs.view(gen_imgs.shape[0],gen_imgs.shape[1], gen_imgs.shape[-1])), dim=2).to(self.device)
 
         # Loss for fake images
         fake_data = torch.cat((gen_cond_data.permute(0, 2, 1).view(batch_size, channels, 1, -1), gen_imgs), dim=-1).to(self.device)
