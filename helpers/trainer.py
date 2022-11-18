@@ -61,6 +61,7 @@ class Trainer:
             'sample_interval': self.sample_interval,
             'learning_rate': self.learning_rate,
             'n_conditions': self.n_conditions,
+            'n_channels': self.n_channels,
             'latent_dim': self.latent_dim,
             'critic_iterations': self.critic_iterations,
             'lambda_gp': self.lambda_gp,
