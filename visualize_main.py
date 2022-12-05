@@ -221,10 +221,10 @@ class PlotterGanTraining:
                             Shape: (rows: samples, cols: (conditions, signal))"""
         if isinstance(gen_samples, torch.Tensor):
             gen_samples = gen_samples.detach().cpu().numpy()
-
+            
         if len(gen_samples.shape) > 2:
             gen_samples = gen_samples.reshape(-1, gen_samples.shape[-1])
-
+            
         if not isinstance(gen_samples, pd.DataFrame):
             self.df = pd.DataFrame(gen_samples, columns=np.arange(gen_samples.shape[1]), index=np.arange(gen_samples.shape[0]))
         else:
@@ -444,9 +444,8 @@ if __name__ == '__main__':
                                  gan_or_emb=gan_or_emb, n_conditions=n_conditions,
                                  get_original_dataset=False)
 
-    if data is not None:
+    if csv_file and data is not None:
         plotter.set_dataset(data)
-
     # if mvg_avg:
     #     # filter data with moving average from GenerateSamples class
     #     plotter.set_dataset(GenerateSamples.moving_average(plotter.get_dataset(), w=moving_average_window))

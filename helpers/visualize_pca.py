@@ -41,8 +41,7 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
 
     ori_data = ori_data[idx_ori]
     generated_data = generated_data[idx_gen]
-
-    no, seq_len, dim = ori_data.shape
+    no, seq_len, _, dim = ori_data.shape
 
     for i in range(anal_sample_no):
         if (i == 0):

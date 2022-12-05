@@ -61,9 +61,9 @@ if __name__ == '__main__':
 
     if (default_args['seq_len_generated'] == -1 or default_args['sequence_length'] == -1) and windows_slices:
         raise ValueError('If window slices are used, the keywords "sequence_length" and "seq_len_generated" must be greater than 0.')
-
+    
     if load_checkpoint:
-        print(f'Resuming training from checkpoint {path_checkpoint}.')
+        print(f"Resuming training from checkpoint {path_checkpoint}.")
 
     # Look for cuda
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if not ddp else torch.device("cpu")
