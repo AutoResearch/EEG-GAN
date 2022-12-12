@@ -146,9 +146,8 @@ class Trainer:
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
         channels = self.n_channels
-        seq_length = 1
 
-        gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
+        gen_cond_data = data.to(self.device)
         if train_generator:
 
             # -----------------
@@ -158,15 +157,15 @@ class Trainer:
             self.generator_optimizer.zero_grad()
 
             # Sample noise and labels as generator input
-            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim*channels,
-                                            device=self.device, sequence_length=seq_length)
-            z = z.reshape((batch_size,self.latent_dim,channels))
             gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
+            z = self.sample_latent_variable(batch_size=self.latent_dim, latent_dim=gen_labels.shape[1],
+                                            device=self.device, sequence_length=gen_labels.shape[2])
+            z = z.reshape((self.latent_dim, gen_labels.shape[1], gen_labels.shape[2]))
 
             # Generate a batch of samples
             # if isinstance(self.generator, models.TtsGenerator):
             #
-            z = torch.cat((z, gen_labels), dim=1)
+            z = torch.cat((z, gen_labels), dim=0)
             z = z.permute(0,2,1)
             gen_imgs = self.generator(z)[:batch_size]
             #
@@ -180,7 +179,7 @@ class Trainer:
             # dim_gen_imgs = gen_imgs.shape = (batch_size, n_channels, 1, seq_length)
             # Concatenate labels and images
             # torch.cat((data_labels, gen_imgs), dim=1) --> New shape: (batch_size, n_conditions + n_channels, 1, seq_length)
-            fake_data = torch.cat((gen_cond_data.permute(0, 2, 1).view(batch_size, channels, 1, -1), gen_imgs), dim=-1).to(self.device)
+            fake_data = gen_imgs
             fake_labels = data_labels.permute(0, 2, 1).view(-1, channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
             validity = self.discriminator(fake_data)
@@ -204,11 +203,11 @@ class Trainer:
 
         # if isinstance(self.generator, models.TtsGenerator):
         # Sample noise and labels as generator input
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim * channels,
-                                        device=self.device, sequence_length=seq_length)
-        z = z.reshape((batch_size, self.latent_dim, channels))
         gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
-        z = torch.cat((z, gen_labels), dim=1).to(self.device)
+        z = self.sample_latent_variable(batch_size=self.latent_dim, latent_dim=gen_labels.shape[1],
+                                        device=self.device, sequence_length=gen_labels.shape[2])
+        z = z.reshape((self.latent_dim, self.sequence_length+self.n_conditions, channels))
+        z = torch.cat((z, gen_labels), dim=0).to(self.device)
         z = z.permute(0, 2, 1)
         gen_imgs = self.generator(z)[:batch_size]
 
@@ -219,7 +218,7 @@ class Trainer:
         gen_samples = torch.cat((gen_labels.permute(0, 2, 1), gen_imgs.view(gen_imgs.shape[0],gen_imgs.shape[1], gen_imgs.shape[-1])), dim=2).to(self.device)
 
         # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.permute(0, 2, 1).view(batch_size, channels, 1, -1), gen_imgs), dim=-1).to(self.device)
+        fake_data = gen_imgs
         fake_labels = data_labels.permute(0, 2, 1).view(-1, channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)

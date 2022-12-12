@@ -183,7 +183,7 @@ class TtsGenerator(nn.Module):
         self.attn_drop_rate = attn_drop_rate
         self.forward_drop_rate = forward_drop_rate
 
-        self.l1 = nn.Linear(self.latent_dim, self.seq_len * self.embed_dim)
+        self.l1 = nn.Linear(self.seq_len+1, self.seq_len * self.embed_dim)
         self.pos_embed = nn.Parameter(torch.zeros(1, self.seq_len, self.embed_dim))
         self.blocks = Gen_TransformerEncoder(
             depth=self.depth,
