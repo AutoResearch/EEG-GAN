@@ -87,8 +87,8 @@ if __name__ == '__main__':
         'conditions': default_args['conditions'],
         'lambda_gp': 10,
         'hidden_dim': 128,          # Dimension of hidden layers in discriminator and generator
-        'latent_dim': 16,           # Dimension of the latent space
-        'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
+        'latent_dim': default_args['latent_dim'],           # Dimension of the latent space
+        'critic_iterations': default_args['critic_iterations'],     # number of iterations of the critic per generator iteration for Wasserstein GAN
         'n_lstm': 2,                # number of lstm layers for lstm GAN
         'world_size': world_size,   # number of processes for distributed training
     }
