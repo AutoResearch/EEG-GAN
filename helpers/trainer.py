@@ -2,7 +2,8 @@ import os
 
 import torch
 import numpy as np
-
+from helpers.tools import channel_loss
+import matplotlib.pyplot as plt
 from nn_architecture import losses, models
 from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
 
@@ -73,6 +74,7 @@ class Trainer:
 
         self.d_losses = []
         self.g_losses = []
+        self.i_losses = []
 
         # # load checkpoint
         # try:
@@ -122,6 +124,9 @@ class Trainer:
 
                 self.d_losses.append(d_loss)
                 self.g_losses.append(g_loss)
+                input_data = data.permute(0, 2, 1)
+                output_data = gen_imgs[:, :, -input_data.shape[2]:].detach()
+                self.i_losses.append(channel_loss(input_data.cpu(), output_data.cpu()))
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
@@ -138,7 +143,13 @@ class Trainer:
             self.print_log(epoch + 1, d_loss, g_loss)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
-
+        self.i_losses[:] = [i / self.i_losses[0] for i in self.i_losses]
+        plt.plot(range(len(self.i_losses)), self.i_losses)
+        plt.show()
+        plt.plot(self.g_losses, self.i_losses)
+        plt.show()
+        plt.plot(self.d_losses, self.i_losses)
+        plt.show()
         return gen_samples
 
     def batch_train(self, data, data_labels, train_generator):
@@ -147,7 +158,8 @@ class Trainer:
         batch_size = data.shape[0]
         channels = self.n_channels
 
-        gen_cond_data = data.to(self.device)
+        #gen_cond_data = data.to(self.device)
+        gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
         if train_generator:
 
             # -----------------
@@ -166,7 +178,7 @@ class Trainer:
             # if isinstance(self.generator, models.TtsGenerator):
             #
             z = torch.cat((z, gen_labels), dim=0)
-            z = z.permute(0,2,1)
+            z = z.permute(1,2,0)
             gen_imgs = self.generator(z)[:batch_size]
             #
             # else:
@@ -206,9 +218,9 @@ class Trainer:
         gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
         z = self.sample_latent_variable(batch_size=self.latent_dim, latent_dim=gen_labels.shape[1],
                                         device=self.device, sequence_length=gen_labels.shape[2])
-        z = z.reshape((self.latent_dim, self.sequence_length+self.n_conditions, channels))
+        z = z.reshape((self.latent_dim, gen_labels.shape[1], gen_labels.shape[2]))
         z = torch.cat((z, gen_labels), dim=0).to(self.device)
-        z = z.permute(0, 2, 1)
+        z = z.permute(1, 2, 0)
         gen_imgs = self.generator(z)[:batch_size]
 
         # TODO: for channel recovery: Take only the fixed channels and replace the broken ones with the fixed ones
