@@ -82,7 +82,8 @@ if __name__ == '__main__':
         'batch_size': default_args['batch_size'],
         'learning_rate': default_args['learning_rate'],
         'sample_interval': default_args['sample_interval'],
-        'n_conditions': len(default_args['conditions']),  # ADD + 1
+        'n_conditions': len(default_args['conditions']),
+        'channel_recovery': default_args['channel_recovery'],
         'patch_size': default_args['patch_size'],
         'kw_timestep': default_args['kw_timestep_dataset'],
         'conditions': default_args['conditions'],

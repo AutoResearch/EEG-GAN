@@ -223,6 +223,7 @@ def default_inputs_training_gan():
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        'channel_recovery': [bool, 'Train GAN to recover faulty channel data', True, 'Train GAN to recover faulty channel data: '],
     }
 
     return kw_dict

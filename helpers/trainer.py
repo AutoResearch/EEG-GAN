@@ -31,6 +31,7 @@ class Trainer:
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.conditions = opt['conditions']
+        self.recover_channels = opt['recover_channels']
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
@@ -63,6 +64,8 @@ class Trainer:
             'sample_interval': self.sample_interval,
             'learning_rate': self.learning_rate,
             'n_conditions': self.n_conditions,
+            'conditions': self.conditions,
+            'recover_channels': self.recover_channels,
             'n_channels': self.n_channels,
             'latent_dim': self.latent_dim,
             'critic_iterations': self.critic_iterations,
@@ -150,13 +153,11 @@ class Trainer:
         channels = self.n_channels
         seq_length = 1
 
-        working = torch.ones(size=(data_labels.shape[0], 1, data_labels.shape[-1]))
-        #print(data_labels[0])
-        #print(working.shape)
+        # for current simplicity, the condition label is being replaced with channel-working label
+        data_labels = torch.ones(size=data_labels.shape)
         print(data_labels.shape)
         print(data.shape)
-        # data_labels = torch.concat((data_labels[:, 0:1, :], working), dim=1)
-        # print(data_labels.shape)
+
         # gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
         # gen_cond_data = data
         if train_generator:
@@ -175,7 +176,8 @@ class Trainer:
 
             # replace random channel with the noise
             rand_chan_num = random.randint(0, 29)
-            gen_labels[:, :, rand_chan_num] = z
+            gen_labels[:, :, rand_chan_num] = z  # add noise
+            gen_labels[:, 0, rand_chan_num] = 0  # set label to zero (channel not working)
 
             # pass data to generator
             gen_labels = gen_labels.permute(0, 2, 1)
