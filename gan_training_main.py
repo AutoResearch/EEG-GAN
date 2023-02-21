@@ -28,7 +28,7 @@ if __name__ == '__main__':
     """Main function of the training process."""
 
     # sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
-    sys.argv = ["path_dataset=data/ganTrialElectrodeERP_mini_len100.csv", "n_channels=30", "batch_size=15"]
+    sys.argv = ["path_dataset=data/ganTrialElectrodeERP_medium_len100.csv", "n_channels=30", "batch_size=32"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
