@@ -174,7 +174,7 @@ class Trainer:
             z = z.reshape((batch_size, self.sequence_length+self.n_conditions+self.channel_recovery))
 
             if self.channel_recovery:
-                working = torch.ones(size=(data_labels.shape[0], 1, data_labels.shape[2]))
+                working = torch.ones(size=(data_labels.shape[0], 1, data_labels.shape[2])).to(self.device)
                 gen_labels = torch.cat((data_labels, working, data), dim=1).to(self.device)
             else:
                 gen_labels = torch.cat((data_labels, data), dim=1).to(self.device)
