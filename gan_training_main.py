@@ -162,15 +162,17 @@ if __name__ == '__main__':
 
     if not filter_generator:
         generator = TtsGenerator(seq_length=opt['seq_len_generated'],
-                                 latent_dim=opt['n_conditions'] + opt['sequence_length'],
+                                 latent_dim=opt['n_conditions'] + opt['channel_recovery'] + opt['sequence_length'],
                                  patch_size=opt['patch_size'],
-                                 channels=opt['n_channels'])  # TODO: Channel recovery: set channels to number of channels in dataset
+                                 channels=opt['n_channels'])
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
-                                         latent_dim=opt['n_conditions']+opt['sequence_length'],
+                                         latent_dim=opt['n_conditions']+opt['channel_recovery']+opt['sequence_length'],
                                          patch_size=opt['patch_size'],
                                          channels=opt['n_channels'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=(1+opt['n_conditions'])*opt['n_channels'])  # TODO: Channel recovery: set in_channels to (number of channels)*2 in dataset
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
+                                     patch_size=opt['patch_size'],
+                                     in_channels=(1+opt['n_conditions'])*opt['n_channels'])
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------

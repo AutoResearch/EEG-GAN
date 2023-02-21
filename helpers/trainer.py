@@ -31,7 +31,7 @@ class Trainer:
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.conditions = opt['conditions']
-        self.recover_channels = opt['recover_channels']
+        self.channel_recovery = opt['channel_recovery']
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
@@ -65,7 +65,7 @@ class Trainer:
             'learning_rate': self.learning_rate,
             'n_conditions': self.n_conditions,
             'conditions': self.conditions,
-            'recover_channels': self.recover_channels,
+            'channel_recovery': self.channel_recovery,
             'n_channels': self.n_channels,
             'latent_dim': self.latent_dim,
             'critic_iterations': self.critic_iterations,
@@ -153,8 +153,7 @@ class Trainer:
         channels = self.n_channels
         seq_length = 1
 
-        # for current simplicity, the condition label is being replaced with channel-working label
-        data_labels = torch.ones(size=data_labels.shape)
+
         print(data_labels.shape)
         print(data.shape)
 
@@ -169,10 +168,16 @@ class Trainer:
             self.generator_optimizer.zero_grad()
 
             # Sample noise and labels as generator input
-            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.sequence_length+self.n_conditions,
+            z = self.sample_latent_variable(batch_size=batch_size,
+                                            latent_dim=self.sequence_length+self.n_conditions+self.channel_recovery,
                                             device=self.device, sequence_length=seq_length)
-            z = z.reshape((batch_size, self.sequence_length+self.n_conditions))
-            gen_labels = torch.cat((data_labels, data), dim=1).to(self.device)
+            z = z.reshape((batch_size, self.sequence_length+self.n_conditions+self.channel_recovery))
+
+            if self.channel_recovery:
+                working = torch.ones(size=(data_labels.shape[0], 1, data_labels.shape[2]))
+                gen_labels = torch.cat((data_labels, working, data), dim=1).to(self.device)
+            else:
+                gen_labels = torch.cat((data_labels, data), dim=1).to(self.device)
 
             # replace random channel with the noise
             rand_chan_num = random.randint(0, 29)
@@ -182,6 +187,8 @@ class Trainer:
             # pass data to generator
             gen_labels = gen_labels.permute(0, 2, 1)
             gen_imgs = self.generator(gen_labels)[:batch_size]
+            print(gen_labels.shape)
+            print(gen_imgs.shape)
             # create fake data
             # fake_data = torch.cat((data.permute(0, 2, 1).view(batch_size, channels, 1, -1), gen_imgs), dim=-1)
             fake_data = gen_imgs.to(self.device)
@@ -207,14 +214,21 @@ class Trainer:
         self.discriminator_optimizer.zero_grad()
 
         # Sample noise and labels as generator input
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.sequence_length + self.n_conditions,
+        z = self.sample_latent_variable(batch_size=batch_size,
+                                        latent_dim=self.sequence_length + self.n_conditions + self.channel_recovery,
                                         device=self.device, sequence_length=seq_length)
-        z = z.reshape((batch_size, self.sequence_length + self.n_conditions))
-        gen_labels = torch.cat((data_labels, data), dim=1).to(self.device)
+        z = z.reshape((batch_size, self.sequence_length + self.n_conditions + self.channel_recovery))
+
+        if self.channel_recovery:
+            working = torch.ones(size=(data_labels.shape[0], 1, data_labels.shape[2]))
+            gen_labels = torch.cat((data_labels, working, data), dim=1).to(self.device)
+        else:
+            gen_labels = torch.cat((data_labels, data), dim=1).to(self.device)
 
         # replace random channel with the noise
         rand_chan_num = random.randint(0, 29)
-        gen_labels[:, :, rand_chan_num] = z
+        gen_labels[:, :, rand_chan_num] = z  # add noise
+        gen_labels[:, 0, rand_chan_num] = 0  # set label to zero (channel not working)
 
         # pass data to generator
         gen_labels = gen_labels.permute(0, 2, 1)
