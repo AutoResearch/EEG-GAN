@@ -31,3 +31,9 @@ Each GPU will process the complete dataset during one epoch. Therefore, divide t
 
 The training progress itself is saved in checkpoint.pt files and the final result has the name gan_xxxxx.pt
 These files carry a python dictionary with all necessary information, models, generated samples, losses and so on.
+
+## Running GANs on Brown's Oscar Cluster with 8GPUs
+
+This method requires a different virtual environment than within the repo. Here are instructions on how to do this using Open on Demand (ood.ccv.brown.edu).
+
+First, start a Virtual Desktop by going to the 'My Interactive Sessions' tab at the top and then selecting Desktop (Advanced). You will then be confronted with a range of fields with defaults. Change 'Partition' to 'GPU' and insert '8' under Num GPUs. You can also change the number of CPUs and RAM ize if you like, but defaults should work.
