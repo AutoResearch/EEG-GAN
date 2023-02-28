@@ -41,20 +41,34 @@ First, start a Virtual Desktop by going to the 'My Interactive Sessions' tab at 
 Launching the desktop will take you to a virtual desktop. Open terminal and navigate to where you would like to create your virtual environment. You will then build the environment as such:
 
 ## Load modules
-'''
+```
 module load python/3.9.0
 module load gcc/10.2
 module load cuda/11.7.1
 module load cudnn/8.2.0
-'''
+```
 
 ## Create and activate virtual environment
-'''
+```
 python3 -m venv myVirtualEnv
 
 source ./myVirtualEnv/bin/activate
-'''
+```
 
 ## Install packages
+Note that the following packages are all the same as the requirements.txt except for torch, torchvision, torchaudio, torchsummary. TODO: Add new requirements.txt
+```
+pip3 install torch torchvision torchaudio torchsummary 
+pip install pandas==1.3.4
+pip install numpy==1.21.4
+pip install matplotlib==3.5.0
+pip install scipy==1.8.0
+pip install einops==0.4.1
+pip install scikit-learn==1.1.2
+```
 
-
+## Run gans training
+That should be all and now you should get no errors when running:
+```
+python gan_training_main.py ddp
+```
