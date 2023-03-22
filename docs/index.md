@@ -17,7 +17,7 @@ GANs are machine learning frameworks that consist of two adversarial neural netw
 
 ## <b>About</b>
 
-This project is in active development by the [Autonomous Empirical Research Group](https://musslick.github.io/AER_website/Research.html), led by [Sebastian Musslick](https://smusslick.com). The package was built by [Sebastian Musslick](https://smusslick.com), Daniel Weinhardt, and [Chad Williams](www.chadcwilliams.com).
+This project is in active development by the [Autonomous Empirical Research Group](https://musslick.github.io/AER_website/Research.html), led by [Sebastian Musslick](https://smusslick.com). The package was built by [Sebastian Musslick](https://smusslick.com), Daniel Weinhardt, and [Chad Williams](http://www.chadcwilliams.com).
 
 This research program is supported by Schmidt Science Fellows, in partnership with the Rhodes Trust, as well as the Carney BRAINSTORM program at Brown University.
 
