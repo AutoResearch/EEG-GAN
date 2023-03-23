@@ -34,7 +34,6 @@ hide:
     </font>
 </details>
 
-
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">Training on GPU</font></b></summary>
     <font size = "3">
