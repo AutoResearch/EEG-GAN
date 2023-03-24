@@ -1,6 +1,0 @@
----
-hide:
-    -toc
----
-
-# Full Tutorial

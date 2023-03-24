@@ -23,11 +23,15 @@ theme:
 markdown_extensions:
   - attr_list
 
+plugins:
+  - mkdocs-jupyter
+
 nav: 
   - Introduction: 'index.md'
-  - Tutorial: 
-    - Getting Started: 'Tutorial/gettingstarted.md'
-    - Functions: 'Tutorial/functions.md'
-    - Data Structure: 'Tutorial/datastructure.md'
-    - Examples: 'Tutorial/examples.md'
-    - Full Tutorial: 'Tutorial/fulltutorial.md'
+  - How To Use: 
+    - Getting Started: 'HowToUse/gettingstarted.md'
+    - Functions: 'HowToUse/functions.md'
+    - Data Structure: 'HowToUse/datastructure.md'
+    - Examples: 'HowToUse/examples.md'
+  - Tutorials:
+    - Jupyter: 'Tutorials/web_gansEEGTutorial.ipynb'

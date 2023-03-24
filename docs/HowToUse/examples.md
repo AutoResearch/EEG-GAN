@@ -46,7 +46,7 @@ hide:
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">Integrated GAN Training</font></b></summary>
     <font size = "3">
-    Putting these arguments together, we can train our GAN: <br>
+    We can use multiple arguments together to train our GAN, for example: <br>
     &emsp;On GPUs <code>ddp</code><br>
     &emsp;On our dataset <code>path_dataset=data\my_data.csv</code><br>
     &emsp;For 8000 epochs <code>n_epochs=8000</code><br><br>
@@ -96,7 +96,7 @@ hide:
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">Integrated Generate Samples</font></b></summary>
     <font size = "3">
-    Putting these arguments together, we can generate samples: <br>
+    We can use multiple arguments together to generate samples, for example: <br>
     &emsp;On our model <code>file=trained_models\my_GAN.pt</code><br>
     &emsp;With a saved filename  <code>path_samples=generated_samples\my_samples.csv</code><br>
     &emsp;Generating 10,000 samples <code>num_samples_total=10000</code><br>
