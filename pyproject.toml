@@ -1,5 +1,5 @@
 [project]
-name = "EEG-GAN"
+name = "eeggan"
 version = "0.1.0"
 authors = [
   { name="Sebastian Musslick, Daniel Weinhardt, & Chad Williams", email="sebastian_musslick@brown.edu" },
