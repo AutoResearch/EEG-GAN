@@ -2,7 +2,7 @@
 
 We here use Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g.,  Support Vector Machine, Neural Network).
 
-You can find out documentation [here](https://autoresearch.github.io/EEG-GAN/)
+You can find our documentation [here](https://autoresearch.github.io/EEG-GAN/)
 
 Feel free to contribute!
 
