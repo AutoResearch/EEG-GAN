@@ -1,0 +1,37 @@
+site_name: EEG-GANs
+
+theme:
+  name: material
+  features: 
+    - navigation.path
+    - navigation.indexes 
+  palette:
+    - scheme: default
+      toggle: 
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: indigo
+      accent: dark purple
+
+    - scheme: slate
+      toggle: 
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: indigo
+      accent: dark purple
+
+markdown_extensions:
+  - attr_list
+
+plugins:
+  - mkdocs-jupyter
+
+nav: 
+  - Introduction: 'index.md'
+  - How To Use: 
+    - Getting Started: 'HowToUse/gettingstarted.md'
+    - Functions: 'HowToUse/functions.md'
+    - Data Structure: 'HowToUse/datastructure.md'
+    - Examples: 'HowToUse/examples.md'
+  - Tutorials:
+    - Jupyter: 'Tutorials/web_gansEEGTutorial.ipynb'
