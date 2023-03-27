@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
   { name="Sebastian Musslick, Daniel Weinhardt, & Chad Williams", email="sebastian_musslick@brown.edu" },
 ]
-description = "We here use Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g., Support Vector Machine, Neural Network)."
+description = "This package uses Generative Adversarial Networks (GANs) to augment EEG data to enhance classification performance."
 readme = "README.md"
 requires-python = ">=3.7"
 
