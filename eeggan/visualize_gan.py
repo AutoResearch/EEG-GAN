@@ -13,7 +13,6 @@ from helpers.dataloader import Dataloader
 from helpers.visualize_pca import visualization_dim_reduction
 from helpers.visualize_spectogram import plot_spectogram, plot_fft_hist
 
-
 class PlotterGanTraining:
     """This class is used to read samples from a csv-file and plot them.
     Shape of the csv-file has to be (rows: samples, cols: (conditions, signal))"""
@@ -272,13 +271,12 @@ class PlotterGanTraining:
 
         self.ylim = (min, max)
 
-
-def fun_plot_losses(d_loss, g_loss, save, path_save=None, legend=None):
+def fun_plot_losses(d_loss, g_loss, save, title=None, path_save=None, legend=None):
     if legend is None:
         legend = ['Discriminator loss', 'Generator loss']
     plt.plot(d_loss, label=legend[0])
     plt.plot(g_loss, label=legend[1])
-    plt.title(plotter.title)
+    plt.title(title)
     plt.legend()
     if save:
         if path_save is None:
@@ -477,7 +475,7 @@ def visualize_gan(argv = []):
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_losses.png'
         filename = os.path.join('plots', filename)
         legend_data = legend
-        curve_data = fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename, legend)
+        curve_data = fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, plotter.title, filename, legend)
     elif averaged:
         filename = file.split(os.path.sep)[-1].split('.')[0] + '_averaged.png'
         filename = os.path.join('plots', filename)
