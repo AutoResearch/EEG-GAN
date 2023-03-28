@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import pkg_resources
 
 #Function to retrieve csv and pt files
 def load_tutorial_file(tutorial_file):
@@ -15,17 +16,20 @@ def load_tutorial_file(tutorial_file):
         filename = 'trained_models/gansEEGModel.pt'
     else:
         print('This file is not supported.')
+        
+    #Determine file stream
+    stream = pkg_resources.resource_stream(__name__, filename)
     
     #Load file
     if filename.split('.')[-1] == 'csv':
-        headers = np.genfromtxt(filename, delimiter=',', names=True).dtype.names
-        data = np.genfromtxt(filename, delimiter=',', skip_header=1)
+        data = np.genfromtxt(stream, delimiter=',', names = True)
+        headers = data.dtype.names
     elif filename.split('.')[-1] == 'pt':
+        data = torch.load(stream, map_location=torch.device('cpu'))
         headers = []
-        data = torch.load(filename, map_location=torch.device('cpu'))
     else:
-        headers = []
         data = []
+        headers = []
         print('This datatype is not supported by this function')    
     
     return headers, data
