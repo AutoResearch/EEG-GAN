@@ -42,6 +42,10 @@ def train_gan(argv = []):
         
     # sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
     default_args = system_inputs.parse_arguments(argv, file='Train_Gan.py')
+    
+    # Shut down if default args = "help"
+    if default_args == 'help':
+        return []
         
     print('\n-----------------------------------------')
     print("System output:")

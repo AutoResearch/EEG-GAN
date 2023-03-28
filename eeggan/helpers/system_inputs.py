@@ -381,7 +381,7 @@ def parse_arguments(arguments, kw_dict=None, file=None):
                 # get help
                 helper.print_table()
                 helper.print_help()
-                exit()
+                return 'help' #Exit the function indicating it was run as help
             elif arg in system_args.keys():
                 # process boolean argument
                 print(system_args[arg][3])

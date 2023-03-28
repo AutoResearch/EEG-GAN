@@ -27,6 +27,10 @@ def generate_samples(argv = []):
     # sys.argv = ["file=sd_len100_train20_500ep.pt", "average=10", "all_cond_per_z"]
     default_args = system_inputs.parse_arguments(argv, file='Generate_Samples.py')
 
+    # Shut down if default args = "help"
+    if default_args == 'help':
+        return []
+        
     print('\n-----------------------------------------')
     print("System output:")
     print('-----------------------------------------\n')

@@ -33,7 +33,7 @@ hide:
 
 <b>For the files in this package, you can use the help argument to see a list of possible arguments with a brief description:</b><br>
 &emsp;&emsp;```python train_gan.py help```<br>
-&emsp;&emsp;```train_gan(dict(Help = True))```
+&emsp;&emsp;```train_gan(dict(help = True))```
 
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">GAN Training Help</font></b></summary>

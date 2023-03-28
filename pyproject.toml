@@ -1,6 +1,6 @@
 [project]
 name = "eeggan"
-version = "0.0.14"
+version = "0.0.20"
 authors = [
   { name="Sebastian Musslick, Daniel Weinhardt, & Chad Williams", email="sebastian_musslick@brown.edu" },
 ]
