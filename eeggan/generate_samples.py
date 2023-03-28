@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from helpers import system_inputs
-from helpers.trainer import Trainer
-from nn_architecture.models import TtsGenerator, TtsGeneratorFiltered
+from eeggan.helpers import system_inputs
+from eeggan.helpers.trainer import Trainer
+from eeggan.nn_architecture.models import TtsGenerator, TtsGeneratorFiltered
     
 def generate_samples(argv = []):
     

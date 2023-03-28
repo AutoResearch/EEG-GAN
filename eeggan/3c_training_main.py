@@ -7,12 +7,12 @@ import pandas as pd
 import torch
 import torch.multiprocessing as mp
 
-from helpers import system_inputs
-from nn_architecture.models import TtsClassifier, TtsDiscriminator
-from helpers.get_master import find_free_port
-from helpers.dataloader import Dataloader
-from helpers.trainer_3c import Trainer, DDPTrainer
-from helpers.ddp_training_classifier import run
+from eeggan.helpers import system_inputs
+from eeggan.nn_architecture.models import TtsClassifier, TtsDiscriminator
+from eeggan.helpers.get_master import find_free_port
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers.trainer_3c import Trainer, DDPTrainer
+from eeggan.helpers.ddp_training_classifier import run
 
 """Train a classifier to distinguish samples between two conditions"""
 

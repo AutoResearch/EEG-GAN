@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from helpers import system_inputs
-from nn_architecture import models
-from helpers.dataloader import Dataloader
-from helpers.visualize_pca import visualization_dim_reduction
-from helpers.visualize_spectogram import plot_spectogram, plot_fft_hist
+from eeggan.helpers import system_inputs
+from eeggan.nn_architecture import models
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers.visualize_pca import visualization_dim_reduction
+from eeggan.helpers.visualize_spectogram import plot_spectogram, plot_fft_hist
 
 class PlotterGanTraining:
     """This class is used to read samples from a csv-file and plot them.

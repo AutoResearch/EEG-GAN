@@ -10,7 +10,6 @@ from einops import rearrange, reduce, repeat
 from einops.layers.torch import Rearrange, Reduce
 from torchsummary import summary
 
-
 """Components for TTS-GAN. Source: https://arxiv.org/abs/2202.02691"""
 
 

@@ -2,8 +2,8 @@ import os
 import torch
 import torch.distributed as dist
 from datetime import datetime, timedelta
-from helpers.trainer_classifier import DDPTrainer
 
+from eeggan.helpers.trainer_classifier import DDPTrainer
 
 def run(rank, world_size, master_port, backend, trainer, train_data, train_labels, test_data, test_labels):
     _setup(rank, world_size, master_port, backend)
