@@ -29,7 +29,7 @@ plugins:
 nav: 
   - Introduction: 'index.md'
   - How To Use: 
-    - Getting Started: 'HowToUse/gettingstarted.md'
+    - Install: 'HowToUse/install.md'
     - Functions: 'HowToUse/functions.md'
     - Data Structure: 'HowToUse/datastructure.md'
     - Examples: 'HowToUse/examples.md'

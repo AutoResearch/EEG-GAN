@@ -2,7 +2,11 @@
 hide:
     -toc
 ---
-# Getting Started
+# Install
+
+These instructions are for developpers to install the repo locally. 
+
+<b>These instructions are out of date and do not reflect the changes that came with releasing the package as a pip</b>
 
 ## <b> Pre-Requirements: </b>
 
@@ -35,3 +39,4 @@ hide:
     ![](../GIFs/6-Install-requirements.gif){: style="height:360px;width:640px"}
 
 [You are now ready to use the package!]('functions.md')
+

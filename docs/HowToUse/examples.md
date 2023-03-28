@@ -15,10 +15,10 @@ You can run the three main functions either from terminal or as a function withi
     You can direct the GAN to train on specific datasets using the <code>path_dataset</code> argument. <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python train_gan.py path_dataset=data\my_data.csv</code> <br><br>
+    &emsp;<code>python Train_Gan.py path_dataset=data\my_data.csv</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from train_gan import *</code><br><br>
+    &emsp; <code>from eeggan import train_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;path_dataset = "data\my_data.csv"</code><br>
     &emsp; <code>)</code><br><br>
@@ -32,10 +32,10 @@ You can run the three main functions either from terminal or as a function withi
     You can vary the number of epochs that the GAN is trained on with the <code>n_epochs</code> parameter. <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python train_gan.py n_epochs=8000</code> <br><br>
+    &emsp;<code>python Train_Gan.py n_epochs=8000</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from train_gan import *</code><br><br>
+    &emsp; <code>from eeggan import train_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;n_epochs = 8000</code><br>
     &emsp; <code>)</code><br><br>
@@ -49,10 +49,10 @@ You can run the three main functions either from terminal or as a function withi
     You can continue training a GAN using the <code>train_gan</code> and (optionally) <code>path_checkpoint</code> arguments. Not including the <code>path_checkpoint</code> argument will default to training a model <code>checkpoint.pt</code> <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python train_gan.py train_gan path_checkpoint=my_model.pt</code> <br><br>
+    &emsp;<code>python Train_Gan.py train_gan path_checkpoint=my_model.pt</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from train_gan import *</code><br><br>
+    &emsp; <code>from eeggan import train_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;path_checkpoint = "my_model.pt"</code><br>
     &emsp; <code>)</code><br><br>
@@ -66,10 +66,10 @@ You can run the three main functions either from terminal or as a function withi
     You can use your GPU rather than CPU to train the GAN using the <code>ddp</code> parameter.<br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python train_gan.py ddp</code> <br><br>
+    &emsp;<code>python Train_Gan.py ddp</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from train_gan import *</code><br><br>
+    &emsp; <code>from eeggan import train_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;ddp = True</code><br>
     &emsp; <code>)</code><br><br>
@@ -86,10 +86,10 @@ You can run the three main functions either from terminal or as a function withi
     &emsp;For 8000 epochs <code>n_epochs=8000</code><br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python train_gan.py ddp path_dataset=data\my_data.csv n_epochs=8000</code> <br><br>
+    &emsp;<code>python Train_Gan.py ddp path_dataset=data\my_data.csv n_epochs=8000</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from train_gan import *</code><br><br>
+    &emsp; <code>from eeggan import train_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;ddp = True,</code><br>
     &emsp;<code>&emsp;&emsp;path_dataset = "data\my_data.csv",</code><br>
@@ -108,10 +108,10 @@ You can run the three main functions either from terminal or as a function withi
     You can visualize a specific GAN using the <code>file</code> and the <code>training_file</code> arguments.<br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python visualize_gan.py checkpoint file=my_GAN.pt training_file=data\my_data.csv</code><br><br>
+    &emsp;<code>python Visualize_Gan.py checkpoint file=my_GAN.pt training_file=data\my_data.csv</code><br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from visualize_gan import *</code><br><br>
+    &emsp; <code>from eeggan import visualize_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;checkpoint = True,</code><br>
     &emsp;<code>&emsp;&emsp;file = "my_GAN.pt",</code><br>
@@ -129,10 +129,10 @@ You can run the three main functions either from terminal or as a function withi
     You can visualize GAN model losses using the <code>plot_losses</code> argument.<br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python visualize_gan.py checkpoint plot_losses</code><br><br>
+    &emsp;<code>python Visualize_Gan.py checkpoint plot_losses</code><br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from visualize_gan import *</code><br><br>
+    &emsp; <code>from eeggan import visualize_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;checkpoint = True,</code><br>
     &emsp;<code>&emsp;&emsp;plot_losses = True</code><br>
@@ -149,10 +149,10 @@ You can run the three main functions either from terminal or as a function withi
     You can visualize a grand-average of data (across conditions) using the <code>averaged</code> argument.<br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python visualize_gan.py checkpoint averaged</code><br><br>
+    &emsp;<code>python Visualize_Gan.py checkpoint averaged</code><br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from visualize_gan import *</code><br><br>
+    &emsp; <code>from eeggan import visualize_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;checkpoint = True,</code><br>
     &emsp;<code>&emsp;&emsp;averaged = True</code><br>
@@ -173,10 +173,10 @@ You can run the three main functions either from terminal or as a function withi
     &emsp;Selecting a GAN <code>file=gansEEGModel.pt</code><br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python visualize_gan.py checkpoint plot_losses file=gansEEGModel.pt</code><br><br>
+    &emsp;<code>python Visualize_Gan.py checkpoint plot_losses file=gansEEGModel.pt</code><br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from visualize_gan import *</code><br><br>
+    &emsp; <code>from eeggan import visualize_gan</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;checkpoint = True,</code><br>
     &emsp;<code>&emsp;&emsp;plot_losses = True,</code><br>
@@ -195,10 +195,10 @@ You can run the three main functions either from terminal or as a function withi
     You can generate samples from a specific GAN using the <code>file</code> argument. <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python generate_samples.py file=my_GAN.pt</code> <br><br>
+    &emsp;<code>python Generate_Samples.py file=my_GAN.pt</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from generate_samples import *</code><br><br>
+    &emsp; <code>from eeggan import generate_samples</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;file = "my_GAN.pt"</code><br>
     &emsp; <code>)</code><br><br>
@@ -212,10 +212,10 @@ You can run the three main functions either from terminal or as a function withi
     You can declare the path and name of the saved generated samples file using the <code>path_samples</code> argument. <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python generate_samples.py path_samples=generated_samples\my_samples.csv</code> <br><br>
+    &emsp;<code>python Generate_Samples.py path_samples=generated_samples\my_samples.csv</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from generate_samples import *</code><br><br>
+    &emsp; <code>from eeggan import generate_samples</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;path_samples = "generated_samples\my_samples.csv"</code><br>
     &emsp; <code>)</code><br><br>
@@ -229,10 +229,10 @@ You can run the three main functions either from terminal or as a function withi
     You can set the total number of samples to generate (which will be split equally across conditions) using the <code>num_samples_total</code> argument. <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python generate_samples.py num_samples_total=10000</code> <br><br>
+    &emsp;<code>python Generate_Samples.py num_samples_total=10000</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from generate_samples import *</code><br><br>
+    &emsp; <code>from eeggan import generate_samples</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;num_samples_total = 10000</code><br>
     &emsp; <code>)</code><br><br>
@@ -246,10 +246,10 @@ You can run the three main functions either from terminal or as a function withi
     You can set the number of samples that will be generated in parallel using the <code>num_samples_parallel</code> argument. <br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python generate_samples.py num_samples_parallel=1000</code> <br><br>
+    &emsp;<code>python Generate_Samples.py num_samples_parallel=1000</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from generate_samples import *</code><br><br>
+    &emsp; <code>from eeggan import generate_samples</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;num_samples_parallel = 1000</code><br>
     &emsp; <code>)</code><br><br>
@@ -267,10 +267,10 @@ You can run the three main functions either from terminal or as a function withi
     &emsp;At a rate of 1,000 at a time <code>num_samples_parallel=1000</code><br><br>
 
     <b>From terminal:</b><br>
-    &emsp;<code>python generate_samples.py file=my_GAN.pt path_samples=generated_samples\my_samples.csv num_samples_total=10000 num_samples_parallel=1000</code> <br><br>
+    &emsp;<code>python Generate_Samples.py file=my_GAN.pt path_samples=generated_samples\my_samples.csv num_samples_total=10000 num_samples_parallel=1000</code> <br><br>
 
     <b>As a function:</b><br>
-    &emsp; <code>from generate_samples import *</code><br><br>
+    &emsp; <code>from eeggan import generate_samples</code><br><br>
     &emsp; <code>argv = dict(</code><br>
     &emsp;<code>&emsp;&emsp;file = "my_GAN.pt",</code><br>
     &emsp;<code>&emsp;&emsp;path_samples = "generated_samples\my_samples.csv",</code><br>
