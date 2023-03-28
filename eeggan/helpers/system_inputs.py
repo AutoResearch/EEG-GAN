@@ -349,13 +349,13 @@ def parse_arguments(arguments, kw_dict=None, file=None):
     # get default system arguments
     system_args = {}
     if file is not None:
-        if file == 'visualize_gan.py':
+        if file == 'Visualize_Gan.py':
             system_args = default_inputs_visualize()
             helper = HelperVisualize(system_args)
-        elif file == 'train_gan.py':
+        elif file == 'Train_Gan.py':
             system_args = default_inputs_training_gan()
             helper = HelperMain(system_args)
-        elif file == 'generate_samples.py':
+        elif file == 'Generate_Samples.py':
             system_args = default_inputs_generate_samples()
             helper = HelperGenerateSamples(system_args)
     else:

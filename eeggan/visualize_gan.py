@@ -318,7 +318,7 @@ def visualize_gan(argv = []):
         argv = args
         
     # sys.argv = ["csv_file", "file=sd_len100_10000ep_cond0_20k.csv", "training_file=generated_samples\sd_len100_10000ep_cond1_20k.csv", "pca"]
-    default_args = system_inputs.parse_arguments(argv, file='visualize_gan.py')
+    default_args = system_inputs.parse_arguments(argv, file='Visualize_Gan.py')
 
     print('\n-----------------------------------------')
     print("System output:")
