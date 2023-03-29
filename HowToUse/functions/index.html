@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../gettingstarted/">
+        <link rel="prev" href="../install/">
       
       
         <link rel="next" href="../datastructure/">
@@ -235,8 +235,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../gettingstarted/" class="md-nav__link">
-        Getting Started
+      <a href="../install/" class="md-nav__link">
+        Install
       </a>
     </li>
   
@@ -371,8 +371,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../../Tutorials/web_gansEEGTutorial/" class="md-nav__link">
-        Jupyter Notebook
+      <a href="../../Tutorials/web_EEG_GAN_tutorial/" class="md-nav__link">
+        Notebook
       </a>
     </li>
   
@@ -437,18 +437,27 @@
 
 <h1 id="gan-package-main-functions">GAN Package Main Functions</h1>
 <h2 id="gan-package-details"><b>GAN Package Details</b></h2>
-<p><b>There are three main scripts from the GANs package: </b><br>
-&emsp;&emsp;<code>gan_training_main.py</code> - This trains a GAN <br>
-&emsp;&emsp;<code>visualize_main.py</code> - This trains a GAN <br>
-&emsp;&emsp;<code>generate_samples_main.py</code> - This generates synthetic samples using the trained GAN</p>
-<p><b>Arguments for these files are stated after the script filename, for example:</b><br>
-&emsp;&emsp;<code>python gan_training_main.py n_epochs=100</code></p>
-<p><b>For the files in this package, you can use the help argument to see a list of possible arguments with a brief description:</b><br>
-&emsp;&emsp;<code>python gan_training_main.py help</code></p>
+<p><br><b>Functions</b><br>
+There are three main functions from the EEG-GAN package:<br>
+&emsp;&emsp;<code>train_gan()</code> - This trains a GAN <br>
+&emsp;&emsp;<code>visualize_gan()</code> - This visualizes components of a trained GAN, such as the training losses <br>
+&emsp;&emsp;<code>generate_samples()</code> - This generates synthetic samples using the trained GAN<br></p>
+<p><br><b>Arguments</b><br></p>
+<p>Each function can take a single argument <code>argv</code>, which should be a dictionary:<br></p>
+<p>&emsp;&emsp;<code>argv = dict(</code><br>
+&emsp;&emsp;&emsp;<code>path_dataset=data\my_data.csv,</code><br>
+&emsp;&emsp;&emsp;<code>n_epochs = 100</code><br>
+&emsp;&emsp;<code>)</code><br></p>
+<p>&emsp;&emsp;<code>train_gan(argv)</code></p>
+<p><br><b>Help</b><br></p>
+<p>You can use the help argument to see a list of possible arguments with a brief description:</b><br>
+&emsp;&emsp;<code>train_gan(dict(help = True))</code><br>
+&emsp;&emsp;<code>visualize_gan(dict(help = True))</code><br>
+&emsp;&emsp;<code>generate_samples(dict(help = True))</code><br></p>
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">GAN Training Help</font></b></summary>
     <font size = "3">
-&emsp;&emsp;<code>python gan_training_main.py help</code><br>
+&emsp;&emsp;<code>train_gan(dict(Help = True))</code><br>
 <img src="../Images/GAN-Training-Help.png" alt=""><br>
 <img src="../Images/GAN-Training-Help-2.png" alt=""><br>
 <img src="../Images/GAN-Training-Help-3.png" alt=""><br>
@@ -457,7 +466,7 @@
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">Visualize Help</font></b></summary>
     <font size = "3">
-&emsp;&emsp;<code>python visualize_main.py help</code><br>
+&emsp;&emsp;<code>visualize_gan(dict(Help = True))</code><br>
 <img src="../Images/Visualize-Help.png" alt=""><br>
 <img src="../Images/Visualize-Help-2.png" alt=""><br>
 <img src="../Images/Visualize-Help-3.png" alt=""><br>
@@ -466,7 +475,7 @@
 <details style="border-color:Grey;">
     <summary style="background-color:transparent;"><b><font size = "4">Generate Samples Help</font></b></summary>
     <font size = "3">
-&emsp;&emsp;<code>python generate_samples_main.py help</code><br>
+&emsp;&emsp;<code>generate_samples(dict(Help = True))</code><br>
 <img src="../Images/Generate-Samples-Help.png" alt=""><br>
 <img src="../Images/Generate-Samples-Help-2.png" alt=""><br>
 <img src="../Images/Generate-Samples-Help-3.png" alt="">
