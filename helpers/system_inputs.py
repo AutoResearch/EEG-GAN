@@ -222,7 +222,7 @@ def default_inputs_training_gan():
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        'n_channels': [int, 'Number of electrodes used', 2, 'Number of electrodes: ']
+        'n_channels': [int, 'Number of electrodes used', 1, 'Number of electrodes: ']
     }
 
     return kw_dict
