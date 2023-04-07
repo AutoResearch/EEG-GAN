@@ -26,7 +26,7 @@ Instructions to start the training:
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    sys.argv = ["path_dataset=data/ganAverageERP_mini.csv", "patch_size=20", "conditions=Condition"]
+    sys.argv = ["path_dataset=data/ganAverageERP_mini.csv", "patch_size=20", "conditions=Condition", 'n_channels=2', 'n_epochs=25']
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
@@ -126,7 +126,8 @@ if __name__ == '__main__':
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
                                          latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
-                                         patch_size=opt['patch_size'])
+                                         patch_size=opt['patch_size'],
+                                         channels=opt['n_channels'])
     discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=(1+opt['n_conditions'])*opt['n_channels'])
     print("Generator and discriminator initialized.")
 

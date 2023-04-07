@@ -48,6 +48,7 @@ if __name__ == '__main__':
     # load model/training configuration
     filename_dataset = state_dict['configuration']['path_dataset']
     n_conditions = state_dict['configuration']['n_conditions']
+    n_channels = state_dict['configuration']['n_channels']
     latent_dim = state_dict['configuration']['latent_dim']
     sequence_length = state_dict['configuration']['sequence_length']
     seq_len_gen = state_dict['configuration']['sequence_length_generated']
@@ -68,11 +69,13 @@ if __name__ == '__main__':
     if not filter_generator:
         generator = TtsGenerator(seq_length=seq_len_gen,
                                  latent_dim=latent_dim + n_conditions + seq_len_cond,
-                                 patch_size=patch_size).to(device)
+                                 patch_size=patch_size,
+                                 channels=n_channels).to(device)
     else:
         generator = TtsGeneratorFiltered(seq_length=seq_len_gen,
                                          latent_dim=latent_dim + n_conditions + seq_len_cond,
-                                         patch_size=patch_size).to(device)
+                                         patch_size=patch_size,
+                                         channels=n_channels).to(device)
     generator.eval()
 
     # load generator weights
@@ -102,7 +105,7 @@ if __name__ == '__main__':
         # init sequence for windows_slices
         sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
         while sequence.shape[1] < sequence_length_total + seq_len_cond:
-            samples = torch.zeros((num_samples_parallel, seq_len_gen)).to(device)
+            samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen)).to(device)
             z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
             if all_cond_per_z:
                 for j in range(0, num_samples_parallel-1, 2):
@@ -117,8 +120,8 @@ if __name__ == '__main__':
                     latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
                     z[j] = latent_var
             z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
-            samples += generator(z).view(num_samples_parallel, -1)
-            sequence = torch.cat((sequence, samples), dim=1)
+            samples += generator(z).view(num_samples_parallel, n_channels, -1)
+            sequence = torch.cat((sequence, samples[:, 0, :]), dim=1)
         sequence = sequence[:, seq_len_cond:seq_len_cond+sequence_length_total]
         sequence = torch.cat((cond_labels, sequence), dim=1)
         all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel, :] = sequence.detach().cpu().numpy()
