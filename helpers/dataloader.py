@@ -11,7 +11,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition'):
+                 kw_timestep='Time', col_label='Condition', n_channels=1):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -59,6 +59,12 @@ class Dataloader:
                 self.dataset_mean = dataset_mean
                 self.dataset_std = dataset_std
                 dataset = (dataset - dataset_mean) / dataset_std
+
+            # Reshape data to separate electrodes by trial
+            n_samples = int(dataset.shape[0] / n_channels)
+            assert dataset.shape[0] % n_channels == 0.0
+            dataset = dataset.reshape((n_samples, -1, n_channels))
+            labels = labels.reshape((n_samples, -1, n_channels))
 
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)

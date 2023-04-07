@@ -22,12 +22,11 @@ Instructions to start the training:
       - the remaining columns contain the time-series data
   - set the configuration parameters (Training configuration; Data configuration; GAN configuration)"""
 
-# TODO: update the training process and the GANs so the distinction between TTS-GAN and other GANs is not necessary
 
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    # sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
+    sys.argv = ["path_dataset=data/ganAverageERP_mini.csv", "patch_size=20", "conditions=Condition"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
@@ -45,9 +44,6 @@ if __name__ == '__main__':
     path_checkpoint = default_args['path_checkpoint']
     train_gan = default_args['train_gan']
     filter_generator = default_args['filter_generator']
-
-    # trained_embedding = False       # Use an existing embedding
-    # use_embedding = False           # Train the embedding in the optimization process
 
     # Data configuration
     windows_slices = default_args['windows_slices']
@@ -90,6 +86,7 @@ if __name__ == '__main__':
         'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
         'n_lstm': 2,                # number of lstm layers for lstm GAN
         'world_size': world_size,   # number of processes for distributed training
+        'n_channels': default_args['n_channels']
     }
 
     # Load dataset as tensor
@@ -98,15 +95,14 @@ if __name__ == '__main__':
                             col_label=default_args['conditions'],
                             norm_data=norm_data,
                             std_data=std_data,
-                            diff_data=diff_data)
+                            diff_data=diff_data,
+                            n_channels=default_args['n_channels'])
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
     opt['n_samples'] = dataset.shape[0]
 
-    # keep randomly 30% of the data
-    # dataset = dataset[np.random.randint(0, dataset.shape[0], int(dataset.shape[0]*0.3))]
 
     if opt['sequence_length'] % opt['patch_size'] != 0:
         warnings.warn(f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
@@ -120,52 +116,18 @@ if __name__ == '__main__':
     if opt['seq_len_generated'] == -1:
         opt['seq_len_generated'] = opt['sequence_length']
 
-    # Embedding network to reduce the dimension of time-series data
-    # not tested yet
-    # if use_embedding:
-    #     # Use pretrained embedding
-    #     if trained_embedding:
-    #         # load encoder
-    #         encoder = Encoder(input_size=2, hidden_size=opt['hidden_dim'], embedding_dim=opt['latent_dim'])
-    #         encoder_weights = torch.load(r'trained_models\embedding_encoder.pt')
-    #         encoder.load_state_dict(encoder_weights)
-    #         # load decoder
-    #         decoder = Decoder(output_size=2, hidden_size=opt['hidden_dim'], embedding_dim=opt['latent_dim'])
-    #         decoder_weights = torch.load(r'trained_models\\embedding_decoder.pt')
-    #         decoder.load_state_dict(decoder_weights)
-    #         print('Loaded pretrained embedding.')
-    #     else:
-    #         # train embedding
-    #         print('Training embedding...')
-    #         encoder = Encoder(input_size=2, hidden_size=opt['hidden_dim'], embedding_dim=opt['latent_dim'])
-    #         decoder = Decoder(signals=1, conditions=1, hidden_size=opt['hidden_dim'], embedding_dim=opt['latent_dim'],
-    #                           seq_len=dataset.shape[1]-opt['n_conditions'])
-    #         embedding_trainer = EmbeddingNetTrainer(encoder, decoder, opt)
-    #         encoder, decoder, emb_samples, losses = embedding_trainer.train(dataset)
-    #         print('Finished training embedding.')
-    #         plt.plot(losses)
-    #         plt.show()
-    #
-    #         # save embedding
-    #         # pickle emb_samples
-    #         # with open('emb_samples.pkl', 'wb') as f:
-    #         #     pickle.dump(emb_samples, f)
-    #         df = pd.DataFrame(emb_samples, columns=None, index=None).T
-    #         torch.save(encoder.state_dict(), 'trained_models/encoder_' + timestamp + '.pt')
-    #         torch.save(decoder.state_dict(), 'trained_models/decoder_' + timestamp + '.pt')
-
     # Initialize generator, discriminator and trainer
 
     if not filter_generator:
         generator = TtsGenerator(seq_length=opt['seq_len_generated'],
                                  latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
                                  patch_size=opt['patch_size'],
-                                 channels=1)  # TODO: Channel recovery: set channels to number of channels in dataset
+                                 channels=opt['n_channels'])
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
                                          latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
                                          patch_size=opt['patch_size'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=1+opt['n_conditions'])  # TODO: Channel recovery: set in_channels to (number of channels)*2 in dataset
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=(1+opt['n_conditions'])*opt['n_channels'])
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
