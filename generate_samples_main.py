@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     # generate samples
     num_sequences = int(np.floor(num_samples_total / num_samples_parallel))
-    all_samples = np.zeros((num_samples_parallel * num_sequences, sequence_length_total + n_conditions))
+    all_samples = np.zeros((num_samples_parallel * num_sequences, n_channels, sequence_length_total + n_conditions))
     print("Generating samples...")
 
     # Generation of samples begins
@@ -104,6 +104,7 @@ if __name__ == '__main__':
         print(f"Generating sequence {i+1} of {num_sequences}...")
         # init sequence for windows_slices
         sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
+        samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen)).to(device)
         while sequence.shape[1] < sequence_length_total + seq_len_cond:
             samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen)).to(device)
             z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
@@ -124,12 +125,24 @@ if __name__ == '__main__':
             sequence = torch.cat((sequence, samples[:, 0, :]), dim=1)
         sequence = sequence[:, seq_len_cond:seq_len_cond+sequence_length_total]
         sequence = torch.cat((cond_labels, sequence), dim=1)
-        all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel, :] = sequence.detach().cpu().numpy()
+        if n_channels > 1 and (seq_len_gen == seq_len_cond or seq_len_cond == 0):
+            labels = torch.zeros((num_samples_parallel, n_channels, n_conditions)).to(device)
+            for n in range(num_samples_parallel):
+                for idx, x in enumerate(condition):
+                    if x == -1:
+                        labels[n, :, idx] = 0 if n % 2 == 0 else 1
+            samples = torch.cat((labels, samples), dim=2)
+            all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel] = samples.detach().numpy()
+        elif n_channels > 1 and (seq_len_gen != seq_len_cond and seq_len_cond != 0):
+            raise AssertionError('GAN is not compatible with receiving multi-electrode input.\n'
+                                 'Hence, generated sequence must match sequence length of trained data')
+        else:
+            all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel, 0, :] = sequence.detach().cpu().numpy()
 
     # save samples
     print("Saving samples...")
-    # path = 'generated_samples'
-    # file = os.path.join(path, os.path.basename(file).split('.')[0] + '.csv')
+    if n_channels > 1:
+        all_samples = all_samples.reshape((all_samples.shape[0]*num_samples_parallel, n_channels))
     pd.DataFrame(all_samples).to_csv(path_samples, index=False)
 
     print("Generated samples were saved to " + path_samples)
