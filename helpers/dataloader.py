@@ -63,8 +63,13 @@ class Dataloader:
             # Reshape data to separate electrodes by trial
             n_samples = int(dataset.shape[0] / n_channels)
             assert dataset.shape[0] % n_channels == 0.0
-            dataset = dataset.reshape((n_samples, -1, n_channels))
-            labels = labels.reshape((n_samples, -1, n_channels))
+            re_dataset = torch.zeros(size=(n_samples, dataset.shape[1], n_channels))
+            re_labels = torch.zeros(size=(n_samples, labels.shape[1], n_channels))
+            for n in range(n_samples):
+                re_dataset[n] = dataset[n * n_channels:(n + 1) * n_channels].permute(1, 0)
+                re_labels[n] = labels[n * n_channels:(n + 1) * n_channels].permute(1, 0)
+            dataset = re_dataset
+            labels = re_labels
 
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)
