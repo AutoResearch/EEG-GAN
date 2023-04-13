@@ -184,25 +184,26 @@ class TtsGenerator(nn.Module):
         self.forward_drop_rate = forward_drop_rate
 
         self.l1 = nn.Linear(self.latent_dim, self.seq_len * self.embed_dim)
-        self.pos_embed = nn.Parameter(torch.zeros(1, self.seq_len, self.embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, self.seq_len * self.channels, self.embed_dim))
         self.blocks = Gen_TransformerEncoder(
             depth=self.depth,
             emb_size=self.embed_dim,
             drop_p=self.attn_drop_rate,
             forward_drop_p=self.forward_drop_rate
         )
-
+        self.l2 = nn.Linear(self.seq_len * self.channels, self.seq_len)
         self.deconv = nn.Sequential(
             nn.Conv2d(self.embed_dim, self.channels, 1, 1, 0)
         )
 
     def forward(self, z):
-        x = self.l1(z).view(-1, self.seq_len, self.embed_dim)
+        x = self.l1(z).view(-1, self.seq_len * self.channels, self.embed_dim)
         x = x + self.pos_embed
         H, W = 1, self.seq_len
         x = self.blocks(x)
         x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
         output = self.deconv(x.permute(0, 3, 1, 2))
+        output = self.l2(output)
         output = output.view(-1, self.channels, H, W)
 
         return output
