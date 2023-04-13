@@ -28,10 +28,10 @@ class Dataloader:
             channels = [""]
             if multichannel:
                 channels = df['Electrode'].unique()
-            elif type(multichannel) == list:
-                channels = [channel in df['Electrode'].unique() for channel in multichannel]
-                # filter data for specified channels
-                df = df.loc[df['Electrode'].isin(channels)]
+                if type(multichannel) == list:
+                    channels = [channel for channel in channels if channel in multichannel]
+                    # filter data for specified channels
+                    df = df.loc[df['Electrode'].isin(multichannel)]
             n_channels = len(channels)
 
             # get first column index of a time step

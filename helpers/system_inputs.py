@@ -223,7 +223,7 @@ def default_inputs_training_gan():
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        'multi-channel': [Union[bool, List[str]], 'Multi-channel training regime', False, 'Multi-channel training regime: ']
+        'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: ']
     }
 
     return kw_dict
