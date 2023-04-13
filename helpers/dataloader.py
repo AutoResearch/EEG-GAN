@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
-
+from typing import Union, List
 
 class Dataloader:
     """class of Dataloader, which is responisble for:
@@ -11,7 +11,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition', n_channels=1):
+                 kw_timestep='Time', col_label='Condition', multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -23,6 +23,16 @@ class Dataloader:
         if path is not None:
             # Load data from csv as pandas dataframe and convert to tensor
             df = pd.read_csv(path)
+
+            # reshape and filter data based on channel specifications
+            channels = [""]
+            if multichannel:
+                channels = df['Electrode'].unique()
+            elif type(multichannel) == list:
+                channels = [channel in df['Electrode'].unique() for channel in multichannel]
+                # filter data for specified channels
+                df = df.loc[df['Electrode'].isin(channels)]
+            n_channels = len(channels)
 
             # get first column index of a time step
             self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]

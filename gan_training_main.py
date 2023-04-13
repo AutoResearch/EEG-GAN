@@ -86,7 +86,7 @@ if __name__ == '__main__':
         'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
         'n_lstm': 2,                # number of lstm layers for lstm GAN
         'world_size': world_size,   # number of processes for distributed training
-        'n_channels': default_args['n_channels']
+        'multi-channel': default_args['multichannel']
     }
 
     # Load dataset as tensor
@@ -96,10 +96,11 @@ if __name__ == '__main__':
                             norm_data=norm_data,
                             std_data=std_data,
                             diff_data=diff_data,
-                            n_channels=default_args['n_channels'])
+                            multichannel=default_args['multi-channel'])
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
+    n_channels = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
     opt['n_samples'] = dataset.shape[0]
 
@@ -122,13 +123,13 @@ if __name__ == '__main__':
         generator = TtsGenerator(seq_length=opt['seq_len_generated'],
                                  latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
                                  patch_size=opt['patch_size'],
-                                 channels=opt['n_channels'])
+                                 channels=n_channels)
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
                                          latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
                                          patch_size=opt['patch_size'],
-                                         channels=opt['n_channels'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=(1+opt['n_conditions'])*opt['n_channels'])
+                                         channels=n_channels)
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=(1+opt['n_conditions'])*n_channels)
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
