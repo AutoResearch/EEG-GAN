@@ -25,16 +25,17 @@ class Dataloader:
             df = pd.read_csv(path)
 
             # get first column index of a time step
-            self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]
+            n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
 
             if not isinstance(col_label, list):
                 col_label = [col_label]
 
-            # Get data and labels
-            dataset = torch.FloatTensor(df.to_numpy()[:, self.n_col_data:])
+            # Get labels and data
+            dataset = torch.FloatTensor(df.to_numpy()[:, n_col_data])
             labels = torch.zeros((dataset.shape[0], len(col_label)))
             for i, l in enumerate(col_label):
                 labels[:, i] = torch.FloatTensor(df[l])
+                # del df[l]
 
             if diff_data:
                 # Diff of data

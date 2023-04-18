@@ -307,7 +307,7 @@ def fun_plot_averaged(data, save=False, path_save=None):
 
 if __name__ == '__main__':
 
-    # sys.argv = ["csv_file", "file=sd_len100_10000ep_cond0_20k.csv", "training_file=generated_samples\sd_len100_10000ep_cond1_20k.csv", "pca"]
+    sys.argv = ["checkpoint", "file=gan_multiCond_2.pt", "training_file=ganAverageERP_multiCond_small.csv", "n_conditions=3", "conditions=Condition_1,Condition_2,Condition_3", "pca"]
     default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
 
     print('\n-----------------------------------------')
@@ -436,7 +436,7 @@ if __name__ == '__main__':
             file = os.path.join(path, file)
         if not file.endswith('.csv'):
             raise ValueError("Please specify a .csv-file holding the training data.")
-        data = pd.read_csv(file, delimiter=',', index_col=0)
+        data = pd.read_csv(file, delimiter=',')
         load_file = False
 
     # setup plotter
@@ -481,13 +481,15 @@ if __name__ == '__main__':
         curve_data = plot_fft_hist(plotter.get_dataset(), save, filename)
     elif pca or tsne:
         try:
-            ori_data = Dataloader(path=training_file, norm_data=True).get_data().unsqueeze(-1).detach().cpu().numpy()[:, n_conditions:, :]
+            ori_data = Dataloader(path=training_file, kw_timestep=default_args['kw_timestep_dataset'], col_label=default_args['conditions'],
+                       norm_data=True).get_data()[:, n_conditions:].unsqueeze(-1).detach().cpu().numpy()
+            # ori_data = Dataloader(path=training_file, norm_data=True).get_data().unsqueeze(-1).detach().cpu().numpy()[:, n_conditions:, :]
         except Exception as e:
-            print("Training file was not of type experiment data. Trying to load generated samples.")
-            ori_data = pd.read_csv(training_file, delimiter=',', index_col=0).to_numpy()
+            print("Training file was not of type experiment data. Trying to load the training file with the standard template of generated samples.")
+            ori_data = pd.read_csv(training_file, delimiter=',').to_numpy()
             ori_data = ori_data.reshape(-1, ori_data.shape[1], 1)
         gen_data = plotter.get_dataset()
-        gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)[:, n_conditions:, :]
+        gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)#[:, n_conditions:, :]
         if ori_data.shape[1] > gen_data.shape[1]:
             ori_data = ori_data[:, :gen_data.shape[1], :]
         elif ori_data.shape[1] < gen_data.shape[1]:

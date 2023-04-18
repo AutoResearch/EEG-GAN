@@ -177,7 +177,7 @@ class Trainer:
             # Concatenate labels and images
             # torch.cat((data_labels, gen_imgs), dim=1) --> New shape: (batch_size, n_conditions + n_channels, 1, seq_length)
             fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
-            fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+            fake_labels = data_labels.view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
             validity = self.discriminator(fake_data)
             # else:
@@ -215,12 +215,12 @@ class Trainer:
 
         # Loss for fake images
         fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
-        fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        fake_labels = data_labels.view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)
 
         # Loss for real images
-        real_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        real_labels = data_labels.view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
         data = data.view(-1, 1, 1, data.shape[1]).to(self.device)
         real_data = torch.cat((data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)
