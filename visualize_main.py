@@ -307,7 +307,7 @@ def fun_plot_averaged(data, save=False, path_save=None):
 
 if __name__ == '__main__':
 
-    sys.argv = ["checkpoint", "file=gan_multiCond_2.pt", "training_file=ganAverageERP_multiCond_small.csv", "n_conditions=3", "conditions=Condition_1,Condition_2,Condition_3", "pca"]
+    #sys.argv = ["checkpoint", "file=gan_multiCond_2.pt", "training_file=ganAverageERP_multiCond_small.csv", "n_conditions=3", "conditions=Condition_1,Condition_2,Condition_3", "pca"]
     default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
 
     print('\n-----------------------------------------')
