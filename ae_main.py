@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch
 
-from ae_dataloader import create_dataloader
-from transformer_autoencoder import TransformerAutoencoder, train, save
+from helpers.ae_dataloader import create_dataloader
+from nn_architecture.transformer_autoencoder import TransformerAutoencoder, train, save
 
 if __name__ == '__main__':
 
