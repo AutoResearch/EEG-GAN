@@ -9,11 +9,15 @@ class Loss:
     def __init__(self):
         self.discriminator_loss = None
         self.generator_loss = None
+        self.classifier_loss = None
 
     def discriminator(self, *args):
         pass
 
     def generator(self, *args):
+        pass
+
+    def classifier(self, *args):
         pass
 
 
@@ -22,6 +26,7 @@ class ConventionalLoss(Loss):
         super().__init__()
         self.discriminator_loss = torch.nn.MSELoss()
         self.generator_loss = torch.nn.MSELoss()
+        self.classifier_loss = torch.nn.MSELoss()
 
     def discriminator(self, real, fake):
         real_loss = self.discriminator_loss(real, torch.ones_like(real))
@@ -33,12 +38,16 @@ class ConventionalLoss(Loss):
             fake = torch.ones_like(validity_fake, dtype=torch.float32)
         return self.generator_loss(validity_fake, fake)
 
+    def classifier(self, validity_fake, condition_label):
+        return self.generator_loss(validity_fake, condition_label)
+
 
 class WassersteinLoss(Loss):
     def __init__(self, wgan=True):
         super().__init__()
         self.discriminator_loss = None
         self.generator_loss = None
+        self.classifier_loss = None
 
         if wgan:
             warnings.warn("No gradient clipping implemented for Wasserstein loss yet. "
@@ -48,6 +57,9 @@ class WassersteinLoss(Loss):
         return -torch.mean(real) + torch.mean(fake)
 
     def generator(self, fake):
+        return -torch.mean(fake)
+
+    def classifier(self, fake):
         return -torch.mean(fake)
 
 
