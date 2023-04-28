@@ -9,6 +9,7 @@ class MultivariateTimeSeriesDataset(Dataset):
         self.seq_len = seq_len
         self.standardize = standardize
         self.differentiate = differentiate
+        self.scaler = StandardScaler()
         self.data = self._process_data(data)
 
     def __getitem__(self, index):
@@ -41,8 +42,7 @@ class MultivariateTimeSeriesDataset(Dataset):
 
         # standardize the data if required
         if self.standardize:
-            scaler = StandardScaler()
-            data = pd.DataFrame(scaler.fit_transform(data), columns=data.columns, index=data.index)
+            data = pd.DataFrame(self.scaler.fit_transform(data), columns=data.columns, index=data.index)
 
         # convert the data to a numpy array
         data = torch.Tensor(data.to_numpy())
@@ -53,9 +53,9 @@ class MultivariateTimeSeriesDataset(Dataset):
         return data
 
 
-def create_dataloader(data_file, seq_len, batch_size, train_ratio, standardize=True, differentiate=False):
+def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardize=True, differentiate=False, **kwargs):
     # load the data from the csv file
-    data = pd.read_csv(data_file, index_col='Date')
+    data = pd.read_csv(training_data, index_col='Date')
 
     # split the data into train and test sets
     split_index = int(train_ratio * len(data))
@@ -68,4 +68,4 @@ def create_dataloader(data_file, seq_len, batch_size, train_ratio, standardize=T
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    return train_dataloader, test_dataloader
+    return train_dataloader, test_dataloader, train_dataset.scaler
