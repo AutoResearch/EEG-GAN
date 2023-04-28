@@ -21,8 +21,8 @@ if __name__ == '__main__':
     if load_model:
         model_dict = torch.load(os.path.join(model_dir, model_name))
 
-    data_dir = 'stock_data'
-    data_file = 'stocks_sp500_2010_2020.csv'  # path to the csv file
+    data_dir = 'data'
+    data_file = 'gansMultiCondition.csv'  # path to the csv file
 
     # configuration
     cfg = {

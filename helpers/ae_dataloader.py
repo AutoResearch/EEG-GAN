@@ -5,12 +5,12 @@ from sklearn.preprocessing import StandardScaler
 
 
 class MultivariateTimeSeriesDataset(Dataset):
-    def __init__(self, data, seq_len, standardize=True, differentiate=False):
+    def __init__(self, data, seq_len, standardize=True, differentiate=False, shuffle=False):
         self.seq_len = seq_len
         self.standardize = standardize
         self.differentiate = differentiate
         self.scaler = StandardScaler()
-        self.data = self._process_data(data)
+        self.data = self._process_data(data, shuffle=shuffle)
 
     def __getitem__(self, index):
         start_index = index
@@ -31,7 +31,7 @@ class MultivariateTimeSeriesDataset(Dataset):
         slices = torch.stack(slices[:-1], dim=0)
         return slices
 
-    def _process_data(self, data):
+    def _process_data(self, data, shuffle=False):
         # convert the Date column to a datetime object and set it as the index
         # data['Date'] = pd.to_datetime(data['Date'])
         # data.set_index('Date', inplace=True)
@@ -47,6 +47,10 @@ class MultivariateTimeSeriesDataset(Dataset):
         # convert the data to a numpy array
         data = torch.Tensor(data.to_numpy())
 
+    # shuffle the data along the first dimension
+        if shuffle:
+            data = data[torch.randperm(data.shape[0])]
+            
         # slice the data into sequences
         self.data = self._slice_sequence(data)
 
@@ -63,8 +67,8 @@ def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardi
     test_data = data.iloc[split_index:, :]
 
     # create the datasets and dataloaders
-    train_dataset = MultivariateTimeSeriesDataset(train_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate)
-    test_dataset = MultivariateTimeSeriesDataset(test_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate)
+    train_dataset = MultivariateTimeSeriesDataset(train_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate, shuffle=True)
+    test_dataset = MultivariateTimeSeriesDataset(test_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate, shuffle=True)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
