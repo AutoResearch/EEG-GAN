@@ -1,220 +1,71 @@
-import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import Dataset, DataLoader
+from sklearn.preprocessing import StandardScaler
 
 
-class Dataloader:
-    """class of Dataloader, which is responisble for:
-    - loading data from csv file
-    - transform data (e.g. standardize, normalize, differentiate) and save the parameters for inverse transformation
-    - convert to tensor"""
+class MultivariateTimeSeriesDataset(Dataset):
+    def __init__(self, data, seq_len, standardize=True, differentiate=False):
+        self.seq_len = seq_len
+        self.standardize = standardize
+        self.differentiate = differentiate
+        self.data = self._process_data(data)
 
-    def __init__(self, path=None,
-                 diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition'):
-        """Load data from csv as pandas dataframe and convert to tensor.
+    def __getitem__(self, index):
+        start_index = index
+        end_index = index + self.seq_len
+        return self.data[start_index:end_index, :]
 
-        Args:
-            path (str): Path to csv file.
-            diff_data (bool): Differentiate data.
-            std_data (bool): Standardize data.
-        """
+    def __len__(self):
+        return self.data.shape[0] - self.seq_len + 1
 
-        if path is not None:
-            # Load data from csv as pandas dataframe and convert to tensor
-            df = pd.read_csv(path)
+    def _slice_sequence(self, sequence):
+        slices = []
+        num_slices = (len(sequence) - self.seq_len) + 1
+        for i in range(num_slices):
+            slice_start = i
+            slice_end = i + self.seq_len
+            slice_data = sequence[slice_start:slice_end]
+            slices.append(slice_data)
+        slices = torch.stack(slices[:-1], dim=0)
+        return slices
 
-            # get first column index of a time step
-            self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]
+    def _process_data(self, data):
+        # convert the Date column to a datetime object and set it as the index
+        # data['Date'] = pd.to_datetime(data['Date'])
+        # data.set_index('Date', inplace=True)
 
-            if not isinstance(col_label, list):
-                col_label = [col_label]
+        # differentiate the data if required
+        if self.differentiate:
+            data = data.diff().dropna()
 
-            # Get data and labels
-            dataset = torch.FloatTensor(df.to_numpy()[:, self.n_col_data:])
-            labels = torch.zeros((dataset.shape[0], len(col_label)))
-            for i, l in enumerate(col_label):
-                labels[:, i] = torch.FloatTensor(df[l])
+        # standardize the data if required
+        if self.standardize:
+            scaler = StandardScaler()
+            data = pd.DataFrame(scaler.fit_transform(data), columns=data.columns, index=data.index)
 
-            if diff_data:
-                # Diff of data
-                dataset = dataset[:, 1:] - dataset[:, :-1]
+        # convert the data to a numpy array
+        data = torch.Tensor(data.to_numpy())
 
-            self.dataset_min = None
-            self.dataset_max = None
-            if norm_data:
-                # Normalize data
-                dataset_min = torch.min(dataset)
-                dataset_max = torch.max(dataset)
-                dataset = (dataset - dataset_min) / (dataset_max - dataset_min)
-                self.dataset_min = dataset_min
-                self.dataset_max = dataset_max
+        # slice the data into sequences
+        self.data = self._slice_sequence(data)
 
-            self.dataset_mean = None
-            self.dataset_std = None
-            if std_data:
-                # standardize data
-                dataset_mean = dataset.mean(dim=0).unsqueeze(0)
-                dataset_std = dataset.std(dim=0).unsqueeze(0)
-                self.dataset_mean = dataset_mean
-                self.dataset_std = dataset_std
-                dataset = (dataset - dataset_mean) / dataset_std
-
-            # concatenate labels to data
-            dataset = torch.concat((labels, dataset), 1)
-
-            self.dataset = dataset
-            self.labels = labels
-
-    def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0, shuffle=True):
-        """returns the data as a tensor"""
-        if windows_slices:
-            # pre-pad data with pre_pad zeros
-            data = torch.zeros((self.dataset.shape[0], self.dataset.shape[-1] + pre_pad))
-            data[:, :self.labels.shape[1]] = self.labels
-            data[:, pre_pad+self.labels.shape[-1]:] = self.dataset[:, self.labels.shape[-1]:]
-            # if windows_slices is True, return windows of size sequence_length with stride 1
-            if sequence_length < 0 or sequence_length + stride > self.dataset.shape[1]:
-                raise ValueError(f"If windows slices are used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}) + stride (={stride}).")
-            dataset = self.windows_slices(data, sequence_length, stride=stride)
-        elif windows_slices is False and sequence_length:
-            # if windows_slices is False, return only one window of size sequence_length from the beginning
-            if sequence_length == -1:
-                sequence_length = self.dataset.shape[1] - self.labels.shape[1]
-            if sequence_length < 0 or sequence_length > self.dataset.shape[1] - self.labels.shape[1]:
-                raise ValueError(f"If windows slices are not used, the sequence_length must be smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
-            dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
-        else:
-            dataset = self.dataset
-
-        # shuffle dataset
-        if shuffle:
-            dataset = dataset[torch.randperm(dataset.shape[0])]
-        return dataset
-
-    def get_labels(self):
-        return self.labels
-
-    def dataset_split(self, dataset=None, train_size=0.8, test_size=None, shuffle=True):
-        """Split dataset into train and test set. Returns the indices of the split."""
-
-        if dataset is None:
-            dataset = self.dataset
-
-        if test_size is None:
-            test_size = 1 - train_size
-
-        if train_size + test_size > 1:
-            raise ValueError(f"train_size + test_size (={train_size}+{test_size}) must be >= 1.")
-
-        # Split dataset into train and test set
-        train_size = int(train_size * dataset.shape[0])
-        test_size = int(test_size * dataset.shape[0])
-
-        if shuffle:
-            indices = torch.randperm(dataset.shape[0])
-            dataset = dataset[indices]
-        else:
-            indices = torch.arange(dataset.shape[0])
-
-        train_dataset = dataset[:train_size]
-        test_dataset = dataset[train_size:train_size + test_size]
-        train_idx = indices[:train_size]
-        test_idx = indices[train_size:train_size + test_size]
-
-        # indices = np.array(range(dataset.shape[0]))
-        # if shuffle:
-        #     np.random.shuffle(indices)
-        # train_idx, test_idx = indices[:train_size], indices[train_size:train_size + test_size]
-
-        return train_dataset, test_dataset, train_idx, test_idx
-
-    def downsample(self, target_sequence_length):
-        """Downsample data to target_sequence_length"""
-
-        # Downsample data
-        step_size = self.dataset.shape[1] // target_sequence_length
-        self.dataset = torch.concat((self.labels, self.dataset[:, self.labels.shape[1]::step_size]), dim=1)
-
-    def get_mean(self):
-        return self.dataset_mean
-
-    def get_std(self):
-        return self.dataset_std
-
-    def windows_slices(self, sequence, window_size, stride=5):
-        """Create a moving window of size window_size with stride stride.
-        The last window is padded with 0 if it is smaller than window_size.
-
-        Args:
-            sequence (iterable): Input sequence.
-            window_size (int): Size of the window.
-            stride (int): Stride of the window.
-
-        Returns:
-            torch.Tensor: Tensor of windows.
-        """
-
-        # Create a moving window of size window_size with stride stride
-        n_labels = self.labels.shape[1]
-        sequence = sequence[:, n_labels:]
-        windows = torch.zeros(((sequence.shape[1] - window_size) // stride, sequence.shape[0], window_size + n_labels))
-        last_index = sequence.shape[1] - (window_size + stride) + 1
-        for i in range(0, last_index, stride):
-            # print(f"from {i} to {i+window_size}")
-            windows[- ((sequence.shape[1] - window_size - i) // stride)] = torch.cat(
-                (self.labels, sequence[:, i:i + window_size]), dim=-1)
-        if sequence.shape[1] < last_index + stride + window_size:
-            # if last window is smaller than window_size, pad with 0
-            last_window = torch.zeros_like(windows[-1])
-            last_window[:, :n_labels] = self.labels
-            last_window[:, n_labels:n_labels + sequence.shape[1] - i - window_size] = sequence[:, i + window_size:]
-            windows[-1] = last_window
-        return windows.view(-1, n_labels + window_size)
-
-    def inverse_norm(self, data):
-        """Inverse normalize data. Used also for generated samples by the generator."""
-
-        # Check if data is tensor or numpy array
-        if not isinstance(data, torch.Tensor):
-            dataset_max = self.dataset_max.detach().cpu().numpy()
-            dataset_min = self.dataset_min.detach().cpu().numpy()
-        else:
-            dataset_max = self.dataset_max
-            dataset_min = self.dataset_min
-
-        # Inverse normalize data
-        data = data * (dataset_max - dataset_min) + dataset_min
         return data
 
-    def inverse_std(self, data):
-        """Inverse standardize data. Used also for generated samples by the generator."""
 
-        # Check if data is tensor or numpy array
-        if not isinstance(data, torch.Tensor):
-            dataset_mean = self.dataset_mean.detach().cpu().numpy()
-            dataset_std = self.dataset_std.detach().cpu().numpy()
-        else:
-            dataset_mean = self.dataset_mean
-            dataset_std = self.dataset_std
+def create_dataloader(data_file, seq_len, batch_size, train_ratio, standardize=True, differentiate=False):
+    # load the data from the csv file
+    data = pd.read_csv(data_file, index_col='Date')
 
-        # Inverse standardize data
-        data = data * dataset_std + dataset_mean
-        return data
+    # split the data into train and test sets
+    split_index = int(train_ratio * len(data))
+    train_data = data.iloc[:split_index, :]
+    test_data = data.iloc[split_index:, :]
 
-    @staticmethod
-    def inverse_diff(data, dim):
-        """Inverse differentiate data. Used also for generated samples by the generator."""
+    # create the datasets and dataloaders
+    train_dataset = MultivariateTimeSeriesDataset(train_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate)
+    test_dataset = MultivariateTimeSeriesDataset(test_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        # Inverse diff of data
-        if isinstance(data, torch.Tensor):
-            data = torch.cumsum(data, dim=dim)
-        else:
-            data = np.cumsum(data, axis=dim)
-        return data
-
-    def to_csv(self, path):
-        """Save data to csv file"""
-        if self.dataset is None:
-            raise ValueError("Dataset is None. Please load data first.")
-        pd.DataFrame(self.dataset.detach().cpu().numpy()).to_csv(path)
+    return train_dataloader, test_dataloader
