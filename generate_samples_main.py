@@ -90,9 +90,10 @@ if __name__ == '__main__':
     for n in range(num_samples_parallel):
         for i, x in enumerate(condition):
             if x == -1:
+                print(n*n_channels)
                 # random condition (works currently only for binary conditions)
                 # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
-                cond_labels[n*n_channels:(n+1)*n_channels, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
+                cond_labels[n:n+1, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
         
 
     # generate samples
@@ -140,7 +141,7 @@ if __name__ == '__main__':
             z = torch.cat((z, cond_labels), dim=1).type(torch.FloatTensor).to(device)
             samples[:, :, n_conditions:] += generator(z).view(num_samples_parallel, n_channels, -1)
             samples[:, :, :n_conditions] = cond_labels.repeat(1, n_channels).view(-1, n_channels, 1)
-            all_samples[i * num_samples_parallel*n_channels:(i + 1) * num_samples_parallel*n_channels] = samples.detach().cpu().numpy().reshape((-1, seq_len_gen+n_conditions))
+            all_samples[i * num_samples_parallel*n_channels:(i + 1) * num_samples_parallel*n_channels] = samples.view(-1, samples.shape[-1]).detach().cpu().numpy()
 
     # save samples
     print("Saving samples...")
