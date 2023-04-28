@@ -139,7 +139,7 @@ if __name__ == '__main__':
                 z[j] = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
             z = torch.cat((z, cond_labels), dim=1).type(torch.FloatTensor).to(device)
             samples[:, :, n_conditions:] += generator(z).view(num_samples_parallel, n_channels, -1)
-            samples[:, :, :n_conditions] = cond_labels.repeat(1, 1, n_channels).reshape(cond_labels.shape[0], n_channels, 1)
+            samples[:, :, :n_conditions] = cond_labels.repeat(1, n_channels).view(-1, n_channels, 1)
             all_samples[i * num_samples_parallel*n_channels:(i + 1) * num_samples_parallel*n_channels] = samples.detach().cpu().numpy().reshape((-1, seq_len_gen+n_conditions))
 
     # save samples
