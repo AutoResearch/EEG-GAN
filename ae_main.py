@@ -30,13 +30,13 @@ if __name__ == '__main__':
             "state_dict":   None,
             "input_dim":    None,
             "hidden_dim":   64,
-            "output_dim":   20,
+            "output_dim":   4,
             "num_layers":   2,
             "dropout":      .1,
         },
         "training": {
             "lr":           1e-3,
-            "epochs":       2,
+            "epochs":       100,
         },
         "general": {
             "seq_len":      24,
@@ -92,10 +92,10 @@ if __name__ == '__main__':
     # decode a batch of sequences, rescale it with scaler and plot them
     outputs = model.decode(outputs)
     print(outputs.shape)
-    # outputs = scaler.inverse_transform(outputs.detach().numpy())
-    # inputs = scaler.inverse_transform(inputs.detach().numpy())
-    plt.plot(outputs[0, :, 0].detach().numpy())
-    plt.plot(inputs[0, :, 0].detach().numpy())
+    outputs = scaler.inverse_transform(outputs.detach().numpy().reshape(outputs.shape[0]*outputs.shape[1],-1))
+    inputs = scaler.inverse_transform(inputs.detach().numpy().reshape(inputs.shape[0]*inputs.shape[1],-1))
+    plt.plot(outputs[0, :])
+    plt.plot(inputs[0, :])
     plt.legend(['reconstructed', 'original'])
     plt.show()
 

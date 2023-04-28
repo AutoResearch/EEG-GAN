@@ -10,7 +10,7 @@ class TransformerAutoencoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers, dropout, **kwargs):
         super(TransformerAutoencoder, self).__init__()
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=5, dim_feedforward=hidden_dim,
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=6, dim_feedforward=hidden_dim,
                                                         dropout=dropout)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
 

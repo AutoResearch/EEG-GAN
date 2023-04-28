@@ -59,7 +59,7 @@ class MultivariateTimeSeriesDataset(Dataset):
 
 def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardize=True, differentiate=False, **kwargs):
     # load the data from the csv file
-    data = pd.read_csv(training_data, index_col='Date')
+    data = pd.read_csv(training_data, index_col=0)
 
     # split the data into train and test sets
     split_index = int(train_ratio * len(data))
