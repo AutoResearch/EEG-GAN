@@ -11,9 +11,10 @@ We here use Generative Adversarial Networks (GANs) to create trial-level synthet
 
 GANs are machine learning frameworks that consist of two adversarial neural network agents, namely the generator and the discriminator. The generator is trained to create novel samples that are indiscernible from real samples. In the current context, the generator produces realistic continuous EEG activity, conditioned on a set of experimental variables, which contain underlying neural features representative of the outcomes being classified. For example, depression manifests as increased alpha oscillatory activity in the EEG signal, and thus, an ideal generator would produce continuous EEG that includes these alpha signatures. In contrast to the generator, the discriminator determines whether a given sample is real or synthetically produced by the generator. The core insight of GANs is that the generator can effectively learn from the discriminator. Specifically, the generator will consecutively produce more realistic synthetic samples with the goal of “fooling” the discriminator into believing them as real. Once it has achieved realistic samples that the discriminator cannot discern, it can be used to generate synthetic data—or in this context, synthetic EEG data.
 
-## <b>Evaluation of the GAN Package</b>
+## <b>Evaluation of the EEG-GAN Package</b>
 <b>Augmenting EEG with Generative Adversarial Networks Enhances Brain Decoding Across Classifiers and Sample Sizes</b><br>
-&emsp;*Williams, Weinhardt, Wirzberger, & Musslick (*submitted, 2023*)*<br>
+&emsp;*Williams, Weinhardt, Wirzberger, & Musslick (*in press*), Cognitive Science*<br>
+<center>[Williams, Weinhardt, Wirzberger, & Musslick *(in press, Cognitive Science)*](Research/cognitivescience2023.md){ .md-button }</center>
 
 ## <b>About</b>
 
