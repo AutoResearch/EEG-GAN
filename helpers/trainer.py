@@ -30,6 +30,7 @@ class Trainer:
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
+        self.channels_names = opt['channel_names'] if 'channel_names' in opt else list(range(1, self.n_channels + 1))
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
@@ -68,7 +69,8 @@ class Trainer:
             'b1': self.b1,
             'b2': self.b2,
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
-            'n_channels': self.n_channels
+            'n_channels': self.n_channels,
+            'channel_names': self.channels_names
         }
 
         self.d_losses = []

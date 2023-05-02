@@ -33,7 +33,7 @@ class Dataloader:
                     # filter data for specified channels
                     df = df.loc[df['Electrode'].isin(multichannel)]
             n_channels = len(channels)
-
+            self.channels = channels
             # get first column index of a time step
             self.n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]][0]
 

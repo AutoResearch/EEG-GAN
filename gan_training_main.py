@@ -100,6 +100,7 @@ if __name__ == '__main__':
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
+    opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
     opt['n_samples'] = dataset.shape[0]

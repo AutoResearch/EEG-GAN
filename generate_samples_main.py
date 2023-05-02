@@ -49,6 +49,7 @@ if __name__ == '__main__':
     filename_dataset = state_dict['configuration']['path_dataset']
     n_conditions = state_dict['configuration']['n_conditions']
     n_channels = state_dict['configuration']['n_channels']
+    channel_names = state_dict['configuration']['channel_names']
     latent_dim = state_dict['configuration']['latent_dim']
     sequence_length = state_dict['configuration']['sequence_length']
     seq_len_gen = state_dict['configuration']['sequence_length_generated']
@@ -143,6 +144,10 @@ if __name__ == '__main__':
     print("Saving samples...")
     if n_channels > 1:
         all_samples = all_samples.reshape((all_samples.shape[0]*num_samples_parallel, n_channels))
-    pd.DataFrame(all_samples).to_csv(path_samples, index=False)
+    df = pd.DataFrame(all_samples)
+    df.insert(loc=n_conditions, column='Electrode', value='')
+    for i, channel_name in enumerate(channel_names):
+        df = df.loc[df.index % n_channels == i, 'Electrode'] = channel_name
+    df.to_csv(path_samples, index=False)
 
     print("Generated samples were saved to " + path_samples)
