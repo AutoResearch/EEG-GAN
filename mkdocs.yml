@@ -36,4 +36,6 @@ nav:
     - Examples: 'HowToUse/examples.md'
   - Tutorials:
     - Notebook: 'Tutorials/web_EEG_GAN_tutorial.ipynb'
+  - Research:
+    - Cognitive Science, 2023: 'Research/cognitivescience2023.md'
   - Repository: https://github.com/AutoResearch/EEG-GAN" target="_blank
