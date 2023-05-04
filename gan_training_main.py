@@ -28,6 +28,7 @@ if __name__ == '__main__':
     """Main function of the training process."""
 
     # sys.argv = ["path_dataset=data/ganAverageERP_len100.csv", "patch_size=20", "conditions=Condition"]
+    sys.argv = ["path_dataset=data/ganTrialElectrodeERP_medium_len100.csv", "n_channels=30", "batch_size=32"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
@@ -72,6 +73,7 @@ if __name__ == '__main__':
     # GAN configuration
     opt = {
         'n_epochs': default_args['n_epochs'],
+        'n_channels': default_args['n_channels'],
         'sequence_length': default_args['sequence_length'],
         'seq_len_generated': default_args['seq_len_generated'],
         'load_checkpoint': default_args['load_checkpoint'],
@@ -81,6 +83,7 @@ if __name__ == '__main__':
         'learning_rate': default_args['learning_rate'],
         'sample_interval': default_args['sample_interval'],
         'n_conditions': len(default_args['conditions']),
+        'channel_recovery': default_args['channel_recovery'],
         'patch_size': default_args['patch_size'],
         'kw_timestep': default_args['kw_timestep_dataset'],
         'conditions': default_args['conditions'],
@@ -98,7 +101,8 @@ if __name__ == '__main__':
                             col_label=default_args['conditions'],
                             norm_data=norm_data,
                             std_data=std_data,
-                            diff_data=diff_data)
+                            diff_data=diff_data,
+                            channels=default_args['n_channels'])
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])
@@ -158,14 +162,17 @@ if __name__ == '__main__':
 
     if not filter_generator:
         generator = TtsGenerator(seq_length=opt['seq_len_generated'],
-                                 latent_dim=opt['latent_dim'] + opt['n_conditions'] + opt['sequence_length'] - opt['seq_len_generated'],
+                                 latent_dim=opt['n_conditions'] + opt['channel_recovery'] + opt['sequence_length'],
                                  patch_size=opt['patch_size'],
-                                 channels=1)  # TODO: Channel recovery: set channels to number of channels in dataset
+                                 channels=opt['n_channels'])
     else:
         generator = TtsGeneratorFiltered(seq_length=opt['seq_len_generated'],
-                                         latent_dim=opt['latent_dim']+opt['n_conditions']+opt['sequence_length']-opt['seq_len_generated'],
-                                         patch_size=opt['patch_size'])
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'], patch_size=opt['patch_size'], in_channels=1+opt['n_conditions'])  # TODO: Channel recovery: set in_channels to (number of channels)*2 in dataset
+                                         latent_dim=opt['n_conditions']+opt['channel_recovery']+opt['sequence_length'],
+                                         patch_size=opt['patch_size'],
+                                         channels=opt['n_channels'])
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
+                                     patch_size=opt['patch_size'],
+                                     in_channels=(1+opt['n_conditions'])*opt['n_channels'])
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------

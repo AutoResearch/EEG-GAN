@@ -113,9 +113,9 @@ def _ddp_training(training: DDPTrainer, opt):
 
     # load dataset
     dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
-                            norm_data=True)
+                            channels=opt['n_channels'], norm_data=True)
     dataset = dataloader.get_data()#[start_index:end_index]
-    opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
     # print(f"Rank {training.rank} has {len(dataset)} samples and index {start_index} to {end_index}.")
 

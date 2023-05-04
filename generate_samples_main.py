@@ -20,6 +20,7 @@ if __name__ == '__main__':
 
     sequence_length_total = default_args['sequence_length_total']
     num_samples_total = default_args['num_samples_total']
+    num_samples_total = num_samples_total[0] if isinstance(num_samples_total, list) else num_samples_total
     num_samples_parallel = default_args['num_samples_parallel']
     kw_timestep_dataset = default_args['kw_timestep_dataset']
     average_over = default_args['average']
@@ -52,6 +53,7 @@ if __name__ == '__main__':
     sequence_length = state_dict['configuration']['sequence_length']
     seq_len_gen = state_dict['configuration']['sequence_length_generated']
     patch_size = state_dict['configuration']['patch_size']
+    channels = state_dict['configuration']['n_channels']
     filter_generator = True if state_dict['configuration']['generator'] == 'TtsGeneratorFiltered' else False
     seq_len_cond = sequence_length - seq_len_gen
 
@@ -68,7 +70,8 @@ if __name__ == '__main__':
     if not filter_generator:
         generator = TtsGenerator(seq_length=seq_len_gen,
                                  latent_dim=latent_dim + n_conditions + seq_len_cond,
-                                 patch_size=patch_size).to(device)
+                                 patch_size=patch_size,
+                                 channels=channels).to(device)
     else:
         generator = TtsGeneratorFiltered(seq_length=seq_len_gen,
                                          latent_dim=latent_dim + n_conditions + seq_len_cond,
@@ -82,7 +85,7 @@ if __name__ == '__main__':
     if n_conditions != len(condition):
         raise ValueError(f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
 
-    cond_labels = torch.zeros((num_samples_parallel, n_conditions)).to(device)
+    cond_labels = torch.zeros((num_samples_parallel, n_conditions, channels)).to(device)
 
     for n in range(num_samples_parallel):
         for i, x in enumerate(condition):
@@ -93,31 +96,34 @@ if __name__ == '__main__':
 
     # generate samples
     num_sequences = int(np.floor(num_samples_total / num_samples_parallel))
-    all_samples = np.zeros((num_samples_parallel * num_sequences, sequence_length_total + n_conditions))
+    all_samples = np.zeros((num_samples_parallel * num_sequences, sequence_length_total + n_conditions, channels))
     print("Generating samples...")
 
     # Generation of samples begins
     for i in range(num_sequences):
         print(f"Generating sequence {i+1} of {num_sequences}...")
         # init sequence for windows_slices
-        sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
+        sequence = torch.zeros((num_samples_parallel, seq_len_cond, channels)).to(device)
         while sequence.shape[1] < sequence_length_total + seq_len_cond:
-            samples = torch.zeros((num_samples_parallel, seq_len_gen)).to(device)
-            z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
+            samples = torch.zeros((num_samples_parallel, seq_len_gen, channels)).to(device)
+            z = torch.zeros((num_samples_parallel, latent_dim, channels)).to(device)
             if all_cond_per_z:
                 for j in range(0, num_samples_parallel-1, 2):
                     # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim*channels,
+                                                                device=device).reshape((average_over,latent_dim,channels)).mean(dim=0)
                     z[j] = latent_var
                     z[j+1] = latent_var
             else:
                 # For normal sample generation - use this loop
                 for j in range(num_samples_parallel):
                     # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim*channels,
+                                                                device=device).reshape((average_over,latent_dim,channels)).mean(dim=0)
                     z[j] = latent_var
             z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
-            samples += generator(z).view(num_samples_parallel, -1)
+            z = z.permute(0,2,1)
+            samples += generator(z)[:num_samples_parallel].view(num_samples_parallel, channels, -1).permute(0,2,1)
             sequence = torch.cat((sequence, samples), dim=1)
         sequence = sequence[:, seq_len_cond:seq_len_cond+sequence_length_total]
         sequence = torch.cat((cond_labels, sequence), dim=1)
@@ -127,6 +133,7 @@ if __name__ == '__main__':
     print("Saving samples...")
     # path = 'generated_samples'
     # file = os.path.join(path, os.path.basename(file).split('.')[0] + '.csv')
+    all_samples = all_samples.reshape((num_samples_total*channels, all_samples.shape[1]))
     pd.DataFrame(all_samples).to_csv(path_samples, index=False)
 
     print("Generated samples were saved to " + path_samples)

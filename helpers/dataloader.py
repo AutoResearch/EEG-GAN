@@ -11,7 +11,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition'):
+                 kw_timestep='Time', col_label='Condition', channels=1):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -31,10 +31,14 @@ class Dataloader:
                 col_label = [col_label]
 
             # Get data and labels
-            dataset = torch.FloatTensor(df.to_numpy()[:, self.n_col_data:])
-            labels = torch.zeros((dataset.shape[0], len(col_label)))
+            remainder = df.shape[0] % channels  # if there is an incomplete set of channels at the end
+            df = df.head(df.shape[0] - remainder)  # remove incomplete set of channels
+            df_numpy = df.to_numpy().reshape((df.shape[0]//channels, df.shape[1], channels))
+            dataset = torch.FloatTensor(df_numpy[:, self.n_col_data:])
+            labels = torch.zeros((df.shape[0], len(col_label)))
             for i, l in enumerate(col_label):
                 labels[:, i] = torch.FloatTensor(df[l])
+            labels = labels.reshape((df.shape[0]//channels, len(col_label), channels))
 
             if diff_data:
                 # Diff of data
