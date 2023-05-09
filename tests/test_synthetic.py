@@ -28,7 +28,7 @@ def quinticModel(x, scale=5):
     # The raw model
     y = pow(x, 5) - scale * pow(x, 4) + scale * pow(x, 3) + scale * pow(x, 2) - 6 * x - 1
 
-return -(baseline * (np.flip(sup * -y))).real
+    return -(baseline * (np.flip(sup * -y))).real
 
 
 # Create a load of samples per condition
