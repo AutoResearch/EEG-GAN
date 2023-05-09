@@ -102,7 +102,7 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         # calculate probability of interpolated examples
         prob_interpolated = discriminator(interpolated)
 
-        fake = autograd.Variable(torch.ones_like(prob_interpolated).to(real_images.device), requires_grad=False)
+        fake = autograd.Variable(torch.ones((real_images.shape[0], 1)).to(real_images.device), requires_grad=False)
 
         # calculate gradients of probabilities with respect to examples
         gradients = autograd.grad(outputs=prob_interpolated,

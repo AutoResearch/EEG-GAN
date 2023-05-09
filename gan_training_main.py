@@ -132,8 +132,7 @@ if __name__ == '__main__':
                                          channels=opt['n_channels'])
     discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
                                      patch_size=opt['patch_size'],
-                                     in_channels=(1+opt['n_conditions'])*opt['n_channels'],
-                                     n_classes=opt['n_channels'])
+                                     in_channels=(1+opt['n_conditions'])*opt['n_channels'])
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
