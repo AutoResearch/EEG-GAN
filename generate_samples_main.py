@@ -87,7 +87,7 @@ if __name__ == '__main__':
         raise ValueError(f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
 
     cond_labels = torch.zeros((num_samples_parallel, n_conditions)).to(device)
-
+    
     for n in range(num_samples_parallel):
         for i, x in enumerate(condition):
             if x == -1:
@@ -97,11 +97,11 @@ if __name__ == '__main__':
 
     # generate samples
     num_sequences = int(np.floor(num_samples_total / num_samples_parallel))
-    all_samples = np.zeros((num_samples_parallel * num_sequences * n_channels, sequence_length_total + n_conditions))
     print("Generating samples...")
 
     # Generation of samples begins
     if n_channels == 1:
+        all_samples = np.zeros((num_samples_parallel * num_sequences * n_channels, sequence_length_total + n_conditions))
         for i in range(num_sequences):
             print(f"Generating sequence {i+1} of {num_sequences}...")
             # init sequence for windows_slices
@@ -129,17 +129,23 @@ if __name__ == '__main__':
             sequence = torch.cat((cond_labels, sequence), dim=1)
             all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel, 0, :] = sequence.detach().cpu().numpy()
     else:
+        all_samples = np.zeros((num_samples_parallel * num_sequences * n_channels, sequence_length_total + n_conditions + 1))
         for i in range(num_sequences):
             print(f"Generating sequence {i+1} of {num_sequences}...")
             # init sequence for windows_slices
-            samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen+n_conditions)).to(device)
+            samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen+n_conditions+1)).to(device)
             z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
             # For normal sample generation - use this loop
             for j in range(num_samples_parallel):
                 z[j] = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
             z = torch.cat((z, cond_labels), dim=1).type(torch.FloatTensor).to(device)
-            samples[:, :, n_conditions:] += generator(z).view(num_samples_parallel, n_channels, -1)
+            
+            #Create electrode labels
+            chan_labels = torch.linspace(0, n_channels-1, n_channels)
+
+            samples[:, :, n_conditions+1:] += generator(z).view(num_samples_parallel, n_channels, -1)
             samples[:, :, :n_conditions] = cond_labels.repeat(1, n_channels).view(-1, n_channels, 1)
+            samples[:, :, n_conditions:n_conditions+1] = chan_labels.repeat(cond_labels.shape[0]).view(-1,n_channels,1)
             all_samples[i * num_samples_parallel*n_channels:(i + 1) * num_samples_parallel*n_channels] = samples.view(-1, samples.shape[-1]).detach().cpu().numpy()
 
     # save samples
