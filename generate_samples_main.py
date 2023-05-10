@@ -147,7 +147,7 @@ if __name__ == '__main__':
     df = pd.DataFrame(all_samples)
     df.insert(loc=n_conditions, column='Electrode', value='')
     for i, channel_name in enumerate(channel_names):
-        df = df.loc[df.index % n_channels == i, 'Electrode'] = channel_name
+        df.loc[df.index % n_channels == i, 'Electrode'] = channel_name
     df.to_csv(path_samples, index=False)
     pd.DataFrame(all_samples).to_csv(path_samples, index=False)
 
