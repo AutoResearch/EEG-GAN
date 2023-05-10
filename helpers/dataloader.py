@@ -11,7 +11,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition', multichannel: Union[bool, List[str]]=False):
+                 kw_timestep='Time', col_label='Condition', chan_label='Electrode', multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -27,11 +27,11 @@ class Dataloader:
             # reshape and filter data based on channel specifications
             channels = [""]
             if multichannel:
-                channels = df['Electrode'].unique()
+                channels = df[chan_label].unique()
                 if type(multichannel) == list:
                     channels = [channel for channel in channels if channel in multichannel]
                     # filter data for specified channels
-                    df = df.loc[df['Electrode'].isin(multichannel)]
+                    df = df.loc[df[chan_label].isin(multichannel)]
             n_channels = len(channels)
             self.channels = channels
             # get first column index of a time step
@@ -45,7 +45,9 @@ class Dataloader:
             labels = torch.zeros((dataset.shape[0], len(col_label)))
             for i, l in enumerate(col_label):
                 labels[:, i] = torch.FloatTensor(df[l])
-
+            if multichannel:
+                channel_labels = torch.FloatTensor(df[chan_label])
+                
             if diff_data:
                 # Diff of data
                 dataset = dataset[:, 1:] - dataset[:, :-1]
@@ -75,9 +77,10 @@ class Dataloader:
             assert dataset.shape[0] % n_channels == 0.0
             re_dataset = torch.zeros(size=(n_samples, dataset.shape[1], n_channels))
             re_labels = torch.zeros(size=(n_samples, labels.shape[1], n_channels))
-            for n in range(n_samples):
-                re_dataset[n] = dataset[n * n_channels:(n + 1) * n_channels].permute(1, 0)
-                re_labels[n] = labels[n * n_channels:(n + 1) * n_channels].permute(1, 0)
+            
+            for ci, c in enumerate(channel_labels.unique()):
+                re_dataset[:,:,ci] = dataset[channel_labels==c]
+                re_labels[:,:,ci] = labels[channel_labels==c]
             dataset = re_dataset
             labels = re_labels
 
