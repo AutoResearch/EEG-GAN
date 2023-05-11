@@ -26,7 +26,7 @@ Instructions to start the training:
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    # sys.argv = ["path_dataset=data/ganAverageERP_mini.csv", "patch_size=20", "conditions=Condition", 'n_channels=2', 'n_epochs=25']
+    #sys.argv = ["path_dataset=data/gansMultiCondition.csv", "patch_size=20", "conditions=Condition", 'multichannel=True', 'n_epochs=25']
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     print('\n-----------------------------------------')
@@ -86,7 +86,8 @@ if __name__ == '__main__':
         'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
         'n_lstm': 2,                # number of lstm layers for lstm GAN
         'world_size': world_size,   # number of processes for distributed training
-        'multichannel': default_args['multichannel']
+        'multichannel': default_args['multichannel'],
+        'chan_label' : default_args['chan_label']
     }
 
     # Load dataset as tensor
@@ -96,7 +97,8 @@ if __name__ == '__main__':
                             norm_data=norm_data,
                             std_data=std_data,
                             diff_data=diff_data,
-                            multichannel=default_args['multichannel'])
+                            multichannel=default_args['multichannel'],
+                            chan_label=default_args['chan_label'])
     dataset = dataloader.get_data(sequence_length=default_args['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=default_args['sequence_length']-default_args['seq_len_generated'])

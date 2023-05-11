@@ -73,17 +73,10 @@ class Dataloader:
                 dataset = (dataset - dataset_mean) / dataset_std
 
             # Reshape data to separate electrodes by trial
-            n_samples = int(dataset.shape[0] / n_channels)
-            assert dataset.shape[0] % n_channels == 0.0
-            re_dataset = torch.zeros(size=(n_samples, dataset.shape[1], n_channels))
-            re_labels = torch.zeros(size=(n_samples, labels.shape[1], n_channels))
+            sort_index = df.sort_values(chan_label, kind="mergesort").index # Detemine sort order by channel
+            dataset = dataset[sort_index].view(n_channels, -1, dataset.shape[1]).permute(1,2,0) # Sort data and reshape to 3D
+            labels = labels[sort_index].view(n_channels, -1, labels.shape[1]).permute(1,2,0) # Sort labels and reshape to 3D
             
-            for ci, c in enumerate(channel_labels.unique()):
-                re_dataset[:,:,ci] = dataset[channel_labels==c]
-                re_labels[:,:,ci] = labels[channel_labels==c]
-            dataset = re_dataset
-            labels = re_labels
-
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)
 

@@ -113,7 +113,7 @@ def _ddp_training(training: DDPTrainer, opt):
 
     # load dataset
     dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
-                            norm_data=True, multichannel=opt['multichannel'])
+                            norm_data=True, multichannel=opt['multichannel'], chan_label=opt['chan_label'])
     dataset = dataloader.get_data()#[start_index:end_index]
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
