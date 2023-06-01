@@ -2,6 +2,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
+from matplotlib import pyplot as plt
 
 
 class MultivariateTimeSeriesDataset(Dataset):
@@ -13,12 +14,10 @@ class MultivariateTimeSeriesDataset(Dataset):
         self.data = self._process_data(data, shuffle=shuffle)
 
     def __getitem__(self, index):
-        start_index = index
-        end_index = index + self.seq_len
-        return self.data[start_index:end_index, :]
+        return self.data[index]
 
     def __len__(self):
-        return self.data.shape[0] - self.seq_len + 1
+        return self.data.shape[0]
 
     def _slice_sequence(self, sequence):
         slices = []
@@ -28,7 +27,10 @@ class MultivariateTimeSeriesDataset(Dataset):
             slice_end = i + self.seq_len
             slice_data = sequence[slice_start:slice_end]
             slices.append(slice_data)
-        slices = torch.stack(slices[:-1], dim=0)
+        if len(slices) > 1:
+            slices = torch.stack(slices[:-1], dim=0)
+        else:
+            slices = slices[0].unsqueeze(0)
         return slices
 
     def _process_data(self, data, shuffle=False):
@@ -40,24 +42,28 @@ class MultivariateTimeSeriesDataset(Dataset):
         if self.differentiate:
             data = data.diff().dropna()
 
-        # standardize the data if required
+        # standardize the data if required but fit the scaler anyways
+        data_std = self.scaler.fit_transform(data)
         if self.standardize:
-            data = pd.DataFrame(self.scaler.fit_transform(data), columns=data.columns, index=data.index)
+            data = pd.DataFrame(data_std, columns=data.columns, index=data.index)
 
         # convert the data to a numpy array
         data = torch.Tensor(data.to_numpy())
 
-    # shuffle the data along the first dimension
+        # slice the data into sequences
+        if self.seq_len > 0:
+            data = self._slice_sequence(data)
+        else:
+            data = data.unsqueeze(0)
+
+        # shuffle the data along the batch dimension
         if shuffle:
             data = data[torch.randperm(data.shape[0])]
-            
-        # slice the data into sequences
-        self.data = self._slice_sequence(data)
 
         return data
 
 
-def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardize=True, differentiate=False, **kwargs):
+def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardize=True, differentiate=False, shuffle=True, **kwargs):
     # load the data from the csv file
     data = pd.read_csv(training_data, index_col=0)
 
@@ -66,10 +72,25 @@ def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardi
     train_data = data.iloc[:split_index, :]
     test_data = data.iloc[split_index:, :]
 
-    # create the datasets and dataloaders
-    train_dataset = MultivariateTimeSeriesDataset(train_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate, shuffle=True)
-    test_dataset = MultivariateTimeSeriesDataset(test_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate, shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    # if len of train or test data is less than seq_len throw error
+    if train_ratio < 1.0 and (len(train_data) < seq_len or len(test_data) < seq_len):
+        raise ValueError(f"Sequence length (={seq_len}) must be smaller than length of train data (={len(train_data)}) and length of test data (={len(test_data)}).")
 
-    return train_dataloader, test_dataloader, train_dataset.scaler
+    # create the datasets and dataloaders
+    train_dataset, test_dataset, train_dataloader, test_dataloader = None, None, None, None
+    if len(train_data) > 0:
+        train_dataset = MultivariateTimeSeriesDataset(train_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate, shuffle=shuffle)
+    if len(test_data) > 0:
+        test_dataset = MultivariateTimeSeriesDataset(test_data, seq_len=seq_len, standardize=standardize, differentiate=differentiate, shuffle=False)
+    if train_dataset:
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
+    if test_dataset:
+        test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    scaler = None
+    if train_dataset:
+        scaler = train_dataset.scaler
+    elif test_dataset:
+        scaler = test_dataset.scaler
+
+    return train_dataloader, test_dataloader, scaler
