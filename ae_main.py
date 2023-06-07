@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 import torch.nn as nn
 import torch
 
-from utils.ae_dataloader import create_dataloader
-from utils.get_filter import moving_average as filter
+from helpers.ae_dataloader import create_dataloader
+from helpers.get_filter import moving_average as filter
 from nn_architecture.transformer_autoencoder import TransformerAutoencoder, save, train
 
 if __name__ == '__main__':
