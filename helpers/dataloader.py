@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
-
+from typing import Union, List
 
 class Dataloader:
     """class of Dataloader, which is responisble for:
@@ -11,7 +11,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition'):
+                 kw_timestep='Time', col_label='Condition', chan_label='Electrode', multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -24,6 +24,16 @@ class Dataloader:
             # Load data from csv as pandas dataframe and convert to tensor
             df = pd.read_csv(path)
 
+            # reshape and filter data based on channel specifications
+            channels = [""]
+            if multichannel:
+                channels = df[chan_label].unique()
+                if type(multichannel) == list:
+                    channels = [channel for channel in channels if channel in multichannel]
+                    # filter data for specified channels
+                    df = df.loc[df[chan_label].isin(multichannel)]
+            n_channels = len(channels)
+            self.channels = channels
             # get first column index of a time step
             n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
 
@@ -35,7 +45,9 @@ class Dataloader:
             labels = torch.zeros((dataset.shape[0], len(col_label)))
             for i, l in enumerate(col_label):
                 labels[:, i] = torch.FloatTensor(df[l])
-                # del df[l]
+
+            if multichannel:
+                channel_labels = torch.FloatTensor(df[chan_label])
 
             if diff_data:
                 # Diff of data
@@ -61,6 +73,11 @@ class Dataloader:
                 self.dataset_std = dataset_std
                 dataset = (dataset - dataset_mean) / dataset_std
 
+            # Reshape data to separate electrodes by trial
+            sort_index = df.sort_values(chan_label, kind="mergesort").index # Detemine sort order by channel
+            dataset = dataset[sort_index].view(n_channels, -1, dataset.shape[1]).permute(1,2,0) # Sort data and reshape to 3D
+            labels = labels[sort_index].view(n_channels, -1, labels.shape[1]).permute(1,2,0) # Sort labels and reshape to 3D
+            
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)
 

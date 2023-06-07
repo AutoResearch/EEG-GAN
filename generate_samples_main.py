@@ -48,6 +48,8 @@ if __name__ == '__main__':
     # load model/training configuration
     filename_dataset = state_dict['configuration']['path_dataset']
     n_conditions = state_dict['configuration']['n_conditions']
+    n_channels = state_dict['configuration']['n_channels']
+    channel_names = state_dict['configuration']['channel_names']
     latent_dim = state_dict['configuration']['latent_dim']
     sequence_length = state_dict['configuration']['sequence_length']
     seq_len_gen = state_dict['configuration']['sequence_length_generated']
@@ -68,11 +70,13 @@ if __name__ == '__main__':
     if not filter_generator:
         generator = TtsGenerator(seq_length=seq_len_gen,
                                  latent_dim=latent_dim + n_conditions + seq_len_cond,
-                                 patch_size=patch_size).to(device)
+                                 patch_size=patch_size,
+                                 channels=n_channels).to(device)
     else:
         generator = TtsGeneratorFiltered(seq_length=seq_len_gen,
                                          latent_dim=latent_dim + n_conditions + seq_len_cond,
-                                         patch_size=patch_size).to(device)
+                                         patch_size=patch_size,
+                                         channels=n_channels).to(device)
     generator.eval()
 
     # load generator weights
@@ -97,6 +101,15 @@ if __name__ == '__main__':
             raise ValueError(f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
 
     cond_labels = torch.zeros((num_samples_parallel, n_conditions)).to(device)
+    #JOSHUA
+    '''
+    for n in range(num_samples_parallel):
+        for i, x in enumerate(condition):
+            if x == -1:
+                # random condition (works currently only for binary conditions)
+                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
+                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
+     '''
 
     def get_condition_label(condition, num_samples_parallel):
         # create labels for generator according to given conditions
@@ -119,17 +132,59 @@ if __name__ == '__main__':
 
     # generate samples
     num_sequences = int(np.floor(num_samples_total / num_samples_parallel))
-    all_samples = np.zeros((num_samples_parallel * num_sequences, sequence_length_total + n_conditions))
     print("Generating samples...")
 
     # Generation of samples begins
-    for i in range(num_sequences):
-        print(f"Generating sequence {i+1} of {num_sequences}...")
-        # init sequence for windows_slices
-        sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
-        while sequence.shape[1] < sequence_length_total + seq_len_cond:
-            samples = torch.zeros((num_samples_parallel, seq_len_gen)).to(device)
+    if n_channels == 1:
+        all_samples = np.zeros((num_samples_parallel * num_sequences * n_channels, sequence_length_total + n_conditions))
+        for i in range(num_sequences):
+            print(f"Generating sequence {i+1} of {num_sequences}...")
+            # init sequence for windows_slices
+            sequence = torch.zeros((num_samples_parallel, seq_len_cond)).to(device)
+            samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen)).to(device)
+            while sequence.shape[1] < sequence_length_total + seq_len_cond:
+                samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen)).to(device)
+                z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
+                if all_cond_per_z:
+                    for j in range(0, num_samples_parallel-1, 2):
+                        # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
+                        latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                        z[j] = latent_var
+                        z[j+1] = latent_var
+                else:
+                    # For normal sample generation - use this loop
+                    for j in range(num_samples_parallel):
+                        # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
+                        latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                        z[j] = latent_var
+                z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
+                samples += generator(z).view(num_samples_parallel, n_channels, -1)
+                sequence = torch.cat((sequence, samples[:, 0, :]), dim=1)
+            sequence = sequence[:, seq_len_cond:seq_len_cond+sequence_length_total]
+            sequence = torch.cat((cond_labels, sequence), dim=1)
+            all_samples[i * num_samples_parallel:(i + 1) * num_samples_parallel, 0, :] = sequence.detach().cpu().numpy()
+    else:
+        all_samples = np.zeros((num_samples_parallel * num_sequences * n_channels, sequence_length_total + n_conditions + 1))
+        for i in range(num_sequences):
+            print(f"Generating sequence {i+1} of {num_sequences}...")
+            # init sequence for windows_slices
+            samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen+n_conditions+1)).to(device)
             z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
+            #JOSHUA
+            '''
+            # For normal sample generation - use this loop
+            for j in range(num_samples_parallel):
+                z[j] = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+            z = torch.cat((z, cond_labels), dim=1).type(torch.FloatTensor).to(device)
+            
+            #Create electrode labels
+            chan_labels = torch.linspace(0, n_channels-1, n_channels)
+
+            samples[:, :, n_conditions+1:] += generator(z).view(num_samples_parallel, n_channels, -1)
+            samples[:, :, :n_conditions] = cond_labels.repeat(1, n_channels).view(-1, n_channels, 1)
+            samples[:, :, n_conditions:n_conditions+1] = chan_labels.repeat(cond_labels.shape[0]).view(-1,n_channels,1)
+            all_samples[i * num_samples_parallel*n_channels:(i + 1) * num_samples_parallel*n_channels] = samples.view(-1, samples.shape[-1]).detach().cpu().numpy()
+            '''
             if all_cond_per_z:
                 for j in range(0, num_samples_parallel-1, 2):
                     # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
@@ -152,8 +207,11 @@ if __name__ == '__main__':
 
     # save samples
     print("Saving samples...")
-    # path = 'generated_samples'
-    # file = os.path.join(path, os.path.basename(file).split('.')[0] + '.csv')
+    df = pd.DataFrame(all_samples)
+    df.insert(loc=n_conditions, column='Electrode', value='')
+    for i, channel_name in enumerate(channel_names):
+        df.loc[df.index % n_channels == i, 'Electrode'] = channel_name
+    df.to_csv(path_samples, index=False)
     pd.DataFrame(all_samples).to_csv(path_samples, index=False)
 
     print("Generated samples were saved to " + path_samples)
