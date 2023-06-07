@@ -13,15 +13,15 @@ from nn_architecture.transformer_autoencoder import TransformerAutoencoder, save
 if __name__ == '__main__':
 
     # get parameters from saved model
-    load_model = True
-    training = False
+    load_model = False
+    training = True
 
     model_dict = None
+    model_dir = 'trained_ae'
     model_name = 'ae_kagglev1.pth'
-    model_dir = '../trained_ae'
 
-    data_dir = '../stock_data'
-    data_file = 'stocks_sp500_2010_2020.csv'  # path to the csv file
+    data_dir = 'data'
+    data_file = 'gansEEGTrainingData.csv'  # path to the csv file
 
     # configuration
     cfg = {
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         },
         "training": {
             "lr":           1e-4,
-            "epochs":       2,
+            "epochs":       1000,
         },
         "general": {
             "seq_len":      50,
@@ -45,7 +45,7 @@ if __name__ == '__main__':
             "train_ratio":  .8,
             "standardize":  True,
             "differentiate": False,
-            "default_save_path": os.path.join('../trained_ae', 'checkpoint.pt'),
+            "default_save_path": os.path.join('trained_ae', 'checkpoint.pt'),
         }
     }
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
         # save model and training history under file with name model_CURRENTDATETIME.pth
         cfg["model"]["state_dict"] = model.state_dict()
         # get filename as ae_ + timestampe + pth
-        save(cfg, os.path.join("../trained_ae", model_name))
+        save(cfg, os.path.join("trained_ae", model_name))
 
         # plot the training and test losses
         plt.plot(train_losses)

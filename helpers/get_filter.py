@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy import signal
 
-from utils.ae_dataloader import create_dataloader
+from helpers.ae_dataloader import create_dataloader
 
 
 def get_highest_freq(x, t, dx, threshold=0.005, plot=False, plot_index=500):
@@ -164,14 +164,13 @@ def get_butterworth(x, dx, t, max_freq, n_filters=3, save=False, save_path=None,
                                                                                                'highpass': (b_high, a_high),
                                                                                                'bandpass': (b_band, a_band)}
 
-
 def moving_average(x, win_len, dtype=np.array, mode='same'):
-    filtered = np.zeros((x.shape[0]-win_len+1, x.shape[1]))
-
     if len(x.shape) == 2:
+        filtered = np.zeros((x.shape[0]-win_len+1, x.shape[1]))
         for i in range(x.shape[-1]):
             filtered[:, i] = np.convolve(x[:, i], np.ones(win_len) / win_len, 'valid')
     elif len(x.shape) == 3:
+        filtered = np.zeros((x.shape[0]-win_len+1, x.shape[1], x.shape[2]))
         for batch in range(x.shape[0]):
             for array in range(x.shape[-1]):
                 filtered[batch, :, array] = np.convolve(x[batch, :, array], np.ones(win_len) / win_len, 'valid')
@@ -182,8 +181,12 @@ def moving_average(x, win_len, dtype=np.array, mode='same'):
 
     if mode == 'same':
         # adapting the window length of the to the remaining fragments at the beginning and end of the signal
-        pad_before = np.zeros((win_len//2, x.shape[1]))
-        pad_after = np.zeros((win_len//2, x.shape[1]))
+        if x.ndim == 1:
+            pad_before = np.zeros((win_len//2))
+            pad_after = np.zeros((win_len//2))
+        else:
+            pad_before = np.zeros((win_len//2, x.shape[1]))
+            pad_after = np.zeros((win_len//2, x.shape[1]))
 
         for i in range(win_len//2):
             pad_before[i] = np.mean(x[:i*2+1], axis=0)
