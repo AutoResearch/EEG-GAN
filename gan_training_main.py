@@ -27,11 +27,8 @@ Instructions to start the training:
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    #sys.argv = ["path_dataset=data/gansMultiCondition.csv", "patch_size=20", "conditions=Condition", 'multichannel=True', 'n_epochs=25']
-    # sys.argv = ["path_dataset=data/ganAverageERP_multiCond_small.csv", "n_epochs=2", "patch_size=20", "conditions=Condition_1,Condition_2,Condition_3", "sample_interval=1"]
+    #sys.argv = ["path_dataset=data/gansMultiCondition.csv", "patch_size=20", "conditions=Condition_1,Condition_2,Condition_3", 'multichannel=True', 'n_epochs=25']
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
-
-
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Configure training parameters and load data

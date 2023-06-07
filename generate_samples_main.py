@@ -101,6 +101,15 @@ if __name__ == '__main__':
             raise ValueError(f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
 
     cond_labels = torch.zeros((num_samples_parallel, n_conditions)).to(device)
+    #JOSHUA
+    '''
+    for n in range(num_samples_parallel):
+        for i, x in enumerate(condition):
+            if x == -1:
+                # random condition (works currently only for binary conditions)
+                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
+                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
+     '''
 
     #JOSHUA'S CODE
     '''
@@ -172,7 +181,7 @@ if __name__ == '__main__':
             samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen+n_conditions+1)).to(device)
             z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
 
-            #JOSHUA'S CODE
+            #JOSHUA
             '''
             # For normal sample generation - use this loop
             for j in range(num_samples_parallel):
