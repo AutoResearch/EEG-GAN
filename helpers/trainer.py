@@ -162,11 +162,15 @@ class Trainer:
             z = torch.cat((z, gen_labels), dim=1).to(self.device)
             gen_imgs = self.generator(z)
 
+
             #JOSHUA
             #fake_data = gen_imgs.to(self.device)
             #fake_labels = data_labels.view(-1, self.n_channels, 1, self.n_conditions).repeat(1, 1, 1, self.sequence_length).to(self.device)
 
             fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
+
+            #JOSHUA SUGGESTED THIS MAYBE:
+            #fake_labels = data_labels[:, 0, :].view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
             fake_labels = data_labels.view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
 
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
@@ -196,7 +200,7 @@ class Trainer:
         gen_samples = torch.cat((data_labels, gen_imgs.view(gen_imgs.shape[0],  gen_imgs.shape[1], gen_imgs.shape[-1])), dim=2).to(self.device)
 
         # Loss for fake images
-
+        
         #JOSHUA
         #fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, -1), gen_imgs), dim=-1).to(self.device)
         #fake_labels = data_labels.view(-1, self.n_channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
