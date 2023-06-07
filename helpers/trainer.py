@@ -161,8 +161,14 @@ class Trainer:
             # Generate a batch of samples
             z = torch.cat((z, gen_labels), dim=1).to(self.device)
             gen_imgs = self.generator(z)
-            fake_data = gen_imgs.to(self.device)
-            fake_labels = data_labels.view(-1, self.n_channels, 1, self.n_conditions).repeat(1, 1, 1, self.sequence_length).to(self.device)
+
+            #JOSHUA's CODE
+            #fake_data = gen_imgs.to(self.device)
+            #fake_labels = data_labels.view(-1, self.n_channels, 1, self.n_conditions).repeat(1, 1, 1, self.sequence_length).to(self.device)
+
+            fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
+            fake_labels = data_labels[:, 0, :].view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
             validity = self.discriminator(fake_data)
 
@@ -190,14 +196,26 @@ class Trainer:
         gen_samples = torch.cat((data_labels, gen_imgs.view(gen_imgs.shape[0],  gen_imgs.shape[1], gen_imgs.shape[-1])), dim=2).to(self.device)
 
         # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, -1), gen_imgs), dim=-1).to(self.device)
-        fake_labels = data_labels.view(-1, self.n_channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        
+        #JOSHUA'S CODE
+        #fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, -1), gen_imgs), dim=-1).to(self.device)
+        #fake_labels = data_labels.view(-1, self.n_channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+
+        fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
+        fake_labels = data_labels.view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)
 
         # Loss for real images
-        real_labels = data_labels.view(-1, self.n_channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        data = data.view(-1, self.n_channels, 1, data.shape[2]).to(self.device)
+        
+        #JOSHUA'S CODE
+        #real_labels = data_labels.view(-1, self.n_channels, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        #data = data.view(-1, self.n_channels, 1, data.shape[2]).to(self.device)
+
+        real_labels = data_labels.view(-1, data_labels.shape[1], 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        data = data.view(-1, 1, 1, data.shape[1]).to(self.device)
+
         real_data = torch.cat((data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)
 

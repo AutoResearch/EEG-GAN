@@ -2,6 +2,7 @@ import os
 import sys
 import warnings
 from datetime import datetime
+import numpy as np
 import torch
 import torch.multiprocessing as mp
 
@@ -27,11 +28,10 @@ if __name__ == '__main__':
     """Main function of the training process."""
 
     #sys.argv = ["path_dataset=data/gansMultiCondition.csv", "patch_size=20", "conditions=Condition", 'multichannel=True', 'n_epochs=25']
+    # sys.argv = ["path_dataset=data/ganAverageERP_multiCond_small.csv", "n_epochs=2", "patch_size=20", "conditions=Condition_1,Condition_2,Condition_3", "sample_interval=1"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
-    print('\n-----------------------------------------')
-    print("System output:")
-    print('-----------------------------------------\n')
+
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Configure training parameters and load data
@@ -112,10 +112,11 @@ if __name__ == '__main__':
         warnings.warn(f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
                       f"The sequence length is padded with zeros to fit the condition.")
         padding = 0
-        while opt['sequence_length'] % default_args['patch_size'] != 0:
+        while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
             padding += 1
-        opt['sequence_length'] += padding
-        dataset = torch.cat((dataset, torch.zeros(dataset.shape[0], padding)), dim=1)
+        padding = torch.zeros((dataset.shape[0], padding))
+        dataset = torch.cat((dataset, padding), dim=1)
+        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
     if opt['seq_len_generated'] == -1:
         opt['seq_len_generated'] = opt['sequence_length']
