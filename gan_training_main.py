@@ -27,7 +27,8 @@ Instructions to start the training:
 if __name__ == '__main__':
     """Main function of the training process."""
 
-    sys.argv = ["path_dataset=data/gansMultiCondition.csv", "n_epochs=1", "patch_size=20", "channel_label=Electrode", "input_sequence_length=-1", "conditions=ParticipantID,Condition",]
+    # TODO: Doesn't work right now in the configuration "NoConditions + Sequence2Sequence" --> Issue with TransformerGenerator2
+    # sys.argv = ["path_dataset=data/gansMultiCondition.csv", "n_epochs=1", "patch_size=20"]#, "channel_label=Electrode", "conditions=ParticipantID,Condition"]#, "input_sequence_length=-1"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     # ----------------------------------------------------------------------------------------------------------------------

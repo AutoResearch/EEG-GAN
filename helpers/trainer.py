@@ -19,7 +19,7 @@ class Trainer:
         self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else 0
         self.input_sequence_length = opt['input_sequence_length'] if 'input_sequence_length' in opt else 0
-        self.sequence_length_generated = self.sequence_length-self.input_sequence_length
+        self.sequence_length_generated = self.sequence_length-self.input_sequence_length if self.sequence_length != self.input_sequence_length else self.sequence_length
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
         self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
         self.use_checkpoint = opt['load_checkpoint'] if 'load_checkpoint' in opt else False
@@ -90,6 +90,9 @@ class Trainer:
         for epoch in range(self.epochs):
             # for-loop for number of batch_size entries in sessions
             dataset = dataset[torch.randperm(dataset.shape[0])]
+            i_batch = 0
+            d_loss_batch = 0
+            g_loss_batch = 0
             for i in range(0, dataset.shape[0], self.batch_size):
                 # Check whether last batch contains less samples than batch_size
                 if i + self.batch_size > dataset.shape[0]:
@@ -109,6 +112,10 @@ class Trainer:
 
                 d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
 
+                d_loss_batch += d_loss
+                g_loss_batch += g_loss
+                i_batch += 1
+
                 self.d_losses.append(d_loss)
                 self.g_losses.append(g_loss)
 
@@ -124,7 +131,7 @@ class Trainer:
                     self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
                     trigger_checkpoint_01 = True
 
-            self.print_log(epoch + 1, d_loss, g_loss)
+            self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
 
@@ -161,9 +168,9 @@ class Trainer:
             z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
             # Generate a batch of samples
-            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, seq_length)
+            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length)
 
-            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, self.sequence_length), gen_imgs), dim=-1).to(self.device) if gen_cond_data.shape[1] != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if gen_cond_data.shape[1] != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
             fake_labels = data_labels.view(batch_size, self.n_conditions, 1, seq_length).to(self.device)
             if seq_length < self.sequence_length:
                 fake_labels = fake_labels.repeat(1, 1, 1, self.sequence_length)
@@ -190,13 +197,13 @@ class Trainer:
         z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
         # gen_labels = torch.cat((data_labels[:, 0, :], gen_cond_data[:, 0, :]), dim=1).to(self.device)
         z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-        gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, seq_length)
+        gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
 
         # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, self.sequence_length), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != self.sequence_length else gen_imgs
+        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device)  if gen_cond_data.shape[1] != 0 and  self.input_sequence_length != self.sequence_length else gen_imgs
         fake_labels = data_labels.view(batch_size, self.n_conditions, 1, seq_length).to(self.device)
         if seq_length < self.sequence_length:
-            fake_labels.repeat(1, 1, 1, self.sequence_length)
+            fake_labels = fake_labels.repeat(1, 1, 1, self.sequence_length)
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)
 
@@ -211,7 +218,7 @@ class Trainer:
         # Loss for real images
         real_labels = data_labels.view(batch_size, self.n_conditions, 1, seq_length).to(self.device)
         if seq_length < self.sequence_length:
-            real_labels.repeat(1, 1, 1, self.sequence_length)
+            real_labels = real_labels.repeat(1, 1, 1, self.sequence_length)
         data = data.view(batch_size, self.n_channels, 1, self.sequence_length).to(self.device)
         real_data = torch.cat((data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)

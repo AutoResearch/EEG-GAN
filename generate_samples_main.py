@@ -11,23 +11,24 @@ from nn_architecture.models import TtsGenerator, TtsGeneratorFiltered
 
 if __name__ == '__main__':
 
-    # sys.argv = ["file=gan_multiCond.pt", "average=10", "conditions=-1,-2,0.5"]
+    sys.argv = ["file=gan_1ep_20230608_143953.pt", "average=10", "conditions=400,1"]
     default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
 
     print('\n-----------------------------------------')
     print("System output:")
     print('-----------------------------------------\n')
 
-    sequence_length_total = default_args['sequence_length_total']
+    sequence_length_total = default_args['sequence_length']
     num_samples_total = default_args['num_samples_total']
     num_samples_parallel = default_args['num_samples_parallel']
     kw_timestep_dataset = default_args['kw_timestep_dataset']
     average_over = default_args['average']
-    all_cond_per_z = default_args['all_cond_per_z']
+    # all_cond_per_z = default_args['all_cond_per_z']
 
     condition = default_args['conditions']
     if not isinstance(condition, list):
         condition = [condition]
+
     file = default_args['file']
     if file.split(os.path.sep)[0] == file:
         # use default path if no path is given
@@ -111,16 +112,6 @@ if __name__ == '__main__':
                 cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
      '''
 
-    #JOSHUA'S CODE
-    '''
-    for n in range(num_samples_parallel):
-        for i, x in enumerate(condition):
-            if x == -1:
-                # random condition (works currently only for binary conditions)
-                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
-                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
-     '''
-
     def get_condition_label(condition, num_samples_parallel):
         # create labels for generator according to given conditions
         # if condition is -1, generate random binary conditions
@@ -155,18 +146,11 @@ if __name__ == '__main__':
             while sequence.shape[1] < sequence_length_total + seq_len_cond:
                 samples = torch.zeros((num_samples_parallel, n_channels, seq_len_gen)).to(device)
                 z = torch.zeros((num_samples_parallel, latent_dim)).to(device)
-                if all_cond_per_z:
-                    for j in range(0, num_samples_parallel-1, 2):
-                        # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-                        latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
-                        z[j] = latent_var
-                        z[j+1] = latent_var
-                else:
-                    # For normal sample generation - use this loop
-                    for j in range(num_samples_parallel):
-                        # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-                        latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
-                        z[j] = latent_var
+                # For normal sample generation - use this loop
+                for j in range(num_samples_parallel):
+                    # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
+                    latent_var = Trainer.sample_latent_variable(batch_size=average_over, latent_dim=latent_dim, device=device).mean(dim=0)
+                    z[j] = latent_var
                 z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
                 samples += generator(z).view(num_samples_parallel, n_channels, -1)
                 sequence = torch.cat((sequence, samples[:, 0, :]), dim=1)
@@ -206,8 +190,8 @@ if __name__ == '__main__':
                 # For normal sample generation - use this loop
                 # for j in range(num_samples_parallel):
                     # samples = gs.generate_samples(labels, num_samples=num_samples_parallel, conditions=True)
-                z = Trainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim, device=device)#.mean(dim=0)
                     # z[j] = latent_var
+                z = Trainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim, device=device)
             cond_labels = get_condition_label(condition, num_samples_parallel)
             z = torch.cat((z, cond_labels, sequence[:, -seq_len_cond:]), dim=1).type(torch.FloatTensor).to(device)
             samples += generator(z).view(num_samples_parallel, -1)
