@@ -123,19 +123,19 @@ if __name__ == '__main__':
     # Initialize generator, discriminator and trainer
     latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
-    # if not filter_generator:
-    #     generator = TtsGenerator(seq_length=sequence_length_generated,
-    #                              latent_dim=latent_dim_in,
-    #                              patch_size=opt['patch_size'],
-    #                              channels=opt['n_channels'])
-    # else:
-    #     generator = TtsGeneratorFiltered(seq_length=opt['sequence_length']-opt['input_sequence_length'],
-    #                                      latent_dim=latent_dim_in,
-    #                                      patch_size=opt['patch_size'],
-    #                                      channels=opt['n_channels'])
-    generator = TransformerGenerator2(latent_dim=latent_dim_in,
-                                      channels=opt['n_channels'],
-                                      seq_len=sequence_length_generated)
+    if not filter_generator:
+        generator = TtsGenerator(seq_length=sequence_length_generated,
+                                 latent_dim=latent_dim_in,
+                                 patch_size=opt['patch_size'],
+                                 channels=opt['n_channels'])
+    else:
+        generator = TtsGeneratorFiltered(seq_length=opt['sequence_length']-opt['input_sequence_length'],
+                                         latent_dim=latent_dim_in,
+                                         patch_size=opt['patch_size'],
+                                         channels=opt['n_channels'])
+    # generator = TransformerGenerator2(latent_dim=latent_dim_in,
+    #                                   channels=opt['n_channels'],
+    #                                   seq_len=sequence_length_generated)
     discriminator = TtsDiscriminator(seq_length=sequence_length_generated,
                                      patch_size=opt['patch_size'],
                                      in_channels=opt['n_conditions']+opt['n_channels'])
