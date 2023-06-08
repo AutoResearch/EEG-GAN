@@ -3,6 +3,9 @@ import pandas as pd
 import torch
 from typing import Union, List
 
+from matplotlib import pyplot as plt
+
+
 class Dataloader:
     """class of Dataloader, which is responisble for:
     - loading data from csv file
@@ -11,7 +14,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='Condition', chan_label='Electrode', multichannel: Union[bool, List[str]]=False):
+                 kw_timestep='Time', col_label=None, channel_label=None):#, multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -25,29 +28,33 @@ class Dataloader:
             df = pd.read_csv(path)
 
             # reshape and filter data based on channel specifications
-            channels = [""]
-            if multichannel:
-                channels = df[chan_label].unique()
-                if type(multichannel) == list:
-                    channels = [channel for channel in channels if channel in multichannel]
-                    # filter data for specified channels
-                    df = df.loc[df[chan_label].isin(multichannel)]
+            channels = [0]
+            if channel_label != '':
+                channels = df[channel_label].unique()
+                assert len(df)%len(channels)==0, f"Number of rows ({len(df)}) must be a multiple of number of channels ({len(channels)}).\nThis could be caused by missing data for some channels."
+                # if type(multichannel) == list:
+                #     channels = [channel for channel in channels if channel in multichannel]
+                #     # filter data for specified channels
+                #     df = df.loc[df[channel_label].isin(multichannel)]
             n_channels = len(channels)
             self.channels = channels
+
             # get first column index of a time step
             n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
 
-            if not isinstance(col_label, list):
+            if col_label and not isinstance(col_label, list):
                 col_label = [col_label]
 
             # Get labels and data
             dataset = torch.FloatTensor(df.to_numpy()[:, n_col_data])
-            labels = torch.zeros((dataset.shape[0], len(col_label)))
-            for i, l in enumerate(col_label):
-                labels[:, i] = torch.FloatTensor(df[l])
+            n_labels = len(col_label) if col_label[0] != '' else 0
+            labels = torch.zeros((dataset.shape[0], n_labels))
+            if n_labels:
+                for i, l in enumerate(col_label):
+                    labels[:, i] = torch.FloatTensor(df[l])
 
-            if multichannel:
-                channel_labels = torch.FloatTensor(df[chan_label])
+            # if multichannel:
+            #     channel_labels = torch.FloatTensor(df[channel_label])
 
             if diff_data:
                 # Diff of data
@@ -73,11 +80,15 @@ class Dataloader:
                 self.dataset_std = dataset_std
                 dataset = (dataset - dataset_mean) / dataset_std
 
-            # Reshape data to separate electrodes by trial
-            sort_index = df.sort_values(chan_label, kind="mergesort").index # Detemine sort order by channel
-            dataset = dataset[sort_index].view(n_channels, -1, dataset.shape[1]).permute(1,2,0) # Sort data and reshape to 3D
-            labels = labels[sort_index].view(n_channels, -1, labels.shape[1]).permute(1,2,0) # Sort labels and reshape to 3D
-            
+            # reshape data to separate electrodes --> new shape: (trial, sequence, channel)
+            if len(self.channels) > 1:
+                sort_index = df.sort_values(channel_label, kind="mergesort").index
+                dataset = dataset[sort_index].view(n_channels, dataset.shape[0]//n_channels, dataset.shape[1]).permute(1, 2, 0)
+                labels = labels[sort_index].view(n_channels, labels.shape[0]//n_channels, labels.shape[1]).permute(1, 2, 0)
+            else:
+                dataset = dataset.unsqueeze(-1)
+                labels = labels.unsqueeze(-1)
+
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)
 
@@ -87,6 +98,7 @@ class Dataloader:
     def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0, shuffle=True):
         """returns the data as a tensor"""
         if windows_slices:
+            raise NotImplementedError("Windows slices are not implemented yet.")
             # pre-pad data with pre_pad zeros
             data = torch.zeros((self.dataset.shape[0], self.dataset.shape[-1] + pre_pad))
             data[:, :self.labels.shape[1]] = self.labels
@@ -95,13 +107,13 @@ class Dataloader:
             if sequence_length < 0 or sequence_length + stride > self.dataset.shape[1]:
                 raise ValueError(f"If windows slices are used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}) + stride (={stride}).")
             dataset = self.windows_slices(data, sequence_length, stride=stride)
-        elif windows_slices is False and sequence_length:
-            # if windows_slices is False, return only one window of size sequence_length from the beginning
-            if sequence_length == -1:
-                sequence_length = self.dataset.shape[1] - self.labels.shape[1]
-            if sequence_length < 0 or sequence_length > self.dataset.shape[1] - self.labels.shape[1]:
-                raise ValueError(f"If windows slices are not used, the sequence_length must be smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
-            dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
+        # elif windows_slices is False and sequence_length:
+        #     # if windows_slices is False, return only one window of size sequence_length from the beginning
+        #     if sequence_length == -1:
+        #         sequence_length = self.dataset.shape[1] - self.labels.shape[1]
+        #     if sequence_length < 0 or sequence_length > self.dataset.shape[1] - self.labels.shape[1]:
+        #         raise ValueError(f"If windows slices are not used, the sequence_length must be smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
+        #     dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
         else:
             dataset = self.dataset
 

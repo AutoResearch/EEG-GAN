@@ -214,17 +214,17 @@ def default_inputs_training_gan():
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'patch_size': [int, 'Patch size', 20, 'Patch size: '],
-        'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
-        'seq_len_generated': [int, 'Length of the generated sequence', -1, 'Generated sequence length: '],
+        'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence', 0, 'Input sequence length: '],
+        # 'seq_len_generated': [int, 'Length of the generated sequence; If -1 this parameter is set automatically', -1, 'Generated sequence length: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 10, 'Sample interval: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: '],
-        'chan_label': [str, 'Channel column name when using multichannel', 'Electrode', 'Channels: ']
+        # 'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: '],
+        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: ']
     }
 
     return kw_dict
@@ -300,12 +300,12 @@ def default_inputs_generate_samples():
         'file': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
         'path_samples': [str, 'File where to store the generated samples; If None, then checkpoint name is used', 'None', 'Saving generated samples to file: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
-        'sequence_length_total': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
+        'sequence_length': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
         'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
         'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],
         'conditions': [int, '** Specific condition; -1 -> random condition (only for binary condition)', -1, 'Conditions: '],
         'average': [int, 'Average over n latent variables to get an averaged one', 1, 'Average over n latent variables: '],
-        'all_cond_per_z': [bool, 'PRELIMINARY; ONLY FOR SINGLE BINARY CONDITION; Generate all conditions per latent variable', False, 'Generating all conditions per latent variable'],
+        # 'all_cond_per_z': [bool, 'PRELIMINARY; ONLY FOR SINGLE BINARY CONDITION; Generate all conditions per latent variable', False, 'Generating all conditions per latent variable'],
     }
 
     return kw_dict

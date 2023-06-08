@@ -133,4 +133,4 @@ def _ddp_training(training: DDPTrainer, opt):
         training.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
         print("GAN training finished.")
-        print("Model states and generated samples saved to file.")
+        print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
