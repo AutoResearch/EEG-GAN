@@ -11,7 +11,7 @@ class Helper:
         if self.kw_dict is not None:
             # Check if default values are of the correct type
             for key, value in kw_dict.items():
-                if type(value[2]) != value[0]:
+                if value[2] is not None and type(value[2]) != value[0]:
                     raise TypeError(
                         f'Default value of {key} is not of given type {value[0]}. Please correct the default value.')
 
@@ -303,7 +303,7 @@ def default_inputs_generate_samples():
         'sequence_length': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
         'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
         'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],
-        'conditions': [int, '** Specific condition; -1 -> random condition (only for binary condition)', -1, 'Conditions: '],
+        'conditions': [int, '** Specific numeric conditions', None, 'Conditions: '],
         'average': [int, 'Average over n latent variables to get an averaged one', 1, 'Average over n latent variables: '],
         # 'all_cond_per_z': [bool, 'PRELIMINARY; ONLY FOR SINGLE BINARY CONDITION; Generate all conditions per latent variable', False, 'Generating all conditions per latent variable'],
     }
@@ -407,6 +407,8 @@ def parse_arguments(arguments, kw_dict=None, file=None):
                             kw[1] = bool(kw[1])
                         elif system_args[kw[0]][0] == str:
                             kw[1] = str(kw[1])
+                        elif system_args[kw[0]][0] is None:
+                            kw[1] = None
                     print(system_args[kw[0]][3] + str(kw[1]))
                     default_args[kw[0]] = kw[1]
                 else:

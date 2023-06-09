@@ -24,11 +24,8 @@ Instructions to start the training:
   - set the configuration parameters (Training configuration; Data configuration; GAN configuration)"""
 
 
-if __name__ == '__main__':
+def main():
     """Main function of the training process."""
-
-    # TODO: Doesn't work right now in the configuration "NoConditions + Sequence2Sequence" --> Issue with TransformerGenerator2
-    # sys.argv = ["path_dataset=data/gansMultiCondition.csv", "n_epochs=1", "patch_size=20"]#, "channel_label=Electrode", "conditions=ParticipantID,Condition"]#, "input_sequence_length=-1"]
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     # ----------------------------------------------------------------------------------------------------------------------
@@ -45,9 +42,9 @@ if __name__ == '__main__':
 
     # Data configuration
     windows_slices = default_args['windows_slices']
-    diff_data = False               # Differentiate data
-    std_data = False                # Standardize data
-    norm_data = True                # Normalize data
+    diff_data = False  # Differentiate data
+    std_data = False  # Standardize data
+    norm_data = True  # Normalize data
 
     # raise warning if no normalization and standardization is used at the same time
     if std_data and norm_data:
@@ -81,14 +78,17 @@ if __name__ == '__main__':
         'kw_timestep': default_args['kw_timestep_dataset'],
         'conditions': default_args['conditions'],
         'sequence_length': -1,
-        'hidden_dim': 128,          # Dimension of hidden layers in discriminator and generator
-        'latent_dim': 16,           # Dimension of the latent space
-        'critic_iterations': 5,     # number of iterations of the critic per generator iteration for Wasserstein GAN
-        'lambda_gp': 10,            # Gradient penalty lambda for Wasserstein GAN-GP
-        'n_lstm': 2,                # number of lstm layers for lstm GAN
-        'world_size': world_size,   # number of processes for distributed training
+        'hidden_dim': 128,  # Dimension of hidden layers in discriminator and generator
+        'latent_dim': 16,  # Dimension of the latent space
+        'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
+        'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
+        'n_lstm': 2,  # number of lstm layers for lstm GAN
+        'world_size': world_size,  # number of processes for distributed training
         # 'multichannel': default_args['multichannel'],
-        'channel_label': default_args['channel_label']
+        'channel_label': default_args['channel_label'],
+        'norm_data': norm_data,
+        'std_data': std_data,
+        'diff_data': diff_data,
     }
 
     dataloader = Dataloader(default_args['path_dataset'],
@@ -101,7 +101,7 @@ if __name__ == '__main__':
                             channel_label=default_args['channel_label'])
     dataset = dataloader.get_data(sequence_length=opt['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
-                                  pre_pad=opt['sequence_length']-default_args['input_sequence_length'])
+                                  pre_pad=opt['sequence_length'] - default_args['input_sequence_length'])
 
     opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
@@ -111,8 +111,9 @@ if __name__ == '__main__':
     opt['n_samples'] = dataset.shape[0]
 
     if opt['sequence_length'] % opt['patch_size'] != 0:
-        warnings.warn(f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
-                      f"The sequence length is padded with zeros to fit the condition.")
+        warnings.warn(
+            f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
+            f"The sequence length is padded with zeros to fit the condition.")
         padding = 0
         while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
             padding += 1
@@ -121,24 +122,31 @@ if __name__ == '__main__':
         opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
     # Initialize generator, discriminator and trainer
-    latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
-    sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
-    if not filter_generator:
-        generator = TtsGenerator(seq_length=sequence_length_generated,
-                                 latent_dim=latent_dim_in,
-                                 patch_size=opt['patch_size'],
-                                 channels=opt['n_channels'])
-    else:
-        generator = TtsGeneratorFiltered(seq_length=opt['sequence_length']-opt['input_sequence_length'],
-                                         latent_dim=latent_dim_in,
-                                         patch_size=opt['patch_size'],
-                                         channels=opt['n_channels'])
-    # generator = TransformerGenerator2(latent_dim=latent_dim_in,
-    #                                   channels=opt['n_channels'],
-    #                                   seq_len=sequence_length_generated)
-    discriminator = TtsDiscriminator(seq_length=sequence_length_generated,
+    latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else \
+    opt['latent_dim'] + opt['n_conditions']
+    # make sure latent_dim_in is even; constraint of positional encoding in TransformerGenerator
+    if latent_dim_in % 2 != 0:
+        latent_dim_in += 1
+        opt['latent_dim'] += 1
+    sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != \
+                                                                                         opt['sequence_length'] else \
+    opt['sequence_length']
+    # if not filter_generator:
+    #     generator = TtsGenerator(seq_length=sequence_length_generated,
+    #                              latent_dim=latent_dim_in,
+    #                              patch_size=opt['patch_size'],
+    #                              channels=opt['n_channels'])
+    # else:
+    #     generator = TtsGeneratorFiltered(seq_length=opt['sequence_length']-opt['input_sequence_length'],
+    #                                      latent_dim=latent_dim_in,
+    #                                      patch_size=opt['patch_size'],
+    #                                      channels=opt['n_channels'])
+    generator = TransformerGenerator2(latent_dim=latent_dim_in,
+                                      channels=opt['n_channels'],
+                                      seq_len=sequence_length_generated)
+    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
                                      patch_size=opt['patch_size'],
-                                     in_channels=opt['n_conditions']+opt['n_channels'])
+                                     in_channels=opt['n_conditions'] + opt['n_channels'])
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
@@ -172,4 +180,6 @@ if __name__ == '__main__':
             print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
     else:
         print("GAN not trained.")
-    
+
+if __name__ == '__main__':
+    main()
