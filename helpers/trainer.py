@@ -161,6 +161,10 @@ class Trainer:
         # gen_cond_data for prediction purposes; implemented but not tested right now;
         gen_cond_data = data[:, :self.input_sequence_length, :].to(self.device)
         # TODO: We have to zero some channels for channel recovery
+        # Channel recovery roughly implemented
+        if self.input_sequence_length == self.sequence_length and self.n_channels > 1:
+            zero_index = np.random.randint(0, self.n_channels, self.n_channels)
+            gen_cond_data[:, :, zero_index] = 0
 
         seq_length = max(1, self.input_sequence_length)
         gen_labels = torch.cat((data_labels.repeat(1, seq_length, 1).to(self.device), gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels

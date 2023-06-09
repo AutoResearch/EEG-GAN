@@ -209,7 +209,8 @@ def default_inputs_training_gan():
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
         'train_gan': [bool, 'Train a GAN', True, 'Training a GAN'],
-        'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
+        'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
+        # 'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
         'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
@@ -224,7 +225,7 @@ def default_inputs_training_gan():
         'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         # 'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: '],
-        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: ']
+        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
     }
 
     return kw_dict

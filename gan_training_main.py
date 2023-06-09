@@ -38,7 +38,7 @@ def main():
     load_checkpoint = default_args['load_checkpoint']
     path_checkpoint = default_args['path_checkpoint']
     train_gan = default_args['train_gan']
-    filter_generator = default_args['filter_generator']
+    # filter_generator = default_args['filter_generator']
 
     # Data configuration
     windows_slices = default_args['windows_slices']
