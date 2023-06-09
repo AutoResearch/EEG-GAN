@@ -163,7 +163,8 @@ class Trainer:
         # TODO: We have to zero some channels for channel recovery
         # Channel recovery roughly implemented
         if self.input_sequence_length == self.sequence_length and self.n_channels > 1:
-            zero_index = np.random.randint(0, self.n_channels, self.n_channels)
+            recovery = 0.3
+            zero_index = np.random.randint(0, self.n_channels, int(self.n_channels*recovery))
             gen_cond_data[:, :, zero_index] = 0
 
         seq_length = max(1, self.input_sequence_length)
