@@ -17,8 +17,9 @@ class Trainer:
     def __init__(self, generator, discriminator, opt):
         # training configuration
         self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else None
-        self.sequence_length_generated = opt['seq_len_generated'] if 'seq_len_generated' in opt else None
+        self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else 0
+        self.input_sequence_length = opt['input_sequence_length'] if 'input_sequence_length' in opt else 0
+        self.sequence_length_generated = self.sequence_length-self.input_sequence_length if self.sequence_length != self.input_sequence_length else self.sequence_length
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
         self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
         self.use_checkpoint = opt['load_checkpoint'] if 'load_checkpoint' in opt else False
@@ -29,6 +30,8 @@ class Trainer:
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
+        self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
+        self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
@@ -55,6 +58,7 @@ class Trainer:
             'discriminator': str(self.discriminator.__class__.__name__),
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
+            'input_sequence_length': self.input_sequence_length,
             'batch_size': self.batch_size,
             'epochs': self.epochs,
             'sample_interval': self.sample_interval,
@@ -67,27 +71,26 @@ class Trainer:
             'b1': self.b1,
             'b2': self.b2,
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+            'n_channels': self.n_channels,
+            'channel_names': self.channel_names,
+            'dataloader': {
+                'path': opt['path_dataset'] if 'path_dataset' in opt else None,
+                'col_label': opt['conditions'] if 'conditions' in opt else None,
+                'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
+                'std_data': opt['std_data'] if 'std_data' in opt else None,
+                'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
+                'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
+                'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+            }
+
         }
 
         self.d_losses = []
         self.g_losses = []
 
-        # # load checkpoint
-        # try:
-        #     if self.use_checkpoint:
-        #         self.load_checkpoint(self.path_checkpoint)
-        #         self.use_checkpoint = False
-        # except RuntimeError:
-        #     Warning("Could not load checkpoint. If DDP was used while saving and is used now for loading the checkpoint will be loaded in a following step.")
-
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
-
-        self.generator.train()
-        self.discriminator.train()
-
         gen_samples = []
-        num_batches = int(np.ceil(dataset.shape[0] / self.batch_size))
 
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
@@ -98,8 +101,10 @@ class Trainer:
         for epoch in range(self.epochs):
             # for-loop for number of batch_size entries in sessions
             dataset = dataset[torch.randperm(dataset.shape[0])]
+            i_batch = 0
+            d_loss_batch = 0
+            g_loss_batch = 0
             for i in range(0, dataset.shape[0], self.batch_size):
-                # print(f'rank {self.rank} starts new batch...')
                 # Check whether last batch contains less samples than batch_size
                 if i + self.batch_size > dataset.shape[0]:
                     batch_size = dataset.shape[0] - i  # set batch_size to the remaining number of entries
@@ -108,7 +113,7 @@ class Trainer:
 
                 # draw batch_size samples from sessions
                 data = dataset[i:i + batch_size, self.n_conditions:].to(self.device)
-                data_labels = dataset[i:i + batch_size, :self.n_conditions].to(self.device)
+                data_labels = dataset[i:i + batch_size, :self.n_conditions, 0].unsqueeze(1).to(self.device)
 
                 # update generator every n iterations as suggested in paper
                 if int(i / batch_size) % self.critic_iterations == 0:
@@ -118,12 +123,16 @@ class Trainer:
 
                 d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
 
+                d_loss_batch += d_loss
+                g_loss_batch += g_loss
+                i_batch += 1
+
                 self.d_losses.append(d_loss)
                 self.g_losses.append(g_loss)
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
-                gen_samples.append(gen_imgs[np.random.randint(0, batch_size), :].detach().cpu().numpy())
+                gen_samples.append(gen_imgs[np.random.randint(0, batch_size)].detach().cpu().numpy())
                 # save models and optimizer states as checkpoints
                 # toggle between checkpoint files to avoid corrupted file during training
                 if trigger_checkpoint_01:
@@ -133,7 +142,7 @@ class Trainer:
                     self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
                     trigger_checkpoint_01 = True
 
-            self.print_log(epoch + 1, d_loss, g_loss)
+            self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
 
@@ -143,45 +152,43 @@ class Trainer:
         """Trains the GAN-Model on one batch of data.
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
-        # TODO: for channel recovery: comment if-case out -> To get a 2D latent variable
-        seq_length = data.shape[1] if isinstance(self.generator, models.CondLstmGenerator) else 1
 
-        gen_cond_data = data[:, :self.sequence_length-self.sequence_length_generated].to(self.device)
+        # channels should be in the 1st dimension. We save this change until now to minimize changes to the code from
+        # before it was implemented for multiple electrodes
+        # data = data.permute(0, 2, 1)
+        # data_labels = data_labels.permute(0, 2, 1)
+
+        # gen_cond_data for prediction purposes; implemented but not tested right now;
+        gen_cond_data = data[:, :self.input_sequence_length, :].to(self.device)
+        # TODO: We have to zero some channels for channel recovery
+        # Channel recovery roughly implemented
+        if self.input_sequence_length == self.sequence_length and self.n_channels > 1:
+            recovery = 0.3
+            zero_index = np.random.randint(0, self.n_channels, int(self.n_channels*recovery))
+            gen_cond_data[:, :, zero_index] = 0
+
+        seq_length = max(1, self.input_sequence_length)
+        gen_labels = torch.cat((data_labels.repeat(1, seq_length, 1).to(self.device), gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
+
+        # -----------------
+        #  Train Generator
+        # -----------------
         if train_generator:
-
-            # -----------------
-            #  Train Generator
-            # -----------------
-
+            self.generator.train()
+            self.discriminator.eval()  # TODO: Check if plausible; Seems that eval() does not freeze the weights
             self.generator_optimizer.zero_grad()
 
             # Sample noise and labels as generator input
-            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
-                                            device=self.device, sequence_length=seq_length)
-            gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
+            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
+            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
             # Generate a batch of samples
-            # if isinstance(self.generator, models.TtsGenerator):
-            # TODO: for channel recovery: concatenate z and ALL channels along dim=0
-            z = torch.cat((z, gen_labels), dim=1)
-            gen_imgs = self.generator(z)
-            # TODO: for channel recovery: Output of G is 4-dim: (batch_size, n_channels, 1, seq_length)
-            # else:
-            #     gen_imgs = self.generator(z, gen_labels)
+            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
 
-            # if isinstance(self.discriminator, models.TtsDiscriminator):
-            # print devices of tensors in torch.cat
-            # TODO: for channel recovery: Whenever tensor.view() Replace 2nd dim with n_channels
-            # dim_labels = data_labels.shape = (batch_size, n_conditions)
-            # dim_gen_imgs = gen_imgs.shape = (batch_size, n_channels, 1, seq_length)
-            # Concatenate labels and images
-            # torch.cat((data_labels, gen_imgs), dim=1) --> New shape: (batch_size, n_conditions + n_channels, 1, seq_length)
-            fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
-            fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
             validity = self.discriminator(fake_data)
-            # else:
-            #     validity = self.discriminator(gen_imgs, gen_labels)
 
             g_loss = self.loss.generator(validity)
             g_loss.backward()
@@ -196,40 +203,35 @@ class Trainer:
         #  Train Discriminator
         # ---------------------
 
+        self.generator.eval()
+        self.discriminator.train()
         self.discriminator_optimizer.zero_grad()
 
-        # if isinstance(self.generator, models.TtsGenerator):
-        # Sample noise and labels as generator input
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim,
-                                        device=self.device, sequence_length=seq_length)
-        gen_labels = torch.cat((data_labels, gen_cond_data), dim=1).to(self.device)
-        z = torch.cat((z, gen_labels), dim=1).to(self.device)
-        gen_imgs = self.generator(z)
-
-        # TODO: for channel recovery: Take only the fixed channels and replace the broken ones with the fixed ones
-        # TODO: for channel recovery: Give the new matrix as input to D
-        # TODO: for channel recovery: Additional information for D could be which channel was fixed -> twice as many labels for D
-        # TODO: for channel recovery: Take cond data and reshape to 4D tensor: (batch_size, 1, n_channels, seq_length)
-
-        gen_samples = torch.cat((gen_labels, gen_imgs.view(gen_imgs.shape[0], gen_imgs.shape[-1])), dim=1).to(self.device)
+        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
+        # gen_labels = torch.cat((data_labels[:, 0, :], gen_cond_data[:, 0, :]), dim=1).to(self.device)
+        z = torch.cat((z, gen_labels), dim=-1).to(self.device)
+        gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
 
         # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, 1, 1, -1), gen_imgs), dim=-1).to(self.device)
-        fake_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+        fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
         validity_fake = self.discriminator(fake_data)
 
+        # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
+        # concatenate channel names, conditions and generated samples
+        gen_samples = torch.cat((data_labels.repeat(1, self.n_channels, 1),
+                                 fake_data[:, :self.n_channels].view(batch_size,  self.n_channels, self.sequence_length)), dim=-1)
+        if self.channel_names is not None:
+            gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, self.n_channels, 1).repeat(batch_size, 1, 1).to(self.device),
+                                     gen_samples), dim=-1)
+        gen_samples = gen_samples
+
         # Loss for real images
-        real_labels = data_labels.view(-1, 1, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        data = data.view(-1, 1, 1, data.shape[1]).to(self.device)
-        real_data = torch.cat((data, real_labels), dim=1).to(self.device)
+        real_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        real_data = data.view(batch_size, self.n_channels, 1, self.sequence_length).to(self.device)
+        real_data = torch.cat((real_data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)
-        # else:
-        #     # Loss for real images
-        #     validity_real = self.discriminator(data, data_labels)
-        #
-        #     # Loss for fake images
-        #     validity_fake = self.discriminator(gen_imgs, gen_labels)
 
         # Total discriminator loss and update
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -239,7 +241,6 @@ class Trainer:
             d_loss = self.loss.discriminator(validity_real, validity_fake)
         d_loss.backward()
         self.discriminator_optimizer.step()
-        # print(f'rank {self.rank}: Updated Discriminator')
 
         return d_loss.item(), g_loss, gen_samples
 
@@ -305,12 +306,12 @@ class Trainer:
             raise ValueError('G_or_D must be either "G" (Generator) or "D" (Discriminator)')
 
     @staticmethod
-    def sample_latent_variable(sequence_length=1, batch_size=1, latent_dim=1, device=torch.device('cpu')):
+    def sample_latent_variable(batch_size=1, latent_dim=1, sequence_length=1, device=torch.device('cpu')):
         """samples a latent variable from a normal distribution
         as a tensor of shape (batch_size, (sequence_length), latent_dim) on the given device"""
-        if sequence_length > 1:
+        # if sequence_length > 1:
             # sample a sequence of latent variables
             # only used for RNN/LSTM generator
-            return torch.randn((batch_size, sequence_length, latent_dim), device=device).float()
-        else:
-            return torch.randn((batch_size, latent_dim), device=device).float()
+        return torch.randn((batch_size, sequence_length, latent_dim), device=device).float()
+        # else:
+        #     return torch.randn((batch_size, latent_dim), device=device).float()

@@ -113,9 +113,9 @@ def _ddp_training(training: DDPTrainer, opt):
 
     # load dataset
     dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
-                            norm_data=True)
+                            norm_data=True, channel_label=opt['channel_label'])
     dataset = dataloader.get_data()#[start_index:end_index]
-    opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
     # print(f"Rank {training.rank} has {len(dataset)} samples and index {start_index} to {end_index}.")
 
@@ -133,4 +133,4 @@ def _ddp_training(training: DDPTrainer, opt):
         training.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
         print("GAN training finished.")
-        print("Model states and generated samples saved to file.")
+        print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")

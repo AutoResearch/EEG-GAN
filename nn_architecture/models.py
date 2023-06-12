@@ -286,3 +286,110 @@ class TtsGeneratorFiltered(TtsGenerator):
             elif z.max() > 0 and z.min() >= 0:
                 z = (z - z.mean()) / z.abs().max()
         return taf.bandpass_biquad(z, 512, 10)
+
+
+class PositionalEncoder(nn.Module):
+    """
+    The authors of the original transformer paper describe very succinctly what
+    the positional encoding layer does and why it is needed:
+
+    "Since our model contains no recurrence and no convolution, in order for the
+    model to make use of the order of the sequence, we must inject some
+    information about the relative or absolute position of the tokens in the
+    sequence." (Vaswani et al, 2017)
+    Adapted from:
+    https://pytorch.org/tutorials/beginner/transformer_tutorial.html
+    """
+
+    def __init__(
+            self,
+            dropout: float = 0.1,
+            max_seq_len: int = 5000,
+            d_model: int = 512,
+            batch_first: bool = True
+    ):
+        """
+        Parameters:
+            dropout: the dropout rate
+            max_seq_len: the maximum length of the input sequences
+            d_model: The dimension of the output of sub-layers in the model
+                     (Vaswani et al, 2017)
+        """
+
+        super().__init__()
+
+        self.d_model = d_model
+
+        self.dropout = nn.Dropout(p=dropout)
+
+        self.batch_first = batch_first
+
+        self.x_dim = 1 if batch_first else 0
+
+        # copy pasted from PyTorch tutorial
+        position = torch.arange(max_seq_len).unsqueeze(1)
+        # print(f"shape of position is {position.shape}")
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
+        # print(f"shape of div_term is {div_term.shape}")
+        pe = torch.zeros(1, max_seq_len, d_model)
+
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+
+        pe[0, :, 1::2] = torch.cos(position * div_term)
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x: Tensor, shape [batch_size, enc_seq_len, dim_val] or
+               [enc_seq_len, batch_size, dim_val]
+        """
+        x = x + self.pe[0, :x.size(self.x_dim)]
+
+        return self.dropout(x)
+
+
+class TransformerGenerator2(nn.Module):
+    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1,  **kwargs):
+        super(TransformerGenerator2, self).__init__()
+
+        self.latent_dim = latent_dim
+        self.hidden_dim = hidden_dim
+        self.channels = channels
+        self.seq_len = seq_len
+        self.num_heads = num_heads
+        self.num_layers = num_layers
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
+        # self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
+        self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
+                                                        dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
+        self.tanh = nn.Tanh()
+
+        # TODO: Put it in autoencoder
+        # self.decoder = decoder if decoder is not None else nn.Identity()
+        # for param in self.decoder.parameters():
+        #    param.requires_grad = False
+
+    def forward(self, data):
+        x = self.pe(data.to(self.device))
+        x = self.linear_enc_in(x)[0]
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
+        x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
+        x = self.tanh(x)
+        # x = self.decoder(x)
+        return x  # .unsqueeze(2).permute(0, 3, 2, 1)
+
+    def mask(self, data, data_ref, mask=0):
+        # mask predictions if ALL preceding values (axis=sequence) were 'mask'
+        # return indices to mask
+        mask_index = (data_ref.sum(dim=1) == mask).unsqueeze(1).repeat(1, data.shape[1], 1)
+        data[mask_index] = mask
+        return data

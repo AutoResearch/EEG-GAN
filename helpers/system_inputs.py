@@ -1,6 +1,7 @@
 """This file shows which inputs can be given to gan_training_main.py from the command line."""
 import os
 import sys
+from typing import List, Union
 
 
 class Helper:
@@ -10,7 +11,7 @@ class Helper:
         if self.kw_dict is not None:
             # Check if default values are of the correct type
             for key, value in kw_dict.items():
-                if type(value[2]) != value[0]:
+                if value[2] is not None and type(value[2]) != value[0]:
                     raise TypeError(
                         f'Default value of {key} is not of given type {value[0]}. Please correct the default value.')
 
@@ -208,20 +209,23 @@ def default_inputs_training_gan():
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
         'train_gan': [bool, 'Train a GAN', True, 'Training a GAN'],
-        'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
+        'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
+        # 'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
         'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'patch_size': [int, 'Patch size', 20, 'Patch size: '],
-        'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
-        'seq_len_generated': [int, 'Length of the generated sequence', -1, 'Generated sequence length: '],
+        'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence', 0, 'Input sequence length: '],
+        # 'seq_len_generated': [int, 'Length of the generated sequence; If -1 this parameter is set automatically', -1, 'Generated sequence length: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 10, 'Sample interval: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP_len100.csv'), 'Dataset: '],
+        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        # 'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: '],
+        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
     }
 
     return kw_dict
@@ -297,12 +301,12 @@ def default_inputs_generate_samples():
         'file': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
         'path_samples': [str, 'File where to store the generated samples; If None, then checkpoint name is used', 'None', 'Saving generated samples to file: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
-        'sequence_length_total': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
+        'sequence_length': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
         'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
         'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],
-        'conditions': [int, '** Specific condition; -1 -> random condition (only for binary condition)', -1, 'Conditions: '],
+        'conditions': [int, '** Specific numeric conditions', None, 'Conditions: '],
         'average': [int, 'Average over n latent variables to get an averaged one', 1, 'Average over n latent variables: '],
-        'all_cond_per_z': [bool, 'PRELIMINARY; ONLY FOR SINGLE BINARY CONDITION; Generate all conditions per latent variable', False, 'Generating all conditions per latent variable'],
+        # 'all_cond_per_z': [bool, 'PRELIMINARY; ONLY FOR SINGLE BINARY CONDITION; Generate all conditions per latent variable', False, 'Generating all conditions per latent variable'],
     }
 
     return kw_dict
@@ -404,6 +408,8 @@ def parse_arguments(arguments, kw_dict=None, file=None):
                             kw[1] = bool(kw[1])
                         elif system_args[kw[0]][0] == str:
                             kw[1] = str(kw[1])
+                        elif system_args[kw[0]][0] is None:
+                            kw[1] = None
                     print(system_args[kw[0]][3] + str(kw[1]))
                     default_args[kw[0]] = kw[1]
                 else:
