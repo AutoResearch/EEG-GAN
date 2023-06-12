@@ -10,6 +10,7 @@ from helpers.trainer import Trainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, DDPTrainer
 from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered, TransformerGenerator2
+from ae_main import AutoEncoder
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 
@@ -37,6 +38,7 @@ def main():
     ddp_backend = default_args['ddp_backend']
     load_checkpoint = default_args['load_checkpoint']
     path_checkpoint = default_args['path_checkpoint']
+    train_ae = default_args['train_ae']
     train_gan = default_args['train_gan']
     # filter_generator = default_args['filter_generator']
 
@@ -103,6 +105,7 @@ def main():
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=opt['sequence_length'] - default_args['input_sequence_length'])
 
+    opt['train_ae'] = train_ae
     opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
@@ -141,6 +144,11 @@ def main():
     #                                      latent_dim=latent_dim_in,
     #                                      patch_size=opt['patch_size'],
     #                                      channels=opt['n_channels'])
+    
+    if train_ae:
+        autoencoder = AutoEncoder()
+    print("Autoencoder initialized.")
+        
     generator = TransformerGenerator2(latent_dim=latent_dim_in,
                                       channels=opt['n_channels'],
                                       seq_len=sequence_length_generated)
@@ -153,6 +161,15 @@ def main():
     # Start training process
     # ----------------------------------------------------------------------------------------------------------------------
 
+
+    if train_ae:
+        #AE Training
+        print('\n-----------------------------------------')
+        print("Training Autoencoder...")
+        print('-----------------------------------------\n')
+        
+        autoencoder.train()
+        
     if train_gan:
         # GAN-Training
         print('\n-----------------------------------------')
