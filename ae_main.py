@@ -21,7 +21,7 @@ if __name__ == '__main__':
     model_name = 'ae_kagglev1.pth'
 
     data_dir = 'data'
-    data_file = 'gansEEGTrainingData.csv'  # path to the csv file
+    data_file = 'gansMultiCondition.csv'  # path to the csv file
 
     # configuration
     cfg = {
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         },
         "training": {
             "lr":           1e-4,
-            "epochs":       1000,
+            "epochs":       10,
         },
         "general": {
             "seq_len":      50,

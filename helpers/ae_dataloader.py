@@ -69,7 +69,7 @@ def create_dataloader(training_data, seq_len, batch_size, train_ratio, standardi
     
     # cut data to only include the time series
     time_index = [col for col in data if col.startswith('Time')]
-    data = data[time_index]
+    data = data[:,time_index]
 
     # split the data into train and test sets
     split_index = int(train_ratio * len(data))
