@@ -12,9 +12,8 @@ from nn_architecture.transformer_autoencoder import TransformerAutoencoder, save
 
 #if __name__ == '__main__':
 
-class AutoEncoder:
+class AutoEncoder():
     def __init__(self):
-
         # get parameters from saved model
         self.load_model = False
         self.training = True
@@ -38,7 +37,7 @@ class AutoEncoder:
             },
             "training": {
                 "lr":           1e-4,
-                "epochs":       10,
+                "epochs":       2,
             },
             "general": {
                 "autoencoder":  True,
@@ -52,14 +51,8 @@ class AutoEncoder:
                 "default_save_path": os.path.join('trained_ae', 'checkpoint.pt'),
             }
         }
-
-    # load model
-    def load_model(self):
-        self.cfg["model"] = torch.load(os.path.join(self, self.cfg.model_dir, self.cfg.model_name), map_location=torch.device('cpu'))["model"]
-        print("adapted configuration from saved file " + os.path.join(self, self.cfg.model_dir, self.cfg.model_name))
-
-    # load data from csv file as DataLoader
-    def train(self):
+        
+        #Create dataloader
         self.cfg["general"]["training_data"] = os.path.join(self.data_dir, self.data_file)
         self.train_dataloader, self.test_dataloader, scaler = create_dataloader(**self.cfg["general"])
         self.cfg["general"]["scaler"] = scaler
@@ -68,13 +61,20 @@ class AutoEncoder:
         if self.cfg["model"]["input_dim"] is None:
             self.cfg["model"]["input_dim"] = self.train_dataloader.dataset.data.shape[2]
         self.model = TransformerAutoencoder(**self.cfg["model"])
+        
+    # load model
+    def load_model(self):
+        self.cfg["model"] = torch.load(os.path.join(self, self.cfg.model_dir, self.cfg.model_name), map_location=torch.device('cpu'))["model"]
+        print("adapted configuration from saved file " + os.path.join(self, self.cfg.model_dir, self.cfg.model_name))
 
+    # load data from csv file as DataLoader
+    def train(self):
         # create the optimizer and criterion
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfg["training"]["lr"])
         self.criterion = nn.MSELoss()
 
         # train the model
-        self.train_losses, self.test_losses, model = train(num_epochs=self.cfg["training"]["epochs"], model=self.model, train_dataloader=self.train_dataloader,
+        self.train_losses, self.test_losses, self.model = train(num_epochs=self.cfg["training"]["epochs"], model=self.model, train_dataloader=self.train_dataloader,
                                                  test_dataloader=self.test_dataloader, optimizer=self.optimizer, criterion=self.criterion, configuration=self.cfg)
 
         # save model and training history under file with name model_CURRENTDATETIME.pth

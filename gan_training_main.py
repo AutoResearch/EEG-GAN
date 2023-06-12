@@ -147,6 +147,13 @@ def main():
     
     if train_ae:
         autoencoder = AutoEncoder()
+        sequence_length_generated = autoencoder.cfg["model"]["output_dim"]
+        opt['sequence_length'] = autoencoder.cfg["model"]["output_dim"]
+        if opt['patch_size'] > autoencoder.cfg["model"]["output_dim"]:
+            warnings.warn("WARNING: Your GAN patch size must be equal or smaller to your input length. When using the autoencoder, the input length is your autoencoder output dimension, here " + str(autoencoder.cfg["model"]["output_dim"]) + '. The patch size is automatically being changed to this output dimension length.')
+            opt['patch_size'] = autoencoder.cfg["model"]["output_dim"]
+    else:
+        autoencoder = False
     print("Autoencoder initialized.")
         
     generator = TransformerGenerator2(latent_dim=latent_dim_in,
@@ -182,7 +189,7 @@ def main():
             mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, opt),
                      nprocs=world_size, join=True)
         else:
-            trainer = Trainer(generator, discriminator, opt)
+            trainer = Trainer(generator, discriminator, autoencoder, opt)
             if default_args['load_checkpoint']:
                 trainer.load_checkpoint(default_args['path_checkpoint'])
             gen_samples = trainer.training(dataset)

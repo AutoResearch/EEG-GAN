@@ -14,7 +14,7 @@ class Trainer:
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
     Source: https://arxiv.org/pdf/1704.00028.pdf"""
 
-    def __init__(self, generator, discriminator, opt):
+    def __init__(self, generator, discriminator, autoencoder, opt):
         # training configuration
         self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else 0
@@ -32,10 +32,12 @@ class Trainer:
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
+        self.train_ae = opt['train_ae'] if 'train_ae' in opt else False
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
 
+        self.autoencoder = autoencoder
         self.generator = generator
         self.discriminator = discriminator
 
@@ -90,14 +92,14 @@ class Trainer:
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
-        gen_samples = []
+        gen_samples = []            
 
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
         trigger_checkpoint_01 = True
         checkpoint_01_file = 'checkpoint_01.pt'
         checkpoint_02_file = 'checkpoint_02.pt'
-
+        
         for epoch in range(self.epochs):
             # for-loop for number of batch_size entries in sessions
             dataset = dataset[torch.randperm(dataset.shape[0])]
@@ -114,13 +116,23 @@ class Trainer:
                 # draw batch_size samples from sessions
                 data = dataset[i:i + batch_size, self.n_conditions:].to(self.device)
                 data_labels = dataset[i:i + batch_size, :self.n_conditions, 0].unsqueeze(1).to(self.device)
+                
+                #Encode data using autoencoder
+                #TODO: Fix for multi-electrode
+                if self.autoencoder:
+                    ae_data = []
+                    for sample in data:
+                        encoded_sample = self.autoencoder.model.encode(sample.reshape(1,-1))
+                        ae_data.append(list(encoded_sample[0].detach().numpy()))
+                    data = torch.tensor(np.asarray(ae_data))
+                    data = data[:,:,None].to(self.device)
 
                 # update generator every n iterations as suggested in paper
                 if int(i / batch_size) % self.critic_iterations == 0:
                     train_generator = True
                 else:
                     train_generator = False
-
+                
                 d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
 
                 d_loss_batch += d_loss
@@ -184,10 +196,23 @@ class Trainer:
 
             # Generate a batch of samples
             gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
-
             fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
             fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+
+            #Decode the encoded data
+            #TODO: Fix for multi-electrode
+            #TODO: Make these better with a list comprehension
+            if self.autoencoder:
+                ae_data = []
+                for sample in fake_data:
+                    decoded_sample = self.autoencoder.model.decode(sample[0,:,:])
+                    ae_data.append(list(decoded_sample[0].detach().numpy()))
+                fake_data = torch.tensor(np.asarray(ae_data))
+                fake_data = fake_data[:,None,None,:].to(self.device) 
+            
+            #Combine data and labels
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
+            
             validity = self.discriminator(fake_data)
 
             g_loss = self.loss.generator(validity)
@@ -215,7 +240,21 @@ class Trainer:
         # Loss for fake images
         fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
         fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        
+        #Decode the encoded data
+        #TODO: Fix for multi-electrode
+        #TODO: Make these better with a list comprehension
+        if self.autoencoder:
+            ae_data = []
+            for sample in fake_data:
+                decoded_sample = self.autoencoder.model.decode(sample[0,:,:])
+                ae_data.append(list(decoded_sample[0].detach().numpy()))
+            fake_data = torch.tensor(np.asarray(ae_data))
+            fake_data = fake_data[:,None,None,:].to(self.device) 
+        
+        #Combine data and labels
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
+
         validity_fake = self.discriminator(fake_data)
 
         # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
