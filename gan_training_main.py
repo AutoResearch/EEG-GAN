@@ -10,7 +10,7 @@ from helpers.trainer import Trainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, DDPTrainer
 from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered, TransformerGenerator2
-from ae_main import AutoEncoder
+from ae_main import Autoencoder
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 
@@ -38,7 +38,7 @@ def main():
     ddp_backend = default_args['ddp_backend']
     load_checkpoint = default_args['load_checkpoint']
     path_checkpoint = default_args['path_checkpoint']
-    train_ae = default_args['train_ae']
+    train_ae = default_args['ae_train']
     train_gan = default_args['train_gan']
     # filter_generator = default_args['filter_generator']
 
@@ -91,6 +91,12 @@ def main():
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
+        'train_ae': default_args['ae_train'],
+        'ae_load_model': default_args['ae_load_model'],
+        'ae_model_name': default_args['ae_model_name'],
+        'ae_hidden_dim': default_args['ae_hidden_dim'],
+        'ae_output_dim': default_args['ae_output_dim'],
+        'ae_num_layers': default_args['ae_num_layers'],
     }
 
     dataloader = Dataloader(default_args['path_dataset'],
@@ -105,7 +111,6 @@ def main():
                                   windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=opt['sequence_length'] - default_args['input_sequence_length'])
 
-    opt['train_ae'] = train_ae
     opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
@@ -146,7 +151,15 @@ def main():
     #                                      channels=opt['n_channels'])
     
     if train_ae:
-        autoencoder = AutoEncoder()
+        autoencoder = Autoencoder(filename = opt['path_dataset'],
+                                  train_ae = opt['train_ae'],
+                                  load_model = opt['ae_load_model'],
+                                  model_name = opt['ae_model_name'],
+                                  hidden_dim = opt['ae_hidden_dim'],
+                                  output_dim = opt['ae_output_dim'],
+                                  num_layers = opt['ae_num_layers']
+                                  )
+        
         sequence_length_generated = autoencoder.cfg["model"]["output_dim"]
         opt['data_sequence_length'] = opt['sequence_length']
         opt['sequence_length'] = autoencoder.cfg["model"]["output_dim"]

@@ -12,38 +12,38 @@ from nn_architecture.transformer_autoencoder import TransformerAutoencoder, save
 
 #if __name__ == '__main__':
 
-class AutoEncoder():
-    def __init__(self):
+class Autoencoder():
+    def __init__(self, filename, train_ae = True, load_model = False, model_name = 'ae_kagglev1.pth',
+                 hidden_dim = 512, output_dim = 10, num_layers = 2):
         # get parameters from saved model
-        self.load_model = False
-        self.training = True
+        self.load_model = load_model
+        self.training =  train_ae
 
         self.model_dict = None
         self.model_dir = 'trained_ae'
-        self.model_name = 'ae_kagglev1.pth'
+        self.model_name = model_name
 
-        self.data_dir = 'data'
-        self.data_file = 'gansMultiCondition.csv'  # path to the csv file
+        self.data_file = filename  # path to the csv file
 
         # configuration
         self.cfg = {
             "model": {
                 "state_dict":   None,
                 "input_dim":    None,
-                "hidden_dim":   512,
-                "output_dim":   10,
-                "num_layers":   2,
+                "hidden_dim":   hidden_dim,
+                "output_dim":   output_dim,
+                "num_layers":   num_layers,
                 "dropout":      .3,
             },
             "training": {
                 "lr":           1e-4,
-                "epochs":       2,
+                "epochs":       100,
             },
             "general": {
                 "autoencoder":  True,
                 "seq_len":      50,
                 "scaler":       None,
-                "training_data": os.path.join(self.data_dir, self.data_file),
+                "training_data": filename,
                 "batch_size":   32,
                 "train_ratio":  .8,
                 "standardize":  True,
@@ -53,7 +53,7 @@ class AutoEncoder():
         }
         
         #Create dataloader
-        self.cfg["general"]["training_data"] = os.path.join(self.data_dir, self.data_file)
+        self.cfg["general"]["training_data"] = filename
         self.train_dataloader, self.test_dataloader, scaler = create_dataloader(**self.cfg["general"])
         self.cfg["general"]["scaler"] = scaler
 
