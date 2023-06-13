@@ -18,6 +18,7 @@ class Trainer:
         # training configuration
         self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else 0
+        self.data_sequence_length = opt['data_sequence_length']
         self.input_sequence_length = opt['input_sequence_length'] if 'input_sequence_length' in opt else 0
         self.sequence_length_generated = self.sequence_length-self.input_sequence_length if self.sequence_length != self.input_sequence_length else self.sequence_length
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
@@ -59,6 +60,7 @@ class Trainer:
             'generator': str(self.generator.__class__.__name__),
             'discriminator': str(self.discriminator.__class__.__name__),
             'sequence_length': self.sequence_length,
+            'data_sequence_length': self. data_sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
             'input_sequence_length': self.input_sequence_length,
             'batch_size': self.batch_size,
@@ -119,13 +121,13 @@ class Trainer:
                 
                 #Encode data using autoencoder
                 #TODO: Fix for multi-electrode
+                ae_data = []
                 if self.autoencoder:
-                    ae_data = []
                     for sample in data:
                         encoded_sample = self.autoencoder.model.encode(sample.reshape(1,-1))
                         ae_data.append(list(encoded_sample[0].detach().numpy()))
-                    data = torch.tensor(np.asarray(ae_data))
-                    data = data[:,:,None].to(self.device)
+                    ae_data = torch.tensor(np.asarray(ae_data))
+                    ae_data = ae_data[:,:,None].to(self.device)
 
                 # update generator every n iterations as suggested in paper
                 if int(i / batch_size) % self.critic_iterations == 0:
@@ -133,7 +135,7 @@ class Trainer:
                 else:
                     train_generator = False
                 
-                d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
+                d_loss, g_loss, gen_imgs = self.batch_train(data, ae_data, data_labels, train_generator)
 
                 d_loss_batch += d_loss
                 g_loss_batch += g_loss
@@ -160,7 +162,7 @@ class Trainer:
 
         return gen_samples
 
-    def batch_train(self, data, data_labels, train_generator):
+    def batch_train(self, data, ae_data, data_labels, train_generator):
         """Trains the GAN-Model on one batch of data.
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
@@ -171,6 +173,8 @@ class Trainer:
         # data_labels = data_labels.permute(0, 2, 1)
 
         # gen_cond_data for prediction purposes; implemented but not tested right now;
+        if self.autoencoder:
+            ae_gen_cond_data = ae_data.to(self.device)
         gen_cond_data = data[:, :self.input_sequence_length, :].to(self.device)
         # TODO: We have to zero some channels for channel recovery
         # Channel recovery roughly implemented
@@ -180,6 +184,8 @@ class Trainer:
             gen_cond_data[:, :, zero_index] = 0
 
         seq_length = max(1, self.input_sequence_length)
+        if self.autoencoder:
+            ae_gen_labels = torch.cat((data_labels.repeat(1, ae_data.shape[1], 1).to(self.device), ae_gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
         gen_labels = torch.cat((data_labels.repeat(1, seq_length, 1).to(self.device), gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
 
         # -----------------
@@ -191,24 +197,36 @@ class Trainer:
             self.generator_optimizer.zero_grad()
 
             # Sample noise and labels as generator input
-            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
+            if self.autoencoder:
+                z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=ae_data.shape[1], device=self.device)
+                z = torch.cat((z, ae_gen_labels), dim=-1).to(self.device)
+            else:
+                z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
+                z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
             # Generate a batch of samples
-            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
-            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            if self.autoencoder:
+                gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, ae_data.shape[1])
+                fake_data = gen_imgs #TODO: Is this going to cause some issues?
+            else:
+                gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+                fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
             fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
 
             #Decode the encoded data
             #TODO: Fix for multi-electrode
             #TODO: Make these better with a list comprehension
             if self.autoencoder:
-                ae_data = []
-                for sample in fake_data:
+                dec_data = []
+                dec_labels = []
+                for si, sample in enumerate(fake_data):
                     decoded_sample = self.autoencoder.model.decode(sample[0,:,:])
-                    ae_data.append(list(decoded_sample[0].detach().numpy()))
-                fake_data = torch.tensor(np.asarray(ae_data))
+                    dec_data.append(list(decoded_sample[0].detach().numpy()))
+                    dec_labels.append(list(fake_labels[si][0][0][0].repeat(len(dec_data[-1])).detach().numpy()))
+                fake_data = torch.tensor(np.asarray(dec_data))
                 fake_data = fake_data[:,None,None,:].to(self.device) 
+                fake_labels = torch.tensor(np.asarray(dec_labels))
+                fake_labels = fake_labels[:,None,None,:].to(self.device) 
             
             #Combine data and labels
             fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
@@ -235,22 +253,29 @@ class Trainer:
         z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
         # gen_labels = torch.cat((data_labels[:, 0, :], gen_cond_data[:, 0, :]), dim=1).to(self.device)
         z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-        gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
-
-        # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+        
+        if self.autoencoder:
+            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, ae_data.shape[1])
+            fake_data = gen_imgs #TODO: Is this going to cause some issues?
+        else:
+            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
         fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
         
         #Decode the encoded data
         #TODO: Fix for multi-electrode
         #TODO: Make these better with a list comprehension
         if self.autoencoder:
-            ae_data = []
-            for sample in fake_data:
+            dec_data = []
+            dec_labels = []
+            for si, sample in enumerate(fake_data):
                 decoded_sample = self.autoencoder.model.decode(sample[0,:,:])
-                ae_data.append(list(decoded_sample[0].detach().numpy()))
-            fake_data = torch.tensor(np.asarray(ae_data))
+                dec_data.append(list(decoded_sample[0].detach().numpy()))
+                dec_labels.append(list(fake_labels[si][0][0][0].repeat(len(dec_data[-1])).detach().numpy()))
+            fake_data = torch.tensor(np.asarray(dec_data))
             fake_data = fake_data[:,None,None,:].to(self.device) 
+            fake_labels = torch.tensor(np.asarray(dec_labels))
+            fake_labels = fake_labels[:,None,None,:].to(self.device) 
         
         #Combine data and labels
         fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
@@ -260,15 +285,15 @@ class Trainer:
         # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
         # concatenate channel names, conditions and generated samples
         gen_samples = torch.cat((data_labels.repeat(1, self.n_channels, 1),
-                                 fake_data[:, :self.n_channels].view(batch_size,  self.n_channels, self.sequence_length)), dim=-1)
+                                 fake_data[:, :self.n_channels].view(batch_size,  self.n_channels, self.data_sequence_length)), dim=-1)
         if self.channel_names is not None:
             gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, self.n_channels, 1).repeat(batch_size, 1, 1).to(self.device),
                                      gen_samples), dim=-1)
         gen_samples = gen_samples
 
         # Loss for real images
-        real_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        real_data = data.view(batch_size, self.n_channels, 1, self.sequence_length).to(self.device)
+        real_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, data.shape[1]).to(self.device)
+        real_data = data.view(batch_size, self.n_channels, 1, data.shape[1]).to(self.device)
         real_data = torch.cat((real_data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)
 

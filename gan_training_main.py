@@ -148,18 +148,20 @@ def main():
     if train_ae:
         autoencoder = AutoEncoder()
         sequence_length_generated = autoencoder.cfg["model"]["output_dim"]
+        opt['data_sequence_length'] = opt['sequence_length']
         opt['sequence_length'] = autoencoder.cfg["model"]["output_dim"]
         if opt['patch_size'] > autoencoder.cfg["model"]["output_dim"]:
             warnings.warn("WARNING: Your GAN patch size must be equal or smaller to your input length. When using the autoencoder, the input length is your autoencoder output dimension, here " + str(autoencoder.cfg["model"]["output_dim"]) + '. The patch size is automatically being changed to this output dimension length.')
             opt['patch_size'] = autoencoder.cfg["model"]["output_dim"]
     else:
+        opt['data_sequence_length'] = opt['sequence_length']
         autoencoder = False
     print("Autoencoder initialized.")
         
     generator = TransformerGenerator2(latent_dim=latent_dim_in,
                                       channels=opt['n_channels'],
                                       seq_len=sequence_length_generated)
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
+    discriminator = TtsDiscriminator(seq_length=opt['data_sequence_length'],
                                      patch_size=opt['patch_size'],
                                      in_channels=opt['n_conditions'] + opt['n_channels'])
     print("Generator and discriminator initialized.")
