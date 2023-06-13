@@ -170,6 +170,13 @@ class Trainer:
         seq_length = max(1, self.input_sequence_length)
         gen_labels = torch.cat((data_labels.repeat(1, seq_length, 1).to(self.device), gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
 
+        if self.discriminator.channels > self.n_conditions + self.n_channels:
+            # add zero channel to data_labels to match discriminator input size
+            disc_labels = torch.cat((data_labels, torch.zeros((batch_size, 1, 1)).to(self.device)), dim=-1)
+        else:
+            disc_labels = data_labels
+        disc_labels = disc_labels.repeat(1, self.sequence_length, 1).to(self.device)
+
         # -----------------
         #  Train Generator
         # -----------------
@@ -183,11 +190,15 @@ class Trainer:
             z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
             # Generate a batch of samples
-            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+            gen_imgs = self.generator(z)#.reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
 
-            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-            fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-            fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
+            # fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            # fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+            fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            # fake_labels = disc_labels.repeat(1, self.sequence_length, 1).to(self.device)
+            fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
+            # if self.discriminator.channels > fake_data.shape[-1]:
+            #     fake_data = torch.cat((fake_data, torch.zeros((fake_data.shape[0], fake_data.shape[1], 1), device=self.device)), dim=-1)
             validity = self.discriminator(fake_data)
 
             g_loss = self.loss.generator(validity)
@@ -210,27 +221,28 @@ class Trainer:
         z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
         # gen_labels = torch.cat((data_labels[:, 0, :], gen_cond_data[:, 0, :]), dim=1).to(self.device)
         z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-        gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+        gen_imgs = self.generator(z)#.reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
 
         # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-        fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
+        # fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+        # fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+        fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+        # fake_labels = data_labels.repeat(1, self.sequence_length, 1).to(self.device)
+        fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
+        # if self.discriminator.channels > fake_data.shape[-1]:
+        #     fake_data = torch.cat((fake_data, torch.zeros((fake_data.shape[0], fake_data.shape[1], 1), device=self.device)), dim=-1)
         validity_fake = self.discriminator(fake_data)
 
         # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
         # concatenate channel names, conditions and generated samples
-        gen_samples = torch.cat((data_labels.repeat(1, self.n_channels, 1),
-                                 fake_data[:, :self.n_channels].view(batch_size,  self.n_channels, self.sequence_length)), dim=-1)
+        gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), fake_data[:, :, :self.n_channels]), dim=1) if self.n_conditions > 0 else fake_data[:, :, :self.n_channels].clone()
         if self.channel_names is not None:
-            gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, self.n_channels, 1).repeat(batch_size, 1, 1).to(self.device),
-                                     gen_samples), dim=-1)
-        gen_samples = gen_samples
+            gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device),
+                                     gen_samples), dim=1)
 
         # Loss for real images
-        real_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        real_data = data.view(batch_size, self.n_channels, 1, self.sequence_length).to(self.device)
-        real_data = torch.cat((real_data, real_labels), dim=1).to(self.device)
+        # real_labels = data_labels.view(batch_size, 1, self.n_conditions).repeat(1, self.sequence_length, 1).to(self.device)
+        real_data = torch.cat((data, disc_labels), dim=-1).to(self.device)
         validity_real = self.discriminator(real_data)
 
         # Total discriminator loss and update

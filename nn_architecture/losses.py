@@ -54,61 +54,37 @@ class WassersteinLoss(Loss):
 class WassersteinGradientPenaltyLoss(WassersteinLoss):
     def __init__(self):
         super().__init__(wgan=False)
-        self.lambda_gp = 0
+        self.gradient_penalty_weight = 0
 
     def set_lambda_gp(self, lambda_gp):
-        self.lambda_gp = lambda_gp
+        self.gradient_penalty_weight = lambda_gp
 
     def discriminator(self, *args):
         real, fake, discriminator, real_images, fake_images = args
         return super().discriminator(real, fake) + self._gradient_penalty(discriminator, real_images, fake_images)
 
-    def _gradient_penalty(self, discriminator, real_images, fake_images):
+    def _gradient_penalty(self, discriminator, real_samples, fake_samples):
         """Calculates the gradient penalty for WGAN-GP"""
 
-        # adjust dimensions of real_labels, fake_labels and eta to to match the dimensions of real_images
-        # if real_labels.shape != fake_labels.shape:
-        #     raise ValueError("real_labels and fake_labels must have the same shape!")
+        batch_size = real_samples.size(0)
+        device = real_samples.device
 
-        if real_images.shape != fake_images.shape:
-            raise ValueError("real_images and fake_images must have the same shape!")
+        # Generate random epsilon
+        epsilon = torch.rand(batch_size, 1, 1, device=device, requires_grad=True)
 
-        # check that all inputs' devices are the same
-        if real_images.device != fake_images.device:
-            raise ValueError("real_images and fake_images must be on the same device!")
+        # Interpolate between real and fake samples
+        interpolated_samples = epsilon * real_samples + (1 - epsilon) * fake_samples
+        interpolated_samples = torch.autograd.Variable(interpolated_samples, requires_grad=True)
 
-        eta = torch.FloatTensor(real_images.shape[0], 1).uniform_(0, 1).repeat((1, real_images.shape[1])).to(real_images.device)
+        # Calculate critic scores for interpolated samples
+        critic_scores = discriminator(interpolated_samples)
 
-        # interpolate between real and fake images/labels
-        # interpolated_labels = real_labels  # (eta * real_labels + ((1 - eta) * fake_labels))
-        while eta.dim() < real_images.dim():
-            eta = eta.unsqueeze(-1)
-        interpolated = (eta * real_images + ((1 - eta) * fake_images))
+        # Compute gradients of critic scores with respect to interpolated samples
+        gradients = torch.autograd.grad(outputs=critic_scores, inputs=interpolated_samples,
+                                        grad_outputs=torch.ones(critic_scores.size(), device=device),
+                                        create_graph=True, retain_graph=True)[0]
 
-        # concatenate interpolated and interpolated_labels along the channel dimension
-        # repeat last dimension of interpolated_labels to match the last dimension of interpolated
-        # if len(interpolated_labels.shape) == 2:
-        #     interpolated_labels = interpolated_labels.unsqueeze(-1)
-        # interpolated_labels = interpolated_labels.repeat(1, 1, interpolated.shape[-1])
-        # while interpolated.dim() > interpolated_labels.dim():
-            # keep 1st dim as batch_size; 2nd dim as channel_size; last dim as sequence_length
-            # add as many dimensions between 2nd and last dim as necessary
-            # interpolated_labels = interpolated_labels.unsqueeze(-2)
-        # interpolated = torch.concat((interpolated, real_labels), dim=1)
+        # Calculate gradient penalty
+        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.gradient_penalty_weight
 
-        # define it to calculate gradient
-        interpolated = autograd.Variable(interpolated, requires_grad=True)
-
-        # calculate probability of interpolated examples
-        prob_interpolated = discriminator(interpolated)
-
-        fake = autograd.Variable(torch.ones((real_images.shape[0], 1)).to(real_images.device), requires_grad=False)
-
-        # calculate gradients of probabilities with respect to examples
-        gradients = autograd.grad(outputs=prob_interpolated,
-                                  inputs=interpolated,
-                                  grad_outputs=fake,
-                                  create_graph=True,
-                                  retain_graph=True)[0]
-        grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.lambda_gp
-        return grad_penalty
+        return gradient_penalty

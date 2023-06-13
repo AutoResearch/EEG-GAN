@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 from helpers.trainer import Trainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, DDPTrainer
-from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered, TransformerGenerator2
+from nn_architecture.models import TransformerGenerator2, TransformerDiscriminator
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 
@@ -38,7 +38,6 @@ def main():
     load_checkpoint = default_args['load_checkpoint']
     path_checkpoint = default_args['path_checkpoint']
     train_gan = default_args['train_gan']
-    # filter_generator = default_args['filter_generator']
 
     # Data configuration
     windows_slices = default_args['windows_slices']
@@ -49,9 +48,6 @@ def main():
     # raise warning if no normalization and standardization is used at the same time
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
-
-    # if windows_slices and default_args['input_sequence_length']:
-    #     raise ValueError('If window slices are used AND the keyword "seq_len_generated" is given\nthe "input_sequence_length" and "seq_len_generated" must sum up to the datasets sequence length.')
 
     if load_checkpoint:
         print(f'Resuming training from checkpoint {path_checkpoint}.')
@@ -97,7 +93,6 @@ def main():
                             norm_data=norm_data,
                             std_data=std_data,
                             diff_data=diff_data,
-                            # multichannel=default_args['multichannel'],
                             channel_label=default_args['channel_label'])
     dataset = dataloader.get_data(sequence_length=opt['sequence_length'],
                                   windows_slices=default_args['windows_slices'], stride=5,
@@ -128,25 +123,19 @@ def main():
     if latent_dim_in % 2 != 0:
         latent_dim_in += 1
         opt['latent_dim'] += 1
+    # make sure discriminator input size is even; constraint of positional encoding in TransformerDiscriminator
+    channel_in_disc = opt['n_channels'] + opt['n_conditions']
+    if channel_in_disc % 2 != 0:
+        # add then during trainer.batch_training() a zero channel to conditions
+        channel_in_disc += 1
     sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != \
-                                                                                         opt['sequence_length'] else \
-    opt['sequence_length']
-    # if not filter_generator:
-    #     generator = TtsGenerator(seq_length=sequence_length_generated,
-    #                              latent_dim=latent_dim_in,
-    #                              patch_size=opt['patch_size'],
-    #                              channels=opt['n_channels'])
-    # else:
-    #     generator = TtsGeneratorFiltered(seq_length=opt['sequence_length']-opt['input_sequence_length'],
-    #                                      latent_dim=latent_dim_in,
-    #                                      patch_size=opt['patch_size'],
-    #                                      channels=opt['n_channels'])
+                                                                                         opt['sequence_length'] else opt['sequence_length']
     generator = TransformerGenerator2(latent_dim=latent_dim_in,
                                       channels=opt['n_channels'],
                                       seq_len=sequence_length_generated)
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
-                                     patch_size=opt['patch_size'],
-                                     in_channels=opt['n_conditions'] + opt['n_channels'])
+    discriminator = TransformerDiscriminator(channels=channel_in_disc,
+                                             hidden_dim=opt['hidden_dim'],
+                                             n_classes=1,)  # TODO: Check if n_classes = n_channels is better
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------

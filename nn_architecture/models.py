@@ -1,11 +1,6 @@
 import torch
-from matplotlib import pyplot as plt
 import torchaudio.functional as taf
 from torch import nn
-from scipy import signal
-import numpy as np
-from nn_architecture.ttsgan_components import *
-
 
 # insert here all different kinds of generators and discriminators
 
@@ -169,125 +164,6 @@ class RCDiscriminator(nn.Module):
         return y
 
 
-class TtsGenerator(nn.Module):
-    """Transformer generator. Source: https://arxiv.org/abs/2202.02691"""
-    def __init__(self, seq_length=600, patch_size=15, channels=1, num_classes=9, latent_dim=16, embed_dim=10, depth=3,
-                 num_heads=5, forward_drop_rate=0.5, attn_drop_rate=0.5):
-        super(TtsGenerator, self).__init__()
-        self.channels = channels
-        self.latent_dim = latent_dim
-        self.seq_len = seq_length
-        self.embed_dim = embed_dim
-        self.patch_size = patch_size
-        self.depth = depth
-        self.attn_drop_rate = attn_drop_rate
-        self.forward_drop_rate = forward_drop_rate
-
-        self.l1 = nn.Linear(self.latent_dim, self.seq_len * self.embed_dim)
-        self.pos_embed = nn.Parameter(torch.zeros(1, self.seq_len, self.embed_dim))
-        self.blocks = Gen_TransformerEncoder(
-            depth=self.depth,
-            emb_size=self.embed_dim,
-            drop_p=self.attn_drop_rate,
-            forward_drop_p=self.forward_drop_rate
-        )
-
-        self.deconv = nn.Sequential(
-            nn.Conv2d(self.embed_dim, self.channels, 1, 1, 0)
-        )
-
-    def forward(self, z):
-        x = self.l1(z).view(-1, self.seq_len, self.embed_dim)
-        x = x + self.pos_embed
-        H, W = 1, self.seq_len
-        x = self.blocks(x)
-        x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
-        output = self.deconv(x.permute(0, 3, 1, 2))
-        output = output.view(-1, self.channels, H, W)
-
-        return output
-
-
-class TtsDiscriminator(nn.Sequential):
-    """Transformer discriminator. Source: https://arxiv.org/abs/2202.02691"""
-    def __init__(self,
-                 in_channels=1,
-                 patch_size=15,
-                 emb_size=50,
-                 seq_length=600,
-                 depth=3,
-                 n_classes=1,
-                 **kwargs):
-        super().__init__(
-            PatchEmbedding_Linear(in_channels, patch_size, emb_size, seq_length),
-            Dis_TransformerEncoder(depth, emb_size=emb_size, drop_p=0.5, forward_drop_p=0.5, **kwargs),
-            ClassificationHead(emb_size, n_classes)
-        )
-
-        self.n_classes = n_classes
-
-
-class TtsClassifier(nn.Sequential):
-    """Transformer discriminator. Source: https://arxiv.org/abs/2202.02691"""
-    def __init__(self,
-                 in_channels=1,
-                 patch_size=15,
-                 emb_size=50,
-                 seq_length=600,
-                 depth=3,
-                 n_classes=1,
-                 **kwargs):
-        super().__init__(
-            PatchEmbedding_Linear(in_channels, patch_size, emb_size, seq_length),
-            Dis_TransformerEncoder(depth, emb_size=emb_size, drop_p=0.5, forward_drop_p=0.5, **kwargs),
-            ClassifierHead(emb_size, n_classes, **kwargs)
-        )
-
-
-class TtsGeneratorFiltered(TtsGenerator):
-
-    def __init__(self, seq_length=600, patch_size=15, channels=1, num_classes=9, latent_dim=16, embed_dim=10, depth=3,
-                 num_heads=5, forward_drop_rate=0.5, attn_drop_rate=0.5):
-        super(TtsGeneratorFiltered, self).__init__(seq_length=seq_length,
-                                                   patch_size=patch_size,
-                                                   channels=channels,
-                                                   num_classes=num_classes,
-                                                   latent_dim=latent_dim,
-                                                   embed_dim=embed_dim,
-                                                   depth=depth,
-                                                   num_heads=num_heads,
-                                                   forward_drop_rate=forward_drop_rate,
-                                                   attn_drop_rate=attn_drop_rate)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.tanh = nn.Tanh()
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, z):
-        gen_imgs = super().forward(z)
-        # outputs need to be scaled between -1 and 1 for bandpass_biquad filter
-        gen_imgs = self.tanh(gen_imgs)
-        # Filtering is happening here
-        output = self.filter(gen_imgs)
-        # rescale it back to 0 and 1 (normalized data)
-        output = self.sigmoid(output)
-        return output
-
-    @staticmethod
-    def filter(z, scale=False):
-        """Filter the generated images to remove the noise. The last dimension of z carries the signal."""
-        if not isinstance(z, torch.Tensor):
-            z = torch.tensor(z)
-        if scale:
-            # scale z between -1 and 1
-            if z.max() <= 1 and z.min() >= 0:
-                z = z * 2 - 1
-            elif z.max() > 0 and z.min() < 0:
-                z = z / torch.max(torch.abs(z))
-            elif z.max() > 0 and z.min() >= 0:
-                z = (z - z.mean()) / z.abs().max()
-        return taf.bandpass_biquad(z, 512, 10)
-
-
 class PositionalEncoder(nn.Module):
     """
     The authors of the original transformer paper describe very succinctly what
@@ -364,8 +240,8 @@ class TransformerGenerator2(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
-        # self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
-        self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
+        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
+        # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
                                                         dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
@@ -379,13 +255,13 @@ class TransformerGenerator2(nn.Module):
 
     def forward(self, data):
         x = self.pe(data.to(self.device))
-        x = self.linear_enc_in(x)[0]
+        x = self.linear_enc_in(x) #[0] --> only for lstm
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
         x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
         x = self.tanh(x)
         # x = self.decoder(x)
-        return x  # .unsqueeze(2).permute(0, 3, 2, 1)
+        return x
 
     def mask(self, data, data_ref, mask=0):
         # mask predictions if ALL preceding values (axis=sequence) were 'mask'
@@ -393,3 +269,39 @@ class TransformerGenerator2(nn.Module):
         mask_index = (data_ref.sum(dim=1) == mask).unsqueeze(1).repeat(1, data.shape[1], 1)
         data[mask_index] = mask
         return data
+
+
+class TransformerDiscriminator(nn.Module):
+    def __init__(self, channels, n_classes=1, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):
+        super(TransformerDiscriminator, self).__init__()
+
+        self.hidden_dim = hidden_dim
+        self.channels = channels
+        self.n_classes = n_classes
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.num_layers = num_layers
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.pe = PositionalEncoder(batch_first=True, d_model=channels)
+        self.linear_enc_in = nn.Linear(channels, hidden_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
+                                                        dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(hidden_dim, n_classes)
+        self.tanh = nn.Tanh()
+
+        # self.decoder = decoder if decoder is not None else nn.Identity()
+        # for param in self.decoder.parameters():
+        #    param.requires_grad = False
+
+    def forward(self, data):
+        x = self.pe(data.to(self.device))
+        x = self.linear_enc_in(x)
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)[:, -1]  # .reshape(-1, self.channels)
+        # x = self.mask(x, data[:,:,self.latent_dim-self.channels:].diff(dim=1))
+        x = self.tanh(x)
+        # x = self.decoder(x)
+        return x
