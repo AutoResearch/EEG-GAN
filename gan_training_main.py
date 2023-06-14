@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 from helpers.trainer import Trainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, DDPTrainer
-from nn_architecture.models import TransformerGenerator2, TransformerDiscriminator
+from nn_architecture.models import TransformerGenerator, TransformerDiscriminator
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 
@@ -130,9 +130,9 @@ def main():
         channel_in_disc += 1
     sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != \
                                                                                          opt['sequence_length'] else opt['sequence_length']
-    generator = TransformerGenerator2(latent_dim=latent_dim_in,
-                                      channels=opt['n_channels'],
-                                      seq_len=sequence_length_generated)
+    generator = TransformerGenerator(latent_dim=latent_dim_in,
+                                     channels=opt['n_channels'],
+                                     seq_len=sequence_length_generated)
     discriminator = TransformerDiscriminator(channels=channel_in_disc,
                                              hidden_dim=opt['hidden_dim'],
                                              n_classes=1,)  # TODO: Check if n_classes = n_channels is better

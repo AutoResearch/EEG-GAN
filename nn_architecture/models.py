@@ -1,6 +1,8 @@
+import math
+
 import torch
-import torchaudio.functional as taf
-from torch import nn
+from torch import nn, Tensor
+
 
 # insert here all different kinds of generators and discriminators
 
@@ -226,9 +228,9 @@ class PositionalEncoder(nn.Module):
         return self.dropout(x)
 
 
-class TransformerGenerator2(nn.Module):
+class TransformerGenerator(nn.Module):
     def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, encoder=None, decoder=None,  **kwargs):
-        super(TransformerGenerator2, self).__init__()
+        super(TransformerGenerator, self).__init__()
 
         self.latent_dim = latent_dim
         self.hidden_dim = hidden_dim
