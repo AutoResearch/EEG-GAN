@@ -227,7 +227,7 @@ class PositionalEncoder(nn.Module):
 
 
 class TransformerGenerator2(nn.Module):
-    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1,  **kwargs):
+    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, encoder=None, decoder=None,  **kwargs):
         super(TransformerGenerator2, self).__init__()
 
         self.latent_dim = latent_dim
@@ -248,7 +248,14 @@ class TransformerGenerator2(nn.Module):
         self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
         self.tanh = nn.Tanh()
 
-        # TODO: Put it in autoencoder
+        # TODO: Put in autoencoder
+        # encoder needs as input dim n_channels
+        # decoder needs as output dim n_channels
+        # self.linear_enc_in and self.pe need as input dim embedding_dim of the autoencoder
+
+        # self.encoder = encoder if encoder is not None else nn.Identity()
+        # for param in self.encoder.parameters():
+        #    param.requires_grad = False
         # self.decoder = decoder if decoder is not None else nn.Identity()
         # for param in self.decoder.parameters():
         #    param.requires_grad = False
