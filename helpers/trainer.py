@@ -153,14 +153,9 @@ class Trainer:
         No further batch-processing. Give batch as to-be-used."""
         batch_size = data.shape[0]
 
-        # channels should be in the 1st dimension. We save this change until now to minimize changes to the code from
-        # before it was implemented for multiple electrodes
-        # data = data.permute(0, 2, 1)
-        # data_labels = data_labels.permute(0, 2, 1)
-
         # gen_cond_data for prediction purposes; implemented but not tested right now;
         gen_cond_data = data[:, :self.input_sequence_length, :].to(self.device)
-        # TODO: We have to zero some channels for channel recovery
+
         # Channel recovery roughly implemented
         if self.input_sequence_length == self.sequence_length and self.n_channels > 1:
             recovery = 0.3
@@ -181,29 +176,32 @@ class Trainer:
         #  Train Generator
         # -----------------
         if train_generator:
+
+            # enable training mode for generator; disable training mode for discriminator + freeze discriminator weights
             self.generator.train()
-            self.discriminator.eval()  # TODO: Check if plausible; Seems that eval() does not freeze the weights
-            self.generator_optimizer.zero_grad()
+            self.discriminator.eval()
+            for params in self.discriminator.parameters():
+                params.requires_grad = False
 
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
             z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
             # Generate a batch of samples
-            gen_imgs = self.generator(z)#.reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
-
-            # fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-            # fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
+            gen_imgs = self.generator(z)
             fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-            # fake_labels = disc_labels.repeat(1, self.sequence_length, 1).to(self.device)
             fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
-            # if self.discriminator.channels > fake_data.shape[-1]:
-            #     fake_data = torch.cat((fake_data, torch.zeros((fake_data.shape[0], fake_data.shape[1], 1), device=self.device)), dim=-1)
-            validity = self.discriminator(fake_data)
 
+            # Compute loss/validity of generated data and update generator
+            validity = self.discriminator(fake_data)
             g_loss = self.loss.generator(validity)
+            self.generator_optimizer.zero_grad()
             g_loss.backward()
             self.generator_optimizer.step()
+
+            # unfreeze discriminator weights
+            for params in self.discriminator.parameters():
+                params.requires_grad = True
 
             g_loss = g_loss.item()
             self.prev_g_loss = g_loss
@@ -214,45 +212,47 @@ class Trainer:
         #  Train Discriminator
         # ---------------------
 
+        # enable training mode for discriminator; disable training mode for generator + freeze generator weights
         self.generator.eval()
         self.discriminator.train()
-        self.discriminator_optimizer.zero_grad()
+        for params in self.generator.parameters():
+            params.requires_grad = False
 
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-        # gen_labels = torch.cat((data_labels[:, 0, :], gen_cond_data[:, 0, :]), dim=1).to(self.device)
-        z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-        gen_imgs = self.generator(z)#.reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+        with torch.no_grad():
+            self.discriminator_optimizer.zero_grad()
 
-        # Loss for fake images
-        # fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-        # fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-        # fake_labels = data_labels.repeat(1, self.sequence_length, 1).to(self.device)
-        fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
-        # if self.discriminator.channels > fake_data.shape[-1]:
-        #     fake_data = torch.cat((fake_data, torch.zeros((fake_data.shape[0], fake_data.shape[1], 1), device=self.device)), dim=-1)
+            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
+            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
+            gen_imgs = self.generator(z)
+
+            # Loss for fake images
+            fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
+
+            # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
+            # concatenate channel names, conditions and generated samples
+            gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), fake_data[:, :, :self.n_channels]), dim=1) if self.n_conditions > 0 else fake_data[:, :, :self.n_channels].clone()
+            if self.channel_names is not None:
+                gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device),
+                                         gen_samples), dim=1)
+
         validity_fake = self.discriminator(fake_data)
 
-        # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
-        # concatenate channel names, conditions and generated samples
-        gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), fake_data[:, :, :self.n_channels]), dim=1) if self.n_conditions > 0 else fake_data[:, :, :self.n_channels].clone()
-        if self.channel_names is not None:
-            gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device),
-                                     gen_samples), dim=1)
-
         # Loss for real images
-        # real_labels = data_labels.view(batch_size, 1, self.n_conditions).repeat(1, self.sequence_length, 1).to(self.device)
         real_data = torch.cat((data, disc_labels), dim=-1).to(self.device)
         validity_real = self.discriminator(real_data)
 
         # Total discriminator loss and update
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
-            # discriminator, real_images, fake_images, real_labels, fake_labels
             d_loss = self.loss.discriminator(validity_real, validity_fake, self.discriminator, real_data, fake_data)
         else:
             d_loss = self.loss.discriminator(validity_real, validity_fake)
         d_loss.backward()
         self.discriminator_optimizer.step()
+
+        # unfreeze generator weights
+        for params in self.generator.parameters():
+            params.requires_grad = True
 
         return d_loss.item(), g_loss, gen_samples
 
