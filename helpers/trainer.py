@@ -38,7 +38,6 @@ class Trainer:
 
         self.generator = generator
         self.discriminator = discriminator
-
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
@@ -165,11 +164,16 @@ class Trainer:
         seq_length = max(1, self.input_sequence_length)
         gen_labels = torch.cat((data_labels.repeat(1, seq_length, 1).to(self.device), gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
 
-        if self.discriminator.channels > self.n_conditions + self.n_channels:
+        try:
+            n_chan = self.discriminator.channels
+        except: #DDP
+            n_chan = self.discriminator.module.channels
+            
+        if n_chan > self.n_conditions + self.n_channels:
             # add zero channel to data_labels to match discriminator input size
             disc_labels = torch.cat((data_labels, torch.zeros((batch_size, 1, 1)).to(self.device)), dim=-1)
         else:
-            disc_labels = data_labels
+            disc_labels = data_labels        
         disc_labels = disc_labels.repeat(1, self.sequence_length, 1).to(self.device)
 
         # -----------------
