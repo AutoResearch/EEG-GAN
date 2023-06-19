@@ -218,14 +218,16 @@ class Trainer:
         for params in self.generator.parameters():
             params.requires_grad = False
 
+        # Create a batch of generated samples
         with torch.no_grad():
             self.discriminator_optimizer.zero_grad()
 
+            # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
             z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-            gen_imgs = self.generator(z)
 
-            # Loss for fake images
+            # Generate a batch of fake samples
+            gen_imgs = self.generator(z)
             fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
             fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
 
