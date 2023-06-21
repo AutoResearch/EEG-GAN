@@ -184,8 +184,8 @@ class Trainer:
             # enable training mode for generator; disable training mode for discriminator + freeze discriminator weights
             self.generator.train()
             self.discriminator.eval()
-            for params in self.discriminator.parameters():
-                params.requires_grad = False
+            # for params in self.discriminator.parameters():
+            #     params.requires_grad = False
 
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
@@ -204,8 +204,8 @@ class Trainer:
             self.generator_optimizer.step()
 
             # unfreeze discriminator weights
-            for params in self.discriminator.parameters():
-                params.requires_grad = True
+            # for params in self.discriminator.parameters():
+            #     params.requires_grad = True
 
             g_loss = g_loss.item()
             self.prev_g_loss = g_loss
@@ -219,8 +219,8 @@ class Trainer:
         # enable training mode for discriminator; disable training mode for generator + freeze generator weights
         self.generator.eval()
         self.discriminator.train()
-        for params in self.generator.parameters():
-            params.requires_grad = False
+        # for params in self.generator.parameters():
+        #     params.requires_grad = False
 
         # Create a batch of generated samples
         with torch.no_grad():
@@ -257,8 +257,8 @@ class Trainer:
         self.discriminator_optimizer.step()
 
         # unfreeze generator weights
-        for params in self.generator.parameters():
-            params.requires_grad = True
+        # for params in self.generator.parameters():
+        #     params.requires_grad = True
 
         return d_loss.item(), g_loss, gen_samples
 
