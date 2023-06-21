@@ -267,8 +267,8 @@ class TransformerGenerator(nn.Module):
         x = self.linear_enc_in(x) #[0] --> only for lstm
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
-        x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
-        x = self.tanh(x)
+        # x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
+        # x = self.tanh(x)
         # x = self.decoder(x)
         return x
 
@@ -311,6 +311,6 @@ class TransformerDiscriminator(nn.Module):
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1]  # .reshape(-1, self.channels)
         # x = self.mask(x, data[:,:,self.latent_dim-self.channels:].diff(dim=1))
-        x = self.tanh(x)
+        # x = self.tanh(x)
         # x = self.decoder(x)
         return x
