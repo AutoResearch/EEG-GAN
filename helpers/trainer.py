@@ -93,6 +93,8 @@ class Trainer:
 
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
+        if not os.path.exists(path_checkpoint):
+            os.makedirs(path_checkpoint)
         trigger_checkpoint_01 = True
         checkpoint_01_file = 'checkpoint_01.pt'
         checkpoint_02_file = 'checkpoint_02.pt'
