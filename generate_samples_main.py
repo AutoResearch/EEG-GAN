@@ -108,7 +108,7 @@ def main():
                 f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
 
     seq_len = max(1, input_sequence_length)
-    cond_labels = torch.zeros((num_samples_parallel, seq_len, n_conditions)).to(device) + torch.tensor(condition)
+    cond_labels = torch.zeros((num_samples_parallel, seq_len, n_conditions)).to(device) + torch.tensor(condition).to(device)
     cond_labels = cond_labels.to(device)
 
     # JOSHUA

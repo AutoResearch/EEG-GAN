@@ -184,7 +184,8 @@ class PositionalEncoder(nn.Module):
             dropout: float = 0.1,
             max_seq_len: int = 5000,
             d_model: int = 512,
-            batch_first: bool = True
+            batch_first: bool = True,
+            device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ):
         """
         Parameters:
@@ -204,6 +205,8 @@ class PositionalEncoder(nn.Module):
 
         self.x_dim = 1 if batch_first else 0
 
+        self.device = device
+
         # copy pasted from PyTorch tutorial
         position = torch.arange(max_seq_len).unsqueeze(1)
         # print(f"shape of position is {position.shape}")
@@ -215,7 +218,7 @@ class PositionalEncoder(nn.Module):
 
         pe[0, :, 1::2] = torch.cos(position * div_term)
 
-        self.register_buffer('pe', pe)
+        self.register_buffer('pe', pe.to(device))
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -242,12 +245,12 @@ class TransformerGenerator(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
-        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
+        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim).to(self.device)
         # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
-                                                        dropout=dropout, batch_first=True)
+                                                        dropout=dropout, batch_first=True).to(self.device)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
+        self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len).to(self.device)
         self.tanh = nn.Tanh()
 
         # TODO: Put in autoencoder
