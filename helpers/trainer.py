@@ -224,28 +224,28 @@ class Trainer:
         #     params.requires_grad = False
 
         # Create a batch of generated samples
-        # with torch.no_grad():
-        self.discriminator_optimizer.zero_grad()
+        with torch.no_grad():
+            self.discriminator_optimizer.zero_grad()
 
-        # Sample noise and labels as generator input
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-        z = torch.cat((z, gen_labels), dim=-1).to(self.device)
+            # Sample noise and labels as generator input
+            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
+            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
-        # Generate a batch of fake samples
-        gen_imgs = self.generator(z)
-        fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-        fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
+            # Generate a batch of fake samples
+            gen_imgs = self.generator(z)
+            fake_data = torch.cat((gen_cond_data, gen_imgs), dim=1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
+            fake_data = torch.cat((fake_data, disc_labels), dim=-1).to(self.device)
 
-        # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
-        # concatenate channel names, conditions and generated samples
-        gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), fake_data[:, :, :self.n_channels]), dim=1) if self.n_conditions > 0 else fake_data[:, :, :self.n_channels].clone()
-        if self.channel_names is not None:
-            gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device), gen_samples), dim=1)
+            # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
+            # concatenate channel names, conditions and generated samples
+            gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), fake_data[:, :, :self.n_channels]), dim=1) if self.n_conditions > 0 else fake_data[:, :, :self.n_channels].clone()
+            if self.channel_names is not None:
+                gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device), gen_samples), dim=1)
 
-        real_data = torch.cat((data, disc_labels), dim=-1).to(self.device)
+            real_data = torch.cat((data, disc_labels), dim=-1).to(self.device)
 
         # Loss for real and generated samples
-        validity_fake = self.discriminator(fake_data.detach())
+        validity_fake = self.discriminator(fake_data)
         validity_real = self.discriminator(real_data)
 
         # Total discriminator loss and update
