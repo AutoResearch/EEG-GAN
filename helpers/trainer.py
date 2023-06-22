@@ -90,7 +90,6 @@ class Trainer:
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
         gen_samples = []
-
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
         if not os.path.exists(path_checkpoint):
@@ -244,10 +243,10 @@ class Trainer:
                 gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device),
                                          gen_samples), dim=1)
 
-        validity_fake = self.discriminator(fake_data)
-
-        # Loss for real images
         real_data = torch.cat((data, disc_labels), dim=-1).to(self.device)
+
+        # Loss for real and generated samples
+        validity_fake = self.discriminator(fake_data)
         validity_real = self.discriminator(real_data)
 
         # Total discriminator loss and update

@@ -263,7 +263,7 @@ class TransformerGenerator(nn.Module):
         #    param.requires_grad = False
 
     def forward(self, data):
-        x = self.pe(data.to(self.device))
+        x = self.pe(data)
         x = self.linear_enc_in(x) #[0] --> only for lstm
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
@@ -306,7 +306,7 @@ class TransformerDiscriminator(nn.Module):
         #    param.requires_grad = False
 
     def forward(self, data):
-        x = self.pe(data.to(self.device))
+        x = self.pe(data)
         x = self.linear_enc_in(x)
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1]  # .reshape(-1, self.channels)

@@ -72,10 +72,10 @@ class DDPTrainer(trainer.Trainer):
         self.discriminator_optimizer.load_state_dict(d_opt_state)
 
 
-def run(rank, world_size, master_port, backend, training, opt):
+def run(rank, world_size, master_port, backend, trainer_ddp, opt):
     _setup(rank, world_size, master_port, backend)
-    training = _setup_training(rank, training)
-    _ddp_training(training, opt)
+    trainer_ddp = _setup_trainer(rank, trainer_ddp)
+    _ddp_training(trainer_ddp, opt)
     dist.destroy_process_group()
 
 
@@ -89,7 +89,7 @@ def _setup(rank, world_size, master_port, backend):
     dist.init_process_group(backend, rank=rank, world_size=world_size, timeout=timedelta(seconds=30))
 
 
-def _setup_training(rank, training):
+def _setup_trainer(rank, training):
     # set device
     training.set_device(rank)
     print(f"Using device {training.device}.")
@@ -104,7 +104,7 @@ def _setup_training(rank, training):
     return training
 
 
-def _ddp_training(training: DDPTrainer, opt):
+def _ddp_training(trainer_ddp: DDPTrainer, opt):
     # calculate partition of dataset for each process
     # make sure all partitions are the same size
     # partition_size = opt['n_samples'] // training.world_size
@@ -119,18 +119,18 @@ def _ddp_training(training: DDPTrainer, opt):
 
     # print(f"Rank {training.rank} has {len(dataset)} samples and index {start_index} to {end_index}.")
 
-    if training.batch_size > len(dataset):
-        raise ValueError(f"Batch size {training.batch_size} is larger than the partition size {len(dataset)}.")
+    if trainer_ddp.batch_size > len(dataset):
+        raise ValueError(f"Batch size {trainer_ddp.batch_size} is larger than the partition size {len(dataset)}.")
 
     # train
-    gen_samples = training.training(dataset)
+    gen_samples = trainer_ddp.training(dataset)
 
     # save checkpoint
-    if training.rank == 0:
+    if trainer_ddp.rank == 0:
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'gan_ddp_{training.epochs}ep_' + timestamp + '.pt'
-        training.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+        filename = f'gan_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
+        trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
         print("GAN training finished.")
         print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
