@@ -105,6 +105,8 @@ class Trainer:
             d_loss_batch = 0
             g_loss_batch = 0
             for i in range(0, dataset.shape[0], self.batch_size):
+                print(f"batch {i_batch} of {int(dataset.shape[0] / self.batch_size)+1}")
+
                 # Check whether last batch contains less samples than batch_size
                 if i + self.batch_size > dataset.shape[0]:
                     batch_size = dataset.shape[0] - i  # set batch_size to the remaining number of entries
