@@ -97,6 +97,7 @@ def main():
         'ae_hidden_dim': default_args['ae_hidden_dim'],
         'ae_output_dim': default_args['ae_output_dim'],
         'ae_num_layers': default_args['ae_num_layers'],
+        'ae_num_epochs': default_args['ae_num_epochs'],
     }
 
     dataloader = Dataloader(default_args['path_dataset'],
@@ -157,7 +158,8 @@ def main():
                                   model_name = opt['ae_model_name'],
                                   hidden_dim = opt['ae_hidden_dim'],
                                   output_dim = opt['ae_output_dim'],
-                                  num_layers = opt['ae_num_layers']
+                                  num_layers = opt['ae_num_layers'],
+                                  num_epochs = opt['ae_num_epochs']
                                   )
         
         sequence_length_generated = autoencoder.cfg["model"]["output_dim"]

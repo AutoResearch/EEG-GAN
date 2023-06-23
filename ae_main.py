@@ -14,7 +14,7 @@ from nn_architecture.transformer_autoencoder import TransformerAutoencoder, save
 
 class Autoencoder():
     def __init__(self, filename, train_ae = True, load_model = False, model_name = 'ae_kagglev1.pth',
-                 hidden_dim = 512, output_dim = 10, num_layers = 2):
+                 hidden_dim = 512, output_dim = 10, num_layers = 2, num_epochs = 100):
         # get parameters from saved model
         self.load_model = load_model
         self.training =  train_ae
@@ -37,7 +37,7 @@ class Autoencoder():
             },
             "training": {
                 "lr":           1e-4,
-                "epochs":       100,
+                "epochs":       num_epochs,
             },
             "general": {
                 "autoencoder":  True,

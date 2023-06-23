@@ -205,8 +205,7 @@ class HelperGenerateSamples(Helper):
 
 
 def default_inputs_training_gan():
-    ''' BACKUP:
-        kw_dict = {
+    kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
         'train_gan': [bool, 'Train a GAN', True, 'Training a GAN'],
@@ -230,38 +229,10 @@ def default_inputs_training_gan():
         'ae_train': [bool, 'Train an AutoEncoder', True, 'Training an AutoEncoder'],
         'ae_load_model': [bool, 'Autoencoder: Load a pre-trained Autoencoder, use ae_model_name to designate which one.', False, 'Autoencoder model: '],
         'ae_model_name': [str, 'Autoencoder: Model save filename (and load filename if ae_load_model=True)', 'ae_kagglev1.pth', 'Autoencoder model name: '],
-        'ae_output_dim': [int, 'Autoencoder: Output dimension. This will be the size of the input to the generator', 10, 'Autoencoder output dimension: '],
-        'ae_hidden_dim': [int, 'Autoencoder: Hidden dimension nodes', 512, 'Autoencoder hidden dimension: '],
-        'ae_num_layers': [int, 'Autoencoder: Number of hidden layers', 2, 'Autoencoder hidden layers: '],
-    }
-    '''
-    kw_dict = {
-        'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
-        'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
-        'train_gan': [bool, 'Train a GAN', True, 'Training a GAN'],
-        'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
-        # 'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
-        'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
-        'n_epochs': [int, 'Number of epochs', 2000, 'Number of epochs: '],
-        'batch_size': [int, 'Batch size', 128, 'Batch size: '],
-        'patch_size': [int, 'Patch size', 20, 'Patch size: '],
-        'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence', -1, 'Input sequence length: '],
-        # 'seq_len_generated': [int, 'Length of the generated sequence; If -1 this parameter is set automatically', -1, 'Generated sequence length: '],
-        'sample_interval': [int, 'Interval of epochs between saving samples', 10, 'Sample interval: '],
-        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganTrialElectrodeERP_p50_e3_len100.csv'), 'Dataset: '],
-        'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
-        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
-        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        # 'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: '],
-        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
-        'ae_train': [bool, 'Train an AutoEncoder', True, 'Training an AutoEncoder'],
-        'ae_load_model': [bool, 'Autoencoder: Load a pre-trained Autoencoder, use ae_model_name to designate which one.', False, 'Autoencoder model: '],
-        'ae_model_name': [str, 'Autoencoder: Model save filename (and load filename if ae_load_model=True)', 'ae_kagglev1.pth', 'Autoencoder model name: '],
         'ae_hidden_dim': [int, 'Autoencoder: Hidden dimension nodes', 512, 'Autoencoder hidden dimension: '],
         'ae_output_dim': [int, 'Autoencoder: Output dimension. This will be the size of the input to the generator', 10, 'Autoencoder output dimension: '],
         'ae_num_layers': [int, 'Autoencoder: Number of hidden layers', 2, 'Autoencoder hidden layers: '],
+        'ae_num_epochs': [int, 'Autoencoder: Number of hidden layers', 100, 'Autoencoder hidden layers: '],
     }
 
     return kw_dict
