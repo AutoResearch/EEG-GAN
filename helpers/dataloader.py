@@ -60,25 +60,21 @@ class Dataloader:
                 # Diff of data
                 dataset = dataset[:, 1:] - dataset[:, :-1]
 
-            self.dataset_min = None
-            self.dataset_max = None
+            # self.dataset_min = None
+            # self.dataset_max = None
+            self.dataset_min = torch.min(dataset)
+            self.dataset_max = torch.max(dataset)
             if norm_data:
                 # Normalize data
-                dataset_min = torch.min(dataset)
-                dataset_max = torch.max(dataset)
-                dataset = (dataset - dataset_min) / (dataset_max - dataset_min)
-                self.dataset_min = dataset_min
-                self.dataset_max = dataset_max
+                dataset = (dataset - self.dataset_min) / (self.dataset_max - self.dataset_min)
 
-            self.dataset_mean = None
-            self.dataset_std = None
+            # self.dataset_mean = None
+            # self.dataset_std = None
+            self.dataset_mean = dataset.mean(dim=0).unsqueeze(0)
+            self.dataset_std = dataset.std(dim=0).unsqueeze(0)
             if std_data:
                 # standardize data
-                dataset_mean = dataset.mean(dim=0).unsqueeze(0)
-                dataset_std = dataset.std(dim=0).unsqueeze(0)
-                self.dataset_mean = dataset_mean
-                self.dataset_std = dataset_std
-                dataset = (dataset - dataset_mean) / dataset_std
+                dataset = (dataset - self.dataset_mean) / self.dataset_std
 
             # reshape data to separate electrodes --> new shape: (trial, sequence, channel)
             if len(self.channels) > 1:

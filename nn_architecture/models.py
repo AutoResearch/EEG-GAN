@@ -248,7 +248,11 @@ class TransformerGenerator(nn.Module):
                                                         dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
-        self.tanh = nn.Tanh()
+        self.act_out = nn.Sigmoid()
+
+        # self.deconv = nn.Sequential(
+        #     nn.Conv2d(self.embed_dim, self.channels, 1, 1, 0)
+        # )
 
         # TODO: Put in autoencoder
         # encoder needs as input dim n_channels
@@ -266,7 +270,10 @@ class TransformerGenerator(nn.Module):
         x = self.pe(data)
         x = self.linear_enc_in(x) #[0] --> only for lstm
         x = self.encoder(x)
-        x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
+        x = self.act_out(self.linear_enc_out(x)[:, -1]).reshape(-1, self.seq_len, self.channels)
+        # x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
+        # output = self.deconv(x.permute(0, 3, 1, 2))
+        # output = output.view(-1, self.channels, H, W)
         # x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
         # x = self.tanh(x)
         # x = self.decoder(x)
