@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import torch.nn as nn
 import torch
 from torch.utils.data import Dataset, DataLoader
-from nn_architecture.models import GANAE, train
+from nn_architecture.models import GANAE, train, save
 from helpers.dataloader import Dataloader
 
 if __name__ == '__main__':
@@ -32,12 +32,14 @@ if __name__ == '__main__':
         
         return test, train
 
-    #Split dataset
+    #Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset)
+    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)    
 
     #Determine input_dim, output_dim, and seq_length
     input_dim = dataset.shape[1]-num_conditions
-    output_dim = 10
+    output_dim = 10 #The time-series size in the encoded layer (TODO: Turn this into a parameter)
     seq_length = dataset.shape[-1]
     
     #Initiate autoencoder
@@ -46,18 +48,12 @@ if __name__ == '__main__':
     #Training parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
-    
-    test_dataset = test_dataset[:,1:,:].permute(0,2,1) #For now, just using 1 electrode
-    #test_dataset = test_dataset[:,None,:]
-    train_dataset = train_dataset[:,1:,:].permute(0,2,1) #For now, just using 1 electrode
-    #train_dataset = train_dataset[:,None,:]
-    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)    
 
     train_loss, test_loss, model = train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
 
     #Save model
-    #INSERT HERE pickle...
+    save_name = filename.split('/')[-1].split('.csv')[0]
+    save(model, f'trained_ae/ae_{save_name}.pth')
 
     #Functionality
     # my_new_latent = model.encode(my_new_data)

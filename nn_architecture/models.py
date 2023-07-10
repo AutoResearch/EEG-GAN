@@ -5,7 +5,7 @@ from torch import nn
 from scipy import signal
 import numpy as np
 from nn_architecture.ttsgan_components import *
-
+from typing import Optional
 
 # insert here all different kinds of generators and discriminators
 
@@ -428,6 +428,7 @@ class GANAE(nn.Module):
 
     def forward(self, input):
         x = self.encoder(input)
+        x = x.permute(0,2,1) #Reshape dataframe
         #if self.2d:
         #    x = self.encoder2(x)
         #    x = self.decoder2(x)
@@ -446,8 +447,9 @@ def train_model(model, dataloader, optimizer, criterion):
     for batch in dataloader:
         optimizer.zero_grad()
         inputs = batch.float()
+        inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
         # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
-        outputs = model(inputs.to(model.device))
+        outputs = model(inputs.permute(0,2,1).to(model.device)) # The model needs a reshape of the dataframe so time series is last
         loss = criterion(outputs, inputs)
         loss.backward()
         optimizer.step()
@@ -460,7 +462,8 @@ def test_model(model, dataloader, criterion):
     with torch.no_grad():
         for batch in dataloader:
             inputs = batch.float()
-            outputs = model(inputs.to(model.device))
+            inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
+            outputs = model(inputs.permute(0,2,1).to(model.device))
             loss = criterion(outputs, inputs)
             total_loss += loss.item()
     return total_loss / len(dataloader)
