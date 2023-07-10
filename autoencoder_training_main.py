@@ -8,13 +8,14 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from nn_architecture.models import GANAE, train, save
 from helpers.dataloader import Dataloader
+import time
 
 if __name__ == '__main__':
 
     #User inputs
     filename = "data/gansMultiCondition.csv"
     num_conditions = 1
-    num_epochs = 100
+    num_epochs = 4000
 
     #Load and process data
     data = Dataloader(filename, col_label='Condition', channel_label='Electrode')
@@ -53,7 +54,8 @@ if __name__ == '__main__':
 
     #Save model
     save_name = filename.split('/')[-1].split('.csv')[0]
-    save(model, f'trained_ae/ae_{save_name}.pth')
+    current_time = str(time.time()).split('.')[0]
+    save(model, f'trained_ae/ae_{save_name}_{current_time}.pth')
 
     #Functionality
     # my_new_latent = model.encode(my_new_data)
