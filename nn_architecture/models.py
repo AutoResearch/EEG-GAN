@@ -393,3 +393,97 @@ class TransformerGenerator2(nn.Module):
         mask_index = (data_ref.sum(dim=1) == mask).unsqueeze(1).repeat(1, data.shape[1], 1)
         data[mask_index] = mask
         return data
+    
+#### Autoencoder ####
+class GANAE(nn.Module):
+    def __init__(self, input_dim, output_dim, length) -> None:
+        """AE class which is based on the transformer generator from EEG-GAN.
+        The AE encodes only over 1D. If you put in 2D-Matrix, the AE will encode over the 1st dimension (non batch dimension).
+        
+        Inputs differ with use-case:
+        use-case 1 - encode channel dimension - shape of input is (channels, sequence length):
+        input_dim: number of channels
+        output_dim: desired dimension of encoded channels 
+        length: sequence length
+        
+        use-case 2 - encode the sequences - shape of input is (sequence_length, channels):
+        input_dim: number of timesteps
+        output_dim: desired dimension of timeseries
+        length: number of channels"""
+        
+        super().__init__()
+        
+        self.device = self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.length = length
+        
+        self.encoder = TransformerGenerator2(latent_dim=input_dim, channels=length, seq_len=output_dim)
+        self.decoder = TransformerGenerator2(latent_dim=output_dim, channels=length, seq_len=input_dim)
+        
+        # if self.2d: 
+        # self.encoder2 = TransformerGenerator2(latent_dim=length, channels=output_dim2, seq_len=output_dim)
+        # self.decoder2 = TransformerGenerator2(latent_dim=output_dim2, channels=length, seq_len=output_dim)
+
+    def forward(self, input):
+        x = self.encoder(input)
+        #if self.2d:
+        #    x = self.encoder2(x)
+        #    x = self.decoder2(x)
+        out = self.decoder(x)
+        return out
+    
+    def encode(self, input):
+        return self.encoder(input)
+    
+    def decode(self, input):
+        return self.decoder(input)
+
+def train_model(model, dataloader, optimizer, criterion):
+    model.train() #Sets it into training mode
+    total_loss = 0
+    for batch in dataloader:
+        optimizer.zero_grad()
+        inputs = batch.float()
+        # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
+        outputs = model(inputs.to(model.device))
+        loss = criterion(outputs, inputs)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+    return total_loss / len(dataloader)
+
+def test_model(model, dataloader, criterion):
+    model.eval()
+    total_loss = 0
+    with torch.no_grad():
+        for batch in dataloader:
+            inputs = batch.float()
+            outputs = model(inputs.to(model.device))
+            loss = criterion(outputs, inputs)
+            total_loss += loss.item()
+    return total_loss / len(dataloader)
+
+def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion, configuration: Optional[dict] = None):
+    try:
+        train_losses = []
+        test_losses = []
+        for epoch in range(num_epochs):
+            train_loss = train_model(model, train_dataloader, optimizer, criterion)
+            test_loss = test_model(model, test_dataloader, criterion)
+            train_losses.append(train_loss)
+            test_losses.append(test_loss)
+            print(f"Epoch {epoch + 1}/{num_epochs}: train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
+        return train_losses, test_losses, model
+    except KeyboardInterrupt:
+        # save model at KeyboardInterrupt
+        print("keyboard interrupt detected.")
+        if configuration is not None:
+            print("Configuration found.")
+            configuration["model"]["state_dict"] = model.state_dict()  # update model's state dict
+            save(configuration, configuration["general"]["default_save_path"])
+
+def save(configuration, path):
+    torch.save(configuration, path)
+    print("Saved model and configuration to " + path)
