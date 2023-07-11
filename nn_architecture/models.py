@@ -7,6 +7,7 @@ import numpy as np
 from nn_architecture.ttsgan_components import *
 from typing import Optional
 
+
 # insert here all different kinds of generators and discriminators
 
 class CondLstmDiscriminator(nn.Module):
@@ -378,12 +379,15 @@ class TransformerGenerator2(nn.Module):
         #    param.requires_grad = False
 
     def forward(self, data):
-        x = self.pe(data.to(self.device))
+        x = self.pe(data[:,:,:-1].to(self.device))
+        #data.shape
         x = self.linear_enc_in(x)[0]
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
-        x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
+        #x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
+        x = self.mask(x, data[:, :, self.latent_dim:]) #TODO: DANIEL, check this change but it should be self.num_channels
         x = self.tanh(x)
+        x = torch.cat((x, data[:, :, self.latent_dim:]), dim=1)
         # x = self.decoder(x)
         return x  # .unsqueeze(2).permute(0, 3, 2, 1)
 
@@ -447,10 +451,17 @@ def train_model(model, dataloader, optimizer, criterion):
     for batch in dataloader:
         optimizer.zero_grad()
         inputs = batch.float()
-        inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
+        
+        #Move labels to the end of the time series
+        inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
+        #labels = inputs[:,0,:].unsqueeze(1)
+        #inputs[:,:-1,:] = inputs[:,1:,:]
+        #inputs[:,-1,:] = labels
+        #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
+        
         # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
-        outputs = model(inputs.permute(0,2,1).to(model.device)) # The model needs a reshape of the dataframe so time series is last
-        loss = criterion(outputs, inputs)
+        outputs = model(inputs.permute(0,2,1).to(model.device)) # The model needs a reshape of the dataframe so time series is last dimension
+        loss = criterion(outputs[:,:-1,:], inputs[:,:-1,:])
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
@@ -462,9 +473,10 @@ def test_model(model, dataloader, criterion):
     with torch.no_grad():
         for batch in dataloader:
             inputs = batch.float()
-            inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
+            inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
+            #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
             outputs = model(inputs.permute(0,2,1).to(model.device))
-            loss = criterion(outputs, inputs)
+            loss = criterion(outputs[:,:-1,:], inputs[:,:-1,:])
             total_loss += loss.item()
     return total_loss / len(dataloader)
 
