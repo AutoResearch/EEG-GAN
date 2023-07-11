@@ -364,6 +364,19 @@ class TransformerGenerator2(nn.Module):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        '''
+        #NEW FROM DANIEL'S TTS-REFACTORING
+        self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
+        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
+        # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
+                                                        dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
+        self.act_out = nn.Tanh()
+        
+        '''
+        #ORIGINAL FROM MAIN
         self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
         # self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
         self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
@@ -372,25 +385,53 @@ class TransformerGenerator2(nn.Module):
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
         self.tanh = nn.Tanh()
+        
 
         # TODO: Put it in autoencoder
         # self.decoder = decoder if decoder is not None else nn.Identity()
         # for param in self.decoder.parameters():
         #    param.requires_grad = False
 
+    '''
+    #NEW FROM DANIEL'S TTS-REFACTORING
+    def forward(self,data):
+        #x = self.pe(data)
+        x = self.pe(data)
+        x = self.linear_enc_in(x) #[0] --> only for lstm
+        x = self.encoder(x)
+        x = self.act_out(self.linear_enc_out(x)[:, -1]).reshape(-1, self.seq_len, self.channels)
+        
+        return x
+    '''    
+    
+    '''
+    #ORIGINAL FROM MAIN
     def forward(self, data):
-        x = self.pe(data[:,:,:-1].to(self.device))
-        #data.shape
+        x = self.pe(data.to(self.device))
+        x = self.linear_enc_in(x)[0]
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
+        x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
+        #x = self.mask(x, data[:, :, self.latent_dim:]) #TODO: DANIEL, check this change but it should be self.num_channels
+        x = self.tanh(x)
+        #x = torch.cat((x, data[:, :, self.latent_dim:]), dim=1)
+        # x = self.decoder(x)
+        return x  # .unsqueeze(2).permute(0, 3, 2, 1)
+    '''
+    
+    
+    #MY ADAPTED VERSION
+    def forward(self, data):
+        x = self.pe(data.to(self.device))
         x = self.linear_enc_in(x)[0]
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
         #x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
-        x = self.mask(x, data[:, :, self.latent_dim:]) #TODO: DANIEL, check this change but it should be self.num_channels
+        x = self.mask(x, data[:, :, self.latent_dim - self.channels:]) #TODO: DANIEL, check this change but it should be self.num_channels
         x = self.tanh(x)
-        x = torch.cat((x, data[:, :, self.latent_dim:]), dim=1)
         # x = self.decoder(x)
         return x  # .unsqueeze(2).permute(0, 3, 2, 1)
-
+    
     def mask(self, data, data_ref, mask=0):
         # mask predictions if ALL preceding values (axis=sequence) were 'mask'
         # return indices to mask
@@ -399,51 +440,91 @@ class TransformerGenerator2(nn.Module):
         return data
     
 #### Autoencoder ####
-class GANAE(nn.Module):
-    def __init__(self, input_dim, output_dim, length) -> None:
-        """AE class which is based on the transformer generator from EEG-GAN.
-        The AE encodes only over 1D. If you put in 2D-Matrix, the AE will encode over the 1st dimension (non batch dimension).
-        
-        Inputs differ with use-case:
-        use-case 1 - encode channel dimension - shape of input is (channels, sequence length):
-        input_dim: number of channels
-        output_dim: desired dimension of encoded channels 
-        length: sequence length
-        
-        use-case 2 - encode the sequences - shape of input is (sequence_length, channels):
-        input_dim: number of timesteps
-        output_dim: desired dimension of timeseries
-        length: number of channels"""
-        
-        super().__init__()
-        
-        self.device = self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+class TransformerDoubleAutoencoder(nn.Module):
+    def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerDoubleAutoencoder, self).__init__()
 
+        #output_dim: encoded CHANNEL dimension
+        #output_dim_2: endoded TIMESERIES dimension
+        
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.length = length
-        
-        self.encoder = TransformerGenerator2(latent_dim=input_dim, channels=length, seq_len=output_dim)
-        self.decoder = TransformerGenerator2(latent_dim=output_dim, channels=length, seq_len=input_dim)
-        
-        # if self.2d: 
-        # self.encoder2 = TransformerGenerator2(latent_dim=length, channels=output_dim2, seq_len=output_dim)
-        # self.decoder2 = TransformerGenerator2(latent_dim=output_dim2, channels=length, seq_len=output_dim)
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
 
-    def forward(self, input):
-        x = self.encoder(input)
-        x = x.permute(0,2,1) #Reshape dataframe
-        #if self.2d:
-        #    x = self.encoder2(x)
-        #    x = self.decoder2(x)
-        out = self.decoder(x)
-        return out
-    
-    def encode(self, input):
-        return self.encoder(input)
-    
-    def decode(self, input):
-        return self.decoder(input)
+        # encoder block features
+        self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        self.linear_enc_in = nn.Linear(input_dim, input_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(input_dim, output_dim)
+
+        # encoder block sequence
+        self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
+        self.linear_enc_in_seq = nn.Linear(sequence_length, sequence_length)
+        self.encoder_layer_seq = nn.TransformerEncoderLayer(d_model=sequence_length, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder_seq = nn.TransformerEncoder(self.encoder_layer_seq, num_layers=num_layers)
+        self.linear_enc_out_seq = nn.Linear(sequence_length, output_dim_2)
+
+        # decoder block sequence
+        self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
+        self.linear_dec_in_seq = nn.Linear(output_dim_2, output_dim_2)
+        self.decoder_layer_seq = nn.TransformerEncoderLayer(d_model=output_dim_2, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder_seq = nn.TransformerEncoder(self.decoder_layer_seq, num_layers=num_layers)
+        self.linear_dec_out_seq = nn.Linear(output_dim_2, sequence_length)
+
+        # decoder block features
+        self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        self.linear_dec_in = nn.Linear(output_dim, output_dim)
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=output_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
+        self.linear_dec_out = nn.Linear(output_dim, input_dim)
+
+        self.tanh = nn.Tanh()
+
+    def forward(self, data):
+        x = self.encode(data.to(self.device))
+        x = self.decode(x)
+        return x
+
+    def encode(self, data):
+        # encoder features
+        x = self.pe_enc(data)
+        x = self.linear_enc_in(x)
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)
+        x = self.tanh(x)
+
+        # encoder sequence
+        x = self.pe_enc_seq(x.permute(0, 2, 1))
+        x = self.linear_enc_in_seq(x)
+        x = self.encoder_seq(x)
+        x = self.linear_enc_out_seq(x)
+        x = self.tanh(x)
+        return x.permute(0, 2, 1)
+
+    def decode(self, encoded):
+        # decoder sequence
+        x = self.pe_dec_seq(encoded.permute(0, 2, 1))
+        x = self.linear_dec_in_seq(x)
+        x = self.decoder_seq(x)
+        x = self.linear_dec_out_seq(x)
+        x = self.tanh(x)
+
+        # decoder features
+        x = self.pe_dec(x.permute(0, 2, 1))
+        x = self.linear_dec_in(x)
+        x = self.decoder(x)
+        x = self.linear_dec_out(x)
+        x = self.tanh(x)
+        return x
+
+    def save(self, path):
+        path = '../trained_ae'
+        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
+        # torch.save(save, os.path.join(path, file))
 
 def train_model(model, dataloader, optimizer, criterion):
     model.train() #Sets it into training mode
@@ -453,15 +534,16 @@ def train_model(model, dataloader, optimizer, criterion):
         inputs = batch.float()
         
         #Move labels to the end of the time series
-        inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
+        #inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
+        #inputs = inputs[:,1:,:]
         #labels = inputs[:,0,:].unsqueeze(1)
         #inputs[:,:-1,:] = inputs[:,1:,:]
         #inputs[:,-1,:] = labels
         #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
         
         # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
-        outputs = model(inputs.permute(0,2,1).to(model.device)) # The model needs a reshape of the dataframe so time series is last dimension
-        loss = criterion(outputs[:,:-1,:], inputs[:,:-1,:])
+        outputs = model(inputs.to(model.device)) # The model needs a reshape of the dataframe so time series is last dimension
+        loss = criterion(outputs, inputs)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
@@ -473,10 +555,10 @@ def test_model(model, dataloader, criterion):
     with torch.no_grad():
         for batch in dataloader:
             inputs = batch.float()
-            inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
+            #inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
             #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
-            outputs = model(inputs.permute(0,2,1).to(model.device))
-            loss = criterion(outputs[:,:-1,:], inputs[:,:-1,:])
+            outputs = model(inputs.to(model.device))
+            loss = criterion(outputs, inputs)
             total_loss += loss.item()
     return total_loss / len(dataloader)
 
