@@ -1,3 +1,4 @@
+import os
 import torch
 from matplotlib import pyplot as plt
 import torchaudio.functional as taf
@@ -442,7 +443,60 @@ class TransformerGenerator2(nn.Module):
         data[mask_index] = mask
         return data
     
-#### Autoencoder ####
+#### Autoencoders ####
+class TransformerAutoencoder(nn.Module):
+    def __init__(self, input_dim, output_dim, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerAutoencoder, self).__init__()
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
+
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        self.linear_enc_in = nn.Linear(input_dim, input_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(input_dim, output_dim)
+
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        self.linear_dec_in = nn.Linear(output_dim, output_dim)
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=output_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
+        self.linear_dec_out = nn.Linear(output_dim, input_dim)
+
+        self.tanh = nn.Tanh()
+
+    def forward(self, data):
+        x = self.encode(data.to(self.device))
+        x = self.decode(x)
+        return x
+
+    def encode(self, data):
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x)
+        x = self.linear_enc_in(data)
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)
+        x = self.tanh(x)
+        return x
+
+    def decode(self, encoded):
+        #x = self.pe_dec(encoded)
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(encoded)
+        x = self.decoder(x)
+        x = self.linear_dec_out(x)
+        x = self.tanh(x)
+        return x
+
+    def save(self, path):
+        path = '../trained_ae'
+        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
+        # torch.save(save, os.path.join(path, file))
+        
 class TransformerDoubleAutoencoder(nn.Module):
     def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
         super(TransformerDoubleAutoencoder, self).__init__()
@@ -458,28 +512,28 @@ class TransformerDoubleAutoencoder(nn.Module):
         self.dropout = dropout
 
         # encoder block features
-        self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
         self.linear_enc_in = nn.Linear(input_dim, input_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(input_dim, output_dim)
 
         # encoder block sequence
-        self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
+        #self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
         self.linear_enc_in_seq = nn.Linear(sequence_length, sequence_length)
         self.encoder_layer_seq = nn.TransformerEncoderLayer(d_model=sequence_length, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.encoder_seq = nn.TransformerEncoder(self.encoder_layer_seq, num_layers=num_layers)
         self.linear_enc_out_seq = nn.Linear(sequence_length, output_dim_2)
 
         # decoder block sequence
-        self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
+        #self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
         self.linear_dec_in_seq = nn.Linear(output_dim_2, output_dim_2)
         self.decoder_layer_seq = nn.TransformerEncoderLayer(d_model=output_dim_2, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.decoder_seq = nn.TransformerEncoder(self.decoder_layer_seq, num_layers=num_layers)
         self.linear_dec_out_seq = nn.Linear(output_dim_2, sequence_length)
 
         # decoder block features
-        self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
         self.linear_dec_in = nn.Linear(output_dim, output_dim)
         self.decoder_layer = nn.TransformerEncoderLayer(d_model=output_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
@@ -494,15 +548,17 @@ class TransformerDoubleAutoencoder(nn.Module):
 
     def encode(self, data):
         # encoder features
-        x = self.pe_enc(data)
-        x = self.linear_enc_in(x)
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x)
+        x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
         x = self.tanh(x)
 
         # encoder sequence
-        x = self.pe_enc_seq(x.permute(0, 2, 1))
-        x = self.linear_enc_in_seq(x)
+        #x = self.pe_enc_seq(x.permute(0, 2, 1))
+        #x = self.linear_enc_in_seq(x)
+        x = self.linear_enc_in_seq(x.permute(0, 2, 1))
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
         x = self.tanh(x)
@@ -510,15 +566,17 @@ class TransformerDoubleAutoencoder(nn.Module):
 
     def decode(self, encoded):
         # decoder sequence
-        x = self.pe_dec_seq(encoded.permute(0, 2, 1))
-        x = self.linear_dec_in_seq(x)
+        #x = self.pe_dec_seq(encoded.permute(0, 2, 1))
+        #x = self.linear_dec_in_seq(x)
+        x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
         x = self.decoder_seq(x)
         x = self.linear_dec_out_seq(x)
         x = self.tanh(x)
 
         # decoder features
-        x = self.pe_dec(x.permute(0, 2, 1))
-        x = self.linear_dec_in(x)
+        #x = self.pe_dec(x.permute(0, 2, 1))
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(x.permute(0, 2, 1))
         x = self.decoder(x)
         x = self.linear_dec_out(x)
         x = self.tanh(x)
@@ -528,7 +586,7 @@ class TransformerDoubleAutoencoder(nn.Module):
         path = '../trained_ae'
         file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
         # torch.save(save, os.path.join(path, file))
-
+        
 def train_model(model, dataloader, optimizer, criterion):
     model.train() #Sets it into training mode
     total_loss = 0
@@ -575,19 +633,27 @@ def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, crite
             train_losses.append(train_loss)
             test_losses.append(test_loss)
             print(f"Epoch {epoch + 1}/{num_epochs}: train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
-            #TEMPORARY SAVING
-            if epoch % 100 == 0:
-                time_in = str(time.time()).split('.')[0]
-                torch.save(model,f'trained_ae/ae_n{str(epoch)}_{time_in}.pth')
+            save_checkpoint(model, epoch, 100)
         return train_losses, test_losses, model
     except KeyboardInterrupt:
         # save model at KeyboardInterrupt
         print("keyboard interrupt detected.")
-        if configuration is not None:
-            print("Configuration found.")
-            configuration["model"]["state_dict"] = model.state_dict()  # update model's state dict
-            save(configuration, configuration["general"]["default_save_path"])
+        return train_losses, test_losses, model
 
-def save(configuration, path):
-    torch.save(configuration, path)
-    print("Saved model and configuration to " + path)
+def save_checkpoint(model, epoch, criterion = 100):
+    if (epoch+1) % criterion == 0:
+        if not os.path.isfile('trained_ae/checkpoint_01.pth'):
+            torch.save(model,'trained_ae/checkpoint_01.pth')
+            if os.path.isfile('trained_ae/checkpoint_02.pth'):
+                os.remove('trained_ae/checkpoint_02.pth') 
+        else: 
+            torch.save(model,'trained_ae/checkpoint_02.pth')
+            os.remove('trained_ae/checkpoint_01.pth') 
+            
+def save(model, file, path = 'trained_ae'):
+    torch.save(model, os.path.join(path, file))
+    print("Saved model and configuration to " + os.path.join(path, file))
+    if os.path.isfile('trained_ae/checkpoint_01.pth'):
+        os.remove('trained_ae/checkpoint_01.pth')
+    if os.path.isfile('trained_ae/checkpoint_02.pth'):
+        os.remove('trained_ae/checkpoint_02.pth')

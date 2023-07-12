@@ -1,29 +1,54 @@
 # train an autoencoder with attention mechanism for multivariate time series
-import os.path
-
+import time
 import numpy as np
 from matplotlib import pyplot as plt
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from nn_architecture.models import TransformerDoubleAutoencoder, train, save
-from helpers.dataloader import Dataloader
-import time
 
-if __name__ == '__main__':
+from nn_architecture.models import TransformerAutoencoder, TransformerDoubleAutoencoder, train, save
+from helpers.dataloader import Dataloader
+from helpers import system_inputs
+
+def main():
+
+    #default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
 
     #User inputs
-    filename = "data/gansMultiCondition.csv"
-    num_conditions = 1
-    num_epochs = 4000
+    '''
+    file = default_args['file'] #"data/gansMultiCondition.csv"
+    num_epochs = default_args['num_epochs'] #4000
+    conditions = default_args['conditions'] #['Condition']
+    channel_label = default_args['channel_label'] #['Electrode']
+    num_conditions = len(conditions)    
+    timeseries_out = default_args['timeseries_out'] #10
+    channel_out = default_args['channels_out'] #2
+    batch_size = default_args['batch_size'] #32
+    '''
+    
+    file = 'data/gansMultiCondition.csv'
+    target = 'full' #'channels', 'timeseries' (not implemented yet), or 'both'
+    num_epochs = 4
+    conditions = 'Condition'
+    channel_label = 'Electrode'
+    num_conditions = 1   
+    timeseries_out = 10
+    channel_out = 6
+    batch_size = 32
 
     #Setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    
+    #Scale function
+    def scale(dataset):
+        x_min, x_max = dataset.min(), dataset.max()
+        return (dataset-x_min)/(x_max-x_min)
+        
     #Load and process data
-    data = Dataloader(filename, col_label='Condition', channel_label='Electrode')
+    data = Dataloader(file, col_label=conditions, channel_label=channel_label)
     dataset = data.get_data()
-    dataset = dataset[:,1:,:].to(device) #Remove labels
+    dataset = dataset[:,num_conditions:,:].to(device) #Remove labels
+    dataset = scale(dataset)
     
     #DEBUG: Pairing down to one electrode to see if it trains better. If this is still here, remove it.
     #dataset = dataset[:,:,0].unsqueeze(2)
@@ -41,34 +66,24 @@ if __name__ == '__main__':
         return test, train
 
     #Determine input_dim, output_dim, and seq_length
-    input_dim = dataset.shape[1]#-num_conditions
-    timeseries_out = 10 #The time-series size in the encoded layer (TODO: Turn this into a parameter)
+    input_dim = dataset.shape[1] #-num_conditions
     seq_length = dataset.shape[-1]
-    channel_out = 2 #6 (2 for now as I am testing with 2 channels)
     
-    '''
-    #No longer needed:
-    #Adjust inputs and outputs to include labels and ensure they are even sizes
-    input_dim = input_dim + 1 #opt['n_conditions']
-    output_dim = output_dim + 1 #opt['n_conditions']
-    # make sure latent_dim_in is even; constraint of positional encoding in TransformerGenerator
-    
-    if input_dim % 2 != 0:
-        dataset = torch.cat((dataset, torch.zeros(dataset.shape[0],1,dataset.shape[2])), dim=1) #Pad data with zeros
-        input_dim += 1
-        
-    if output_dim % 2 != 0:
-        output_dim +=1
-    '''
-        
     #Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset)
-    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         
     #Initiate autoencoder
-    model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) #output_dim = desired CHANNEL dim, output_dim_2= desired TIMESERIES dim
-    
+    if target == 'channels':
+        model = TransformerAutoencoder(input_dim=seq_length, output_dim=channel_out).to(device)
+    elif target == 'timeseries':
+        raise ValueError("Timeseries encoding target is not yet implemented")
+    elif target == 'full':
+        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
+    else:
+        raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
+
     #Training parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
@@ -76,12 +91,9 @@ if __name__ == '__main__':
     train_loss, test_loss, model = train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
 
     #Save model
-    save_name = filename.split('/')[-1].split('.csv')[0]
-    current_time = str(time.time()).split('.')[0]
-    save(model, f'trained_ae/ae_{save_name}_{current_time}.pth')
-
-    #Functionality
-    # my_new_latent = model.encode(my_new_data)
-    #my_new_decoded = model.decode(my_new_latent)
-
-# 
+    if model: 
+        fn = file.split('/')[-1].split('.csv')[0]
+        save(model, f"ae__{fn}__{target}_nepochs{str(num_epochs)}_{str(time.time()).split('.')[0]}.pth")
+    
+if __name__ == "__main__":
+    main()
