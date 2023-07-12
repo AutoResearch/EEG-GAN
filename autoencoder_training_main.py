@@ -27,13 +27,14 @@ def main():
     '''
     
     file = 'data/gansMultiCondition.csv'
+    path_checkpoint = 'trained_ae/ae_gansMultiCondition_both_nepochs4.pth'
     target = 'full' #'channels', 'timeseries' (not implemented yet), or 'both'
-    num_epochs = 4
+    n_epochs = 4
     conditions = 'Condition'
     channel_label = 'Electrode'
     num_conditions = 1   
     timeseries_out = 10
-    channel_out = 6
+    channel_outs = 6
     batch_size = 32
 
     #Setup
@@ -75,25 +76,27 @@ def main():
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         
     #Initiate autoencoder
-    if target == 'channels':
-        model = TransformerAutoencoder(input_dim=seq_length, output_dim=channel_out).to(device)
+    if path_checkpoint:
+        model = torch.load(path_checkpoint)
+    elif target == 'channels':
+        model = TransformerAutoencoder(input_dim=seq_length, output_dim=channel_outs).to(device)
     elif target == 'timeseries':
         raise ValueError("Timeseries encoding target is not yet implemented")
     elif target == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
+        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_outs, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
-
+    
     #Training parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
 
-    train_loss, test_loss, model = train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
+    train_loss, test_loss, model = train(n_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
 
     #Save model
     if model: 
         fn = file.split('/')[-1].split('.csv')[0]
-        save(model, f"ae__{fn}__{target}_nepochs{str(num_epochs)}_{str(time.time()).split('.')[0]}.pth")
+        save(model, f"ae__{fn}__{target}_nepochs{str(n_epochs)}_{str(time.time()).split('.')[0]}.pth")
     
 if __name__ == "__main__":
     main()
