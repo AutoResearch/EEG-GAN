@@ -15,12 +15,15 @@ if __name__ == '__main__':
     #User inputs
     filename = "data/gansMultiCondition.csv"
     num_conditions = 1
-    num_epochs = 500
+    num_epochs = 4000
+
+    #Setup
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     #Load and process data
     data = Dataloader(filename, col_label='Condition', channel_label='Electrode')
     dataset = data.get_data()
-    dataset = dataset[:,1:,:] #Remove labels
+    dataset = dataset[:,1:,:].to(device) #Remove labels
     
     #DEBUG: Pairing down to one electrode to see if it trains better. If this is still here, remove it.
     #dataset = dataset[:,:,0].unsqueeze(2)
@@ -39,9 +42,9 @@ if __name__ == '__main__':
 
     #Determine input_dim, output_dim, and seq_length
     input_dim = dataset.shape[1]#-num_conditions
-    output_dim = 10 #The time-series size in the encoded layer (TODO: Turn this into a parameter)
+    timeseries_out = 10 #The time-series size in the encoded layer (TODO: Turn this into a parameter)
     seq_length = dataset.shape[-1]
-    output_dim_2 = 6
+    channel_out = 2 #6 (2 for now as I am testing with 2 channels)
     
     '''
     #No longer needed:
@@ -61,10 +64,10 @@ if __name__ == '__main__':
     #Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)    
+    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
         
     #Initiate autoencoder
-    model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=output_dim, sequence_length=input_dim, output_dim_2=output_dim_2)
+    model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) #output_dim = desired CHANNEL dim, output_dim_2= desired TIMESERIES dim
     
     #Training parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)

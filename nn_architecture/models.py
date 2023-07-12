@@ -4,9 +4,10 @@ import torchaudio.functional as taf
 from torch import nn
 from scipy import signal
 import numpy as np
+import pandas as pd
 from nn_architecture.ttsgan_components import *
 from typing import Optional
-
+import time
 
 # insert here all different kinds of generators and discriminators
 
@@ -319,6 +320,8 @@ class PositionalEncoder(nn.Module):
 
         super().__init__()
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.d_model = d_model
 
         self.dropout = nn.Dropout(p=dropout)
@@ -542,7 +545,7 @@ def train_model(model, dataloader, optimizer, criterion):
         #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
         
         # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
-        outputs = model(inputs.to(model.device)) # The model needs a reshape of the dataframe so time series is last dimension
+        outputs = model(inputs) # The model needs a reshape of the dataframe so time series is last dimension
         loss = criterion(outputs, inputs)
         loss.backward()
         optimizer.step()
@@ -557,7 +560,7 @@ def test_model(model, dataloader, criterion):
             inputs = batch.float()
             #inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
             #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
-            outputs = model(inputs.to(model.device))
+            outputs = model(inputs)
             loss = criterion(outputs, inputs)
             total_loss += loss.item()
     return total_loss / len(dataloader)
@@ -572,6 +575,10 @@ def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, crite
             train_losses.append(train_loss)
             test_losses.append(test_loss)
             print(f"Epoch {epoch + 1}/{num_epochs}: train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
+            #TEMPORARY SAVING
+            if epoch % 100 == 0:
+                time_in = str(time.time()).split('.')[0]
+                torch.save(model,f'trained_ae/ae_n{str(epoch)}_{time_in}.pth')
         return train_losses, test_losses, model
     except KeyboardInterrupt:
         # save model at KeyboardInterrupt
