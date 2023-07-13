@@ -451,7 +451,106 @@ class TransformerAutoencoder(nn.Module):
         path = '../trained_ae'
         file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
         # torch.save(save, os.path.join(path, file))
+
+
+class TransformerFlattenAutoencoder(nn.Module):
+    def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerFlattenAutoencoder, self).__init__()
         
+        # adjust parameters for flattening
+        self.orig_input_dim = input_dim
+        self.orig_sequence_length = sequence_length
+        sequence_length = sequence_length*input_dim
+        output_dim_2 = output_dim_2*output_dim
+        input_dim = 1
+        output_dim = 1
+        
+        # parameters
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
+        
+        # encoder block features
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        self.linear_enc_in = nn.Linear(input_dim, input_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=1, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(input_dim, output_dim)
+
+        # encoder block sequence
+        #self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
+        self.linear_enc_in_seq = nn.Linear(sequence_length, sequence_length)
+        self.encoder_layer_seq = nn.TransformerEncoderLayer(d_model=sequence_length, nhead=1, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder_seq = nn.TransformerEncoder(self.encoder_layer_seq, num_layers=num_layers)
+        self.linear_enc_out_seq = nn.Linear(sequence_length, output_dim_2)
+
+        # decoder block sequence
+        #self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
+        self.linear_dec_in_seq = nn.Linear(output_dim_2, output_dim_2)
+        self.decoder_layer_seq = nn.TransformerEncoderLayer(d_model=output_dim_2, nhead=1, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder_seq = nn.TransformerEncoder(self.decoder_layer_seq, num_layers=num_layers)
+        self.linear_dec_out_seq = nn.Linear(output_dim_2, sequence_length)
+
+        # decoder block features
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        self.linear_dec_in = nn.Linear(output_dim, output_dim)
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=output_dim, nhead=1, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
+        self.linear_dec_out = nn.Linear(output_dim, input_dim)
+
+        self.tanh = nn.Tanh()
+
+    def forward(self, data):
+        x = self.encode(data.to(self.device))
+        x = self.decode(x)
+        return x
+
+    def encode(self, data):
+        data = data.reshape(data.shape[0],-1).unsqueeze(2)
+        # encoder features
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x)
+        x = self.linear_enc_in(data)
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)
+        x = self.tanh(x)
+
+        # encoder sequence
+        #x = self.pe_enc_seq(x.permute(0, 2, 1))
+        #x = self.linear_enc_in_seq(x)
+        x = self.linear_enc_in_seq(x.permute(0, 2, 1))
+        x = self.encoder_seq(x)
+        x = self.linear_enc_out_seq(x)
+        x = self.tanh(x)
+        return x.permute(0, 2, 1)
+
+    def decode(self, encoded):
+        # decoder sequence
+        #x = self.pe_dec_seq(encoded.permute(0, 2, 1))
+        #x = self.linear_dec_in_seq(x)
+        x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
+        x = self.decoder_seq(x)
+        x = self.linear_dec_out_seq(x)
+        x = self.tanh(x)
+
+        # decoder features
+        #x = self.pe_dec(x.permute(0, 2, 1))
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(x.permute(0, 2, 1))
+        x = self.decoder(x)
+        x = self.linear_dec_out(x)
+        x = self.tanh(x)
+        x = x.reshape(x.shape[0],self.orig_sequence_length,self.orig_input_dim)
+        return x
+
+    def save(self, path):
+        path = '../trained_ae'
+        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
+        # torch.save(save, os.path.join(path, file))
+
 class TransformerDoubleAutoencoder(nn.Module):
     def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
         super(TransformerDoubleAutoencoder, self).__init__()
@@ -463,7 +562,7 @@ class TransformerDoubleAutoencoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.dropout = dropout
-
+        
         # encoder block features
         #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
         self.linear_enc_in = nn.Linear(input_dim, input_dim)
@@ -539,7 +638,7 @@ class TransformerDoubleAutoencoder(nn.Module):
         path = '../trained_ae'
         file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
         # torch.save(save, os.path.join(path, file))
-        
+         
 def train_model(model, dataloader, optimizer, criterion):
     model.train() #Sets it into training mode
     total_loss = 0

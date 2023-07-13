@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from nn_architecture.models import TransformerAutoencoder, TransformerDoubleAutoencoder, train, save
+from nn_architecture.models import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 
@@ -81,6 +81,8 @@ def main():
         target = model.config['target']
         channels_out = model.config['channels_out']
         timeseries_out = model.config['timeseries_out']
+        
+        #Report changes to user
         print(f"Loading model {path_checkpoint}. \n\nInhereting the following parameters:")
         print(f"Target: {target}")
         if (target == 'channels') | (target == 'full'):
@@ -93,7 +95,7 @@ def main():
     elif target == 'timeseries':
         raise ValueError("Timeseries encoding target is not yet implemented")
     elif target == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channels_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
+        model = TransformerFlattenAutoencoder(input_dim=seq_length, output_dim=channels_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
