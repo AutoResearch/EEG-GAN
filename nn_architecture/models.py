@@ -557,11 +557,11 @@ def test_model(model, dataloader, criterion):
     model.eval()
     total_loss = 0
     with torch.no_grad():
-        for batch in dataloader.dataset[np.random.randint(0, len(dataloader), dataloader.batch_size)].unsqueeze(0):
-            inputs = batch.float()
-            outputs = model(inputs)
-            loss = criterion(outputs, inputs)
-            total_loss += loss.item()
+        batch = dataloader.dataset[np.random.randint(0, len(dataloader), dataloader.batch_size)]
+        inputs = batch.float()
+        outputs = model(inputs)
+        loss = criterion(outputs, inputs)
+        total_loss += loss.item()
     return total_loss / len(dataloader)
 
 def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion, configuration: Optional[dict] = None):
