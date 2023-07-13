@@ -39,24 +39,6 @@ def main():
         x_min, x_max = dataset.min(), dataset.max()
         return (dataset-x_min)/(x_max-x_min)
         
-    #Load and process data
-    print('\n\n|------------------------------------------------|')
-    print('                  Configuration')
-    print('|------------------------------------------------|\n')
-    print(f"Loading file: {file}")
-    if path_checkpoint == None:
-        print(f"Target: {target}")
-        if (target =='channels') | (target == 'full'):
-            print(f"Encoding channel size: {channels_out}")
-        if (target =='timeseries') | (target == 'full'):
-            print(f"Encoding timeseries size: {timeseries_out}")
-    else:
-        print(f'Loading model: {path_checkpoint}')
-    print(f"Condition labels: {conditions}")
-    print(f"Electrode label: {channel_label}")
-    print(f"Epochs: {n_epochs}")    
-    print('\n|------------------------------------------------|\n')
-    
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
@@ -102,6 +84,21 @@ def main():
         model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channels_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
+
+    #Populate model configuration
+    config = {
+        "file" : file,
+        "path_checkpoint" : path_checkpoint,
+        "save_name" : save_name,
+        "target" : target,
+        "conditions" : conditions,
+        "channel_label" : channel_label,
+        "channels_out" : channels_out,
+        "timeseries_out" : timeseries_out,
+        "n_epochs" : n_epochs,
+        "batch_size" : batch_size,
+    }
+    model.config = config
 
     #Training parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
