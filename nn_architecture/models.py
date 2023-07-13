@@ -1,14 +1,10 @@
 import os
 import torch
-from matplotlib import pyplot as plt
 import torchaudio.functional as taf
 from torch import nn
-from scipy import signal
-import numpy as np
 import pandas as pd
 from nn_architecture.ttsgan_components import *
 from typing import Optional
-import time
 
 # insert here all different kinds of generators and discriminators
 
@@ -368,19 +364,6 @@ class TransformerGenerator2(nn.Module):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        '''
-        #NEW FROM DANIEL'S TTS-REFACTORING
-        self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
-        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
-        # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
-                                                        dropout=dropout, batch_first=True)
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
-        self.act_out = nn.Tanh()
-        
-        '''
-        #ORIGINAL FROM MAIN
         self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
         # self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
         self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
@@ -389,53 +372,22 @@ class TransformerGenerator2(nn.Module):
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
         self.tanh = nn.Tanh()
-        
 
         # TODO: Put it in autoencoder
         # self.decoder = decoder if decoder is not None else nn.Identity()
         # for param in self.decoder.parameters():
         #    param.requires_grad = False
 
-    '''
-    #NEW FROM DANIEL'S TTS-REFACTORING
-    def forward(self,data):
-        #x = self.pe(data)
-        x = self.pe(data)
-        x = self.linear_enc_in(x) #[0] --> only for lstm
-        x = self.encoder(x)
-        x = self.act_out(self.linear_enc_out(x)[:, -1]).reshape(-1, self.seq_len, self.channels)
-        
-        return x
-    '''    
-    
-    '''
-    #ORIGINAL FROM MAIN
     def forward(self, data):
         x = self.pe(data.to(self.device))
         x = self.linear_enc_in(x)[0]
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
         x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
-        #x = self.mask(x, data[:, :, self.latent_dim:]) #TODO: DANIEL, check this change but it should be self.num_channels
-        x = self.tanh(x)
-        #x = torch.cat((x, data[:, :, self.latent_dim:]), dim=1)
-        # x = self.decoder(x)
-        return x  # .unsqueeze(2).permute(0, 3, 2, 1)
-    '''
-    
-    
-    #MY ADAPTED VERSION
-    def forward(self, data):
-        x = self.pe(data.to(self.device))
-        x = self.linear_enc_in(x)[0]
-        x = self.encoder(x)
-        x = self.linear_enc_out(x)[:, -1].reshape(-1, self.seq_len, self.channels)
-        #x = self.mask(x, data[:, :, self.latent_dim - self.channels:].diff(dim=1))
-        x = self.mask(x, data[:, :, self.latent_dim - self.channels:]) #TODO: DANIEL, check this change but it should be self.num_channels
         x = self.tanh(x)
         # x = self.decoder(x)
         return x  # .unsqueeze(2).permute(0, 3, 2, 1)
-    
+
     def mask(self, data, data_ref, mask=0):
         # mask predictions if ALL preceding values (axis=sequence) were 'mask'
         # return indices to mask
@@ -443,7 +395,10 @@ class TransformerGenerator2(nn.Module):
         data[mask_index] = mask
         return data
     
-#### Autoencoders ####
+# ----------------------------------------------------------------------------------------------------------------------
+# Autoencoders
+# ----------------------------------------------------------------------------------------------------------------------
+
 class TransformerAutoencoder(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
         super(TransformerAutoencoder, self).__init__()
@@ -500,10 +455,8 @@ class TransformerAutoencoder(nn.Module):
 class TransformerDoubleAutoencoder(nn.Module):
     def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
         super(TransformerDoubleAutoencoder, self).__init__()
-
-        #output_dim: encoded CHANNEL dimension
-        #output_dim_2: endoded TIMESERIES dimension
         
+        # parameters
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -593,17 +546,7 @@ def train_model(model, dataloader, optimizer, criterion):
     for batch in dataloader:
         optimizer.zero_grad()
         inputs = batch.float()
-        
-        #Move labels to the end of the time series
-        #inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
-        #inputs = inputs[:,1:,:]
-        #labels = inputs[:,0,:].unsqueeze(1)
-        #inputs[:,:-1,:] = inputs[:,1:,:]
-        #inputs[:,-1,:] = labels
-        #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
-        
-        # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
-        outputs = model(inputs) # The model needs a reshape of the dataframe so time series is last dimension
+        outputs = model(inputs)
         loss = criterion(outputs, inputs)
         loss.backward()
         optimizer.step()
@@ -616,8 +559,6 @@ def test_model(model, dataloader, criterion):
     with torch.no_grad():
         for batch in dataloader:
             inputs = batch.float()
-            #inputs = torch.cat((torch.index_select(inputs, 1, torch.LongTensor(torch.arange(1,inputs.shape[1]))), torch.index_select(inputs, 1, torch.LongTensor([0]))), dim=1)
-            #inputs = inputs[:,(batch.shape[1]-model.input_dim):,:] #Cut out labels and keep time series
             outputs = model(inputs)
             loss = criterion(outputs, inputs)
             total_loss += loss.item()

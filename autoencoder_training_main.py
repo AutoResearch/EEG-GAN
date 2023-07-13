@@ -12,6 +12,11 @@ from helpers import system_inputs
 
 def main():
 
+
+    # ----------------------------------------------------------------------------------------------------------------------
+    # Configure training parameters
+    # ----------------------------------------------------------------------------------------------------------------------
+
     #default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
 
     #User inputs
@@ -26,15 +31,16 @@ def main():
     batch_size = default_args['batch_size'] #32
     '''
     
-    file = 'data/gansMultiCondition.csv'
-    path_checkpoint = 'trained_ae/ae_gansMultiCondition_both_nepochs4.pth'
-    target = 'full' #'channels', 'timeseries' (not implemented yet), or 'both'
-    n_epochs = 4
-    conditions = 'Condition'
+    file = 'data/gansCarpenterTraining_e18.csv'
+    path_checkpoint = 'trained_ae/ae__gansCarpenterTraining_e18__full_nepochs3000_1689263110.pth'
+    save_name = None
+    target = 'channels' #'channels', 'timeseries' (not implemented yet), or 'full'
+    num_epochs = 1000
+    conditions = 'Outcome'
     channel_label = 'Electrode'
     num_conditions = 1   
     timeseries_out = 10
-    channel_outs = 6
+    channel_out = 2
     batch_size = 32
 
     #Setup
@@ -46,13 +52,30 @@ def main():
         return (dataset-x_min)/(x_max-x_min)
         
     #Load and process data
+    print('\n\n|------------------------------------------------|')
+    print("                  Configuration")
+    print('|------------------------------------------------|\n')
+    print(f"Loading file: {file}")
+    if path_checkpoint == None:
+        print(f"Target: {target}")
+        print(f"Encoding channel size: {channel_out}")
+        if (target =='timeseries') | (target == 'full'):
+            print(f"Encoding timeseries sze: {timeseries_out}")
+    else:
+        print(f'Loading model: {path_checkpoint}')
+    print(f"Condition labels: {conditions}")
+    print(f"Electrode label: {channel_label}")
+    print(f"Epochs: {num_epochs}")    
+    print('\n|------------------------------------------------|\n')
+    
+    # ----------------------------------------------------------------------------------------------------------------------
+    # Load, process, and split data
+    # ----------------------------------------------------------------------------------------------------------------------
+
     data = Dataloader(file, col_label=conditions, channel_label=channel_label)
     dataset = data.get_data()
     dataset = dataset[:,num_conditions:,:].to(device) #Remove labels
     dataset = scale(dataset)
-    
-    #DEBUG: Pairing down to one electrode to see if it trains better. If this is still here, remove it.
-    #dataset = dataset[:,:,0].unsqueeze(2)
     
     #Split data function
     def split_data(dataset, test_size=.3):
@@ -75,28 +98,40 @@ def main():
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         
+    # ----------------------------------------------------------------------------------------------------------------------
+    # Initiate and train autoencoder
+    # ----------------------------------------------------------------------------------------------------------------------
+
     #Initiate autoencoder
     if path_checkpoint:
         model = torch.load(path_checkpoint)
     elif target == 'channels':
-        model = TransformerAutoencoder(input_dim=seq_length, output_dim=channel_outs).to(device)
+        model = TransformerAutoencoder(input_dim=seq_length, output_dim=channel_out).to(device)
     elif target == 'timeseries':
         raise ValueError("Timeseries encoding target is not yet implemented")
     elif target == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_outs, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
+        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channel_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
-    
+
     #Training parameters
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     criterion = nn.MSELoss()
 
-    train_loss, test_loss, model = train(n_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
+    train_loss, test_loss, model = train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
+
+    # ----------------------------------------------------------------------------------------------------------------------
+    # Save autoencoder
+    # ----------------------------------------------------------------------------------------------------------------------
 
     #Save model
     if model: 
-        fn = file.split('/')[-1].split('.csv')[0]
-        save(model, f"ae__{fn}__{target}_nepochs{str(n_epochs)}_{str(time.time()).split('.')[0]}.pth")
+        if save_name == None:
+            fn = file.split('/')[-1].split('.csv')[0]
+            save(model, f"ae__{fn}__{target}_nepochs{str(num_epochs)}_{str(time.time()).split('.')[0]}.pth")
+        else:
+            save(model, save_name)
+        
     
 if __name__ == "__main__":
     main()
