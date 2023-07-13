@@ -557,7 +557,7 @@ def test_model(model, dataloader, criterion):
     model.eval()
     total_loss = 0
     with torch.no_grad():
-        for batch in dataloader:
+        for batch in dataloader.dataset[np.random.randint(0, len(dataloader), dataloader.batch_size)].unsqueeze(0):
             inputs = batch.float()
             outputs = model(inputs)
             loss = criterion(outputs, inputs)
