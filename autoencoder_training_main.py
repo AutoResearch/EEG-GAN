@@ -95,7 +95,7 @@ def main():
     elif target == 'timeseries':
         raise ValueError("Timeseries encoding target is not yet implemented")
     elif target == 'full':
-        model = TransformerFlattenAutoencoder(input_dim=seq_length, output_dim=channels_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
+        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channels_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
