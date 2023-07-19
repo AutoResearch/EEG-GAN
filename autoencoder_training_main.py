@@ -63,8 +63,8 @@ def main():
         return test, train
 
     #Determine input_dim, output_dim, and seq_length
-    input_dim = dataset.shape[1] #-num_conditions
-    seq_length = dataset.shape[-1]
+    input_dim = dataset.shape[-1]
+    seq_length = dataset.shape[1]
     
     #Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset)
@@ -91,11 +91,11 @@ def main():
             print(f"timeseries_out: {timeseries_out}")
             print('-----------------------------------\n')
     elif target == 'channels':
-        model = TransformerAutoencoder(input_dim=seq_length, output_dim=channels_out).to(device)
+        model = TransformerAutoencoder(input_dim=input_dim, output_dim=channels_out).to(device)
     elif target == 'timeseries':
         raise ValueError("Timeseries encoding target is not yet implemented")
     elif target == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=seq_length, output_dim=channels_out, sequence_length=input_dim, output_dim_2=timeseries_out).to(device) 
+        model = TransformerFlattenAutoencoder(input_dim=input_dim, sequence_length=seq_length, output_dim=channels_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
