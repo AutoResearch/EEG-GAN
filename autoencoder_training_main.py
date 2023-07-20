@@ -101,20 +101,32 @@ def main():
 
     #Populate model configuration
     config = {
-        "file" : file,
+        "file" : [file],
         "path_checkpoint" : path_checkpoint,
         "save_name" : save_name,
         "target" : target,
-        "conditions" : conditions,
-        "channel_label" : channel_label,
+        "conditions" : [conditions],
+        "channel_label" : [channel_label],
         "channels_out" : channels_out,
         "timeseries_out" : timeseries_out,
         "n_epochs" : [n_epochs],
         "batch_size" : [batch_size],
-        "trained_epochs": 0,
+        "trained_epochs": [0],
     }
     
     if path_checkpoint:
+        model_file = copy.deepcopy(model.config['file'])
+        model_file.append(file)
+        config['file'] = model_file
+        
+        model_conditions = copy.deepcopy(model.config['conditions'])
+        model_conditions.append(conditions)
+        config['conditions'] = model_conditions
+        
+        model_channel_label = copy.deepcopy(model.config['channel_label'])
+        model_channel_label.append(channel_label)
+        config['channel_label'] = model_channel_label
+        
         model_nepochs = copy.deepcopy(model.config['n_epochs'])
         model_nepochs.append(n_epochs)
         config['n_epochs'] = model_nepochs
@@ -122,8 +134,10 @@ def main():
         model_batch = copy.deepcopy(model.config['batch_size'])
         model_batch.append(batch_size)
         config['batch_size'] = model_batch  
-
-        config['trained_epochs'] = model.config['trained_epochs']
+        
+        model_trained = copy.deepcopy(model.config['trained_epochs'])
+        model_trained.append(0)
+        config['trained_epochs'] = model_trained
   
     model.config = config
 

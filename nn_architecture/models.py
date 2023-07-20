@@ -672,8 +672,8 @@ def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, crite
             test_loss = test_model(model, test_dataloader, criterion)
             train_losses.append(train_loss)
             test_losses.append(test_loss)
-            model.config['trained_epochs'] += 1
-            print(f"Epoch {epoch + 1}/{num_epochs} (Model Total: {str(model.config['trained_epochs'])}): train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
+            model.config['trained_epochs'][-1] += 1
+            print(f"Epoch {epoch + 1}/{num_epochs} (Model Total: {str(sum(model.config['trained_epochs']))}): train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
             save_checkpoint(model, epoch, 100)
         return train_losses, test_losses, model
     except KeyboardInterrupt:
