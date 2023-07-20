@@ -77,10 +77,12 @@ def main():
 
     #Initiate autoencoder
     if path_checkpoint:
-        model = torch.load(path_checkpoint)
-        target = model.config['target']
-        channels_out = model.config['channels_out']
-        timeseries_out = model.config['timeseries_out']
+        model_dict = torch.load(path_checkpoint)
+        model_state = model_dict['state_dict']
+        
+        target = model_dict['config']['target']
+        channels_out = model_dict['config']['channels_out']
+        timeseries_out = model_dict['config']['timeseries_out']
         
         #Report changes to user
         print(f"Loading model {path_checkpoint}. \n\nInhereting the following parameters:")
@@ -90,15 +92,20 @@ def main():
         if (target == 'timeseries') | (target == 'full'):
             print(f"timeseries_out: {timeseries_out}")
             print('-----------------------------------\n')
-    elif target == 'channels':
+            
+    if target == 'channels':
         model = TransformerAutoencoder(input_dim=input_dim, output_dim=channels_out).to(device)
     elif target == 'timeseries':
         raise ValueError("Timeseries encoding target is not yet implemented")
     elif target == 'full':
-        model = TransformerFlattenAutoencoder(input_dim=input_dim, sequence_length=seq_length, output_dim=channels_out).to(device) 
+        #model = TransformerFlattenAutoencoder(input_dim=input_dim, sequence_length=seq_length, output_dim=channels_out).to(device) 
+        model = TransformerDoubleAutoencoder(input_dim=input_dim, output_dim=channels_out, sequence_length=seq_length , output_dim_2=timeseries_out).to(device) 
     else:
         raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
+    if path_checkpoint:
+        model.load_state_dict(model_state)
+        
     #Populate model configuration
     config = {
         "file" : [file],
@@ -115,27 +122,27 @@ def main():
     }
     
     if path_checkpoint:
-        model_file = copy.deepcopy(model.config['file'])
+        model_file = copy.deepcopy(model_dict['config']['file'])
         model_file.append(file)
         config['file'] = model_file
         
-        model_conditions = copy.deepcopy(model.config['conditions'])
+        model_conditions = copy.deepcopy(model_dict['config']['conditions'])
         model_conditions.append(conditions)
         config['conditions'] = model_conditions
         
-        model_channel_label = copy.deepcopy(model.config['channel_label'])
+        model_channel_label = copy.deepcopy(model_dict['config']['channel_label'])
         model_channel_label.append(channel_label)
         config['channel_label'] = model_channel_label
         
-        model_nepochs = copy.deepcopy(model.config['n_epochs'])
+        model_nepochs = copy.deepcopy(model_dict['config']['n_epochs'])
         model_nepochs.append(n_epochs)
         config['n_epochs'] = model_nepochs
         
-        model_batch = copy.deepcopy(model.config['batch_size'])
+        model_batch = copy.deepcopy(model_dict['config']['batch_size'])
         model_batch.append(batch_size)
         config['batch_size'] = model_batch  
         
-        model_trained = copy.deepcopy(model.config['trained_epochs'])
+        model_trained = copy.deepcopy(model_dict['config']['trained_epochs'])
         model_trained.append(0)
         config['trained_epochs'] = model_trained
   
@@ -153,11 +160,11 @@ def main():
 
     #Save model
     if model: 
+        model_dict = dict(state_dict = model.state_dict(), config = model.config)
         if save_name == None:
             fn = file.split('/')[-1].split('.csv')[0]
-            save(model, f"ae_{fn}_{str(time.time()).split('.')[0]}.pth")
-        else:
-            save(model, save_name)
+            save_name = f"ae_{fn}_{str(time.time()).split('.')[0]}.pth"
+        save(model_dict, save_name)
         
 if __name__ == "__main__":
     main()
