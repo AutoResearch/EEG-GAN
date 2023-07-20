@@ -1,5 +1,6 @@
 # train an autoencoder with attention mechanism for multivariate time series
 import sys
+import os
 import time
 import copy
 import numpy as np
@@ -165,6 +166,12 @@ def main():
             fn = file.split('/')[-1].split('.csv')[0]
             save_name = f"ae_{fn}_{str(time.time()).split('.')[0]}.pth"
         save(model_dict, save_name)
+        
+        #Clean up temporary checkpoints
+        if os.path.isfile('trained_ae/checkpoint_01.pth'):
+            os.remove('trained_ae/checkpoint_01.pth')
+        if os.path.isfile('trained_ae/checkpoint_02.pth'):
+            os.remove('trained_ae/checkpoint_02.pth')
         
 if __name__ == "__main__":
     main()
