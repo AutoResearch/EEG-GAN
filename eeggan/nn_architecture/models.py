@@ -5,7 +5,7 @@ from torch import nn
 from scipy import signal
 import numpy as np
 
-from nn_architecture.ttsgan_components import *
+from eeggan.nn_architecture.ttsgan_components import *
 
 # insert here all different kinds of generators and discriminators
 

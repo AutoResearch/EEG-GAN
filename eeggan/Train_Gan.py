@@ -5,12 +5,12 @@ from datetime import datetime
 import torch
 import torch.multiprocessing as mp
 
-from helpers.trainer import Trainer
-from helpers.get_master import find_free_port
-from helpers.ddp_training import run, DDPTrainer
-from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
-from helpers.dataloader import Dataloader
-from helpers import system_inputs
+from eeggan.helpers.trainer import Trainer
+from eeggan.helpers.get_master import find_free_port
+from eeggan.helpers.ddp_training import run, DDPTrainer
+from eeggan.nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers import system_inputs
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
 
