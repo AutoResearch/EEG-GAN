@@ -6,8 +6,8 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-import eeggan.helpers.trainer as trainer
-from eeggan.helpers.dataloader import Dataloader
+import helpers.trainer as trainer
+from helpers.dataloader import Dataloader
 
 
 class DDPTrainer(trainer.Trainer):
@@ -127,10 +127,13 @@ def _ddp_training(training: DDPTrainer, opt):
 
     # save checkpoint
     if training.rank == 0:
-        path = 'trained_models'
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'gan_ddp_{training.epochs}ep_' + timestamp + '.pt'
-        training.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+        if opt['path_checkpoint']:
+            training.save_checkpoint(path_checkpoint=opt['path_checkpoint'], generated_samples=gen_samples)
+        else:
+            path = 'trained_models'
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'gan_ddp_{training.epochs}ep_' + timestamp + '.pt'
+            training.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
         print("GAN training finished.")
         print("Model states and generated samples saved to file.")
