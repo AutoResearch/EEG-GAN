@@ -3,8 +3,8 @@ import os
 import torch
 import numpy as np
 
-from nn_architecture import losses, models
-from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
+from eeggan.nn_architecture import losses, models
+from eeggan.nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
 
 # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/
 # For implementation of Wasserstein-GAN see link above

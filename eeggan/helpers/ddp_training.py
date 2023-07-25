@@ -6,8 +6,8 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-import helpers.trainer as trainer
-from helpers.dataloader import Dataloader
+import eeggan.helpers.trainer as trainer
+from eeggan.helpers.dataloader import Dataloader
 
 
 class DDPTrainer(trainer.Trainer):
