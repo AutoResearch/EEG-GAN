@@ -507,14 +507,14 @@ class TransformerFlattenAutoencoder(Autoencoder):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.sequence_length = sequence_length
 
-        self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
         self.linear_enc_in = nn.Linear(input_dim, input_dim)
         encoder_layer = nn.TransformerEncoderLayer(d_model=1, nhead=1, dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.linear_enc_out_1 = nn.Linear(sequence_length*input_dim, hidden_dim)
         self.linear_enc_out_2 = nn.Linear(hidden_dim, output_dim)
 
-        self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
         self.linear_dec_in = nn.Linear(output_dim, output_dim)
         decoder_layer = nn.TransformerEncoderLayer(d_model=1, nhead=1, dropout=dropout, batch_first=True)
         self.decoder = nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
@@ -529,8 +529,9 @@ class TransformerFlattenAutoencoder(Autoencoder):
         return x
 
     def encode(self, data):
-        x = self.pe_enc(data)
-        x = self.linear_enc_in(x).reshape(data.shape[0], self.sequence_length*self.input_dim, 1)
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x).reshape(data.shape[0], self.sequence_length*self.input_dim, 1)
+        x = self.linear_enc_in(data).reshape(data.shape[0], self.sequence_length*self.input_dim, 1)
         x = self.encoder(x)
         x = self.linear_enc_out_1(x.permute(0, 2, 1))
         x = self.linear_enc_out_2(x)
@@ -538,8 +539,9 @@ class TransformerFlattenAutoencoder(Autoencoder):
         return x
 
     def decode(self, encoded):
-        x = self.pe_dec(encoded)
-        x = self.linear_dec_in(x)
+        #x = self.pe_dec(encoded)
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(encoded)
         x = self.decoder(x.permute(0, 2, 1))
         x = self.linear_dec_out_1(x.permute(0, 2, 1))
         x = self.linear_dec_out_2(x).reshape(encoded.shape[0], self.sequence_length, self.input_dim)
@@ -667,6 +669,7 @@ def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, crite
     try:
         train_losses = []
         test_losses = []
+        trigger = True
         for epoch in range(num_epochs):
             train_loss = train_model(model, train_dataloader, optimizer, criterion)
             test_loss = test_model(model, test_dataloader, criterion)
@@ -674,26 +677,27 @@ def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, crite
             test_losses.append(test_loss)
             model.config['trained_epochs'][-1] += 1
             print(f"Epoch {epoch + 1}/{num_epochs} (Model Total: {str(sum(model.config['trained_epochs']))}): train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
-            save_checkpoint(model, epoch, 100)
+            trigger = save_checkpoint(model, epoch, trigger, 100)
         return train_losses, test_losses, model
     except KeyboardInterrupt:
         print("keyboard interrupt detected.")
         return train_losses, test_losses, model
 
-def save_checkpoint(model, epoch, criterion = 100):
+def save_checkpoint(model, epoch, trigger, criterion = 100):
     if (epoch+1) % criterion == 0:
-        if not os.path.isfile('trained_ae/checkpoint_01.pth'):
-            torch.save(model,'trained_ae/checkpoint_01.pth')
-            if os.path.isfile('trained_ae/checkpoint_02.pth'):
-                os.remove('trained_ae/checkpoint_02.pth') 
-        else: 
-            torch.save(model,'trained_ae/checkpoint_02.pth')
-            os.remove('trained_ae/checkpoint_01.pth') 
+        model_dict = dict(state_dict = model.state_dict(), config = model.config)
+        
+        # toggle between checkpoint files to avoid corrupted file during training
+        if trigger:
+            save(model_dict, 'checkpoint_01.pth', verbose=False)
+            trigger = False
+        else:
+            save(model_dict, 'checkpoint_02.pth', verbose=False)
+            trigger = True
             
-def save(model, file, path = 'trained_ae'):
+    return trigger
+            
+def save(model, file, path = 'trained_ae', verbose = True):
     torch.save(model, os.path.join(path, file))
-    print("Saved model and configuration to " + os.path.join(path, file))
-    if os.path.isfile('trained_ae/checkpoint_01.pth'):
-        os.remove('trained_ae/checkpoint_01.pth')
-    if os.path.isfile('trained_ae/checkpoint_02.pth'):
-        os.remove('trained_ae/checkpoint_02.pth')
+    if verbose:
+        print("Saved model and configuration to " + os.path.join(path, file))
