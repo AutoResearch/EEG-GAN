@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 
-from eeggan.helpers.dataloader import Dataloader
+from helpers.dataloader import Dataloader
 
 
 def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_name=None, perplexity=40, iterations=1000, return_result=False):

@@ -5,12 +5,12 @@ from datetime import datetime
 import torch
 import torch.multiprocessing as mp
 
-from eeggan.helpers.trainer import Trainer
-from eeggan.helpers.get_master import find_free_port
-from eeggan.helpers.ddp_training import run, DDPTrainer
-from eeggan.nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
-from eeggan.helpers.dataloader import Dataloader
-from eeggan.helpers import system_inputs
+from helpers.trainer import Trainer
+from helpers.get_master import find_free_port
+from helpers.ddp_training import run, DDPTrainer
+from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered
+from helpers.dataloader import Dataloader
+from helpers import system_inputs
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
 
@@ -207,10 +207,13 @@ def train_gan(argv = []):
             gen_samples = trainer.training(dataset)
 
             # save final models, optimizer states, generated samples, losses and configuration as final result
-            path = 'trained_models'
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-            trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+            if default_args['path_checkpoint']:
+                trainer.save_checkpoint(path_checkpoint=default_args['path_checkpoint'], generated_samples=gen_samples)
+            else:
+                path = 'trained_models'
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
+                trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
 
         print("GAN training finished.")
         print("Generated samples saved to file.")
