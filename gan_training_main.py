@@ -9,7 +9,8 @@ import torch.multiprocessing as mp
 from helpers.trainer import Trainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, DDPTrainer
-from nn_architecture.models import TtsDiscriminator, TtsGenerator, TtsGeneratorFiltered, TransformerGenerator2
+from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator, TransformerGenerator, TransformerDiscriminator
+from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 
@@ -37,11 +38,8 @@ def main():
     ddp_backend = default_args['ddp_backend']
     load_checkpoint = default_args['load_checkpoint']
     path_checkpoint = default_args['path_checkpoint']
-    train_gan = default_args['train_gan']
-    # filter_generator = default_args['filter_generator']
 
     # Data configuration
-    windows_slices = default_args['windows_slices']
     diff_data = False  # Differentiate data
     std_data = False  # Standardize data
     norm_data = True  # Normalize data
@@ -49,9 +47,6 @@ def main():
     # raise warning if no normalization and standardization is used at the same time
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
-
-    # if windows_slices and default_args['input_sequence_length']:
-    #     raise ValueError('If window slices are used AND the keyword "seq_len_generated" is given\nthe "input_sequence_length" and "seq_len_generated" must sum up to the datasets sequence length.')
 
     if load_checkpoint:
         print(f'Resuming training from checkpoint {path_checkpoint}.')
@@ -70,11 +65,12 @@ def main():
         'load_checkpoint': default_args['load_checkpoint'],
         'path_checkpoint': default_args['path_checkpoint'],
         'path_dataset': default_args['path_dataset'],
+        'path_autoencoder': default_args['path_autoencoder'],
         'batch_size': default_args['batch_size'],
         'learning_rate': default_args['learning_rate'],
         'sample_interval': default_args['sample_interval'],
         'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
-        'patch_size': default_args['patch_size'],
+        # 'patch_size': default_args['patch_size'],
         'kw_timestep': default_args['kw_timestep_dataset'],
         'conditions': default_args['conditions'],
         'sequence_length': -1,
@@ -97,10 +93,8 @@ def main():
                             norm_data=norm_data,
                             std_data=std_data,
                             diff_data=diff_data,
-                            # multichannel=default_args['multichannel'],
                             channel_label=default_args['channel_label'])
     dataset = dataloader.get_data(sequence_length=opt['sequence_length'],
-                                  windows_slices=default_args['windows_slices'], stride=5,
                                   pre_pad=opt['sequence_length'] - default_args['input_sequence_length'])
 
     opt['channel_names'] = dataloader.channels
@@ -110,76 +104,122 @@ def main():
         opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
-    if opt['sequence_length'] % opt['patch_size'] != 0:
-        warnings.warn(
-            f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
-            f"The sequence length is padded with zeros to fit the condition.")
-        padding = 0
-        while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
-            padding += 1
-        padding = torch.zeros((dataset.shape[0], padding))
-        dataset = torch.cat((dataset, padding), dim=1)
-        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    # if opt['sequence_length'] % opt['patch_size'] != 0:
+    #     warnings.warn(
+    #         f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
+    #         f"The sequence length is padded with zeros to fit the condition.")
+    #     padding = 0
+    #     while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
+    #         padding += 1
+    #     padding = torch.zeros((dataset.shape[0], padding))
+    #     dataset = torch.cat((dataset, padding), dim=1)
+    #     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
-    # Initialize generator, discriminator and trainer
     latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else \
     opt['latent_dim'] + opt['n_conditions']
     # make sure latent_dim_in is even; constraint of positional encoding in TransformerGenerator
-    if latent_dim_in % 2 != 0:
-        latent_dim_in += 1
-        opt['latent_dim'] += 1
+    # if latent_dim_in % 2 != 0:
+    #     latent_dim_in += 1
+    #     opt['latent_dim'] += 1
+    # make sure discriminator input size is even; constraint of positional encoding in TransformerDiscriminator
+    channel_in_disc = opt['n_channels'] + opt['n_conditions']
     sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != \
                                                                                          opt['sequence_length'] else \
     opt['sequence_length']
-    # if not filter_generator:
-    #     generator = TtsGenerator(seq_length=sequence_length_generated,
-    #                              latent_dim=latent_dim_in,
-    #                              patch_size=opt['patch_size'],
-    #                              channels=opt['n_channels'])
-    # else:
-    #     generator = TtsGeneratorFiltered(seq_length=opt['sequence_length']-opt['input_sequence_length'],
-    #                                      latent_dim=latent_dim_in,
-    #                                      patch_size=opt['patch_size'],
-    #                                      channels=opt['n_channels'])
-    generator = TransformerGenerator2(latent_dim=latent_dim_in,
-                                      channels=opt['n_channels'],
-                                      seq_len=sequence_length_generated)
-    discriminator = TtsDiscriminator(seq_length=opt['sequence_length'],
-                                     patch_size=opt['patch_size'],
-                                     in_channels=opt['n_conditions'] + opt['n_channels'])
+    # make channel_in_disc even for positional encoding
+    # if channel_in_disc % 2 != 0:
+    #     channel_in_disc += 1
+
+    # Initialize generator, discriminator and trainer
+    if opt['path_autoencoder'] == '':
+        # no autoencoder defined -> use transformer GAN
+        generator = TransformerGenerator(latent_dim=latent_dim_in,
+                                         channels=opt['n_channels'],
+                                         seq_len=sequence_length_generated)
+        discriminator = TransformerDiscriminator(channels=channel_in_disc,
+                                                 hidden_dim=opt['hidden_dim'])
+    else:
+        # initialize the autoencoder
+        if opt['path_autoencoder'] != '':
+            ae_state_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))["model"]
+            if ae_state_dict['class'] == 'TransformerAutoencoder':
+                autoencoder = TransformerAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
+            elif ae_state_dict['class'] == 'TransformerDoubleAutoencoder':
+                autoencoder = TransformerDoubleAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
+            elif ae_state_dict['class'] == 'TransformerFlattenAutoencoder':
+                autoencoder = TransformerFlattenAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
+            else:
+                raise ValueError(f'Autoencoder class {ae_state_dict["class"]} not recognized.')
+            autoencoder.load_state_dict(ae_state_dict['state_dict'])
+            # freeze the autoencoder
+            for param in autoencoder.parameters():
+                param.requires_grad = False
+            autoencoder.eval()
+
+        # if prediction or seq2seq, adjust latent_dim_in to encoded input size
+        if opt['input_sequence_length'] != 0:
+            new_input_dim = autoencoder.output_dim if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim*autoencoder.output_dim_2
+            latent_dim_in += new_input_dim - autoencoder.input_dim
+        generator = AutoencoderGenerator(latent_dim=latent_dim_in,
+                                         autoencoder=autoencoder)
+        discriminator = AutoencoderDiscriminator(input_dim=channel_in_disc,
+                                                 autoencoder=autoencoder)
+
+    if isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
+        # if input_sequence_length is 0, do not decode the generator output during training
+        generator.decode_output(False)
+
+    if isinstance(discriminator, AutoencoderDiscriminator) and opt['input_sequence_length'] == 0:
+        # if input_sequence_length is 0, do not encode the discriminator input during training
+        discriminator.encode_input(False)
+
     print("Generator and discriminator initialized.")
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Start training process
     # ----------------------------------------------------------------------------------------------------------------------
 
-    if train_gan:
-        # GAN-Training
-        print('\n-----------------------------------------')
-        print("Training GAN...")
-        print('-----------------------------------------\n')
-        if ddp:
-            trainer = DDPTrainer(generator, discriminator, opt)
-            if default_args['load_checkpoint']:
-                trainer.load_checkpoint(default_args['path_checkpoint'])
-            mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, opt),
-                     nprocs=world_size, join=True)
-        else:
-            trainer = Trainer(generator, discriminator, opt)
-            if default_args['load_checkpoint']:
-                trainer.load_checkpoint(default_args['path_checkpoint'])
-            gen_samples = trainer.training(dataset)
-
-            # save final models, optimizer states, generated samples, losses and configuration as final result
-            path = 'trained_models'
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-            trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
-
-            print("GAN training finished.")
-            print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
+    # GAN-Training
+    print('\n-----------------------------------------')
+    print("Training GAN...")
+    print('-----------------------------------------\n')
+    if ddp:
+        trainer = DDPTrainer(generator, discriminator, opt)
+        if default_args['load_checkpoint']:
+            trainer.load_checkpoint(default_args['path_checkpoint'])
+        mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, opt),
+                 nprocs=world_size, join=True)
     else:
-        print("GAN not trained.")
+        trainer = Trainer(generator, discriminator, opt)
+        if default_args['load_checkpoint']:
+            trainer.load_checkpoint(default_args['path_checkpoint'])
+        gen_samples = trainer.training(dataset)
+
+        # save final models, optimizer states, generated samples, losses and configuration as final result
+        path = 'trained_models'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
+        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+
+        generator = trainer.generator
+        discriminator = trainer.discriminator
+
+        if isinstance(discriminator, AutoencoderDiscriminator):
+            discriminator.encode_input()
+
+        if isinstance(generator, AutoencoderGenerator):
+            generator.decode_output()
+
+        print("GAN training finished.")
+        print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
+
+        return generator, discriminator, opt, gen_samples
+
 
 if __name__ == '__main__':
+    # sys.argv = ['path_dataset=data\ganTrialElectrodeERP_p50_e8_len100.csv',
+    #             'path_autoencoder=trained_ae/transformerFlatten_ae.pt',
+    #             'n_epochs=1',
+    #             'channel_label=Electrode',
+    #             'conditions=Condition',]
     main()

@@ -150,6 +150,24 @@ class HelperMain(Helper):
         self.start_line()
         self.end_line()
 
+class HelperAutoencoder(Helper):
+    def __init__(self, kw_dict):
+        super().__init__(kw_dict)
+
+    def print_help(self):
+        super().print_help()
+        print('1.\tThe target parameter determines whether you will encode the channels, timeseries, or both (named full):'
+              '\n\tIf target = channels, then the channels_out parameter will be used'
+              '\n\tIf target = timeseries, then the timeseries_out parameter will be used'
+              '\n\tif target = full, then both the channels_out and timeseries_out parameters will be used'
+              '\n\t    corresponding configuration dict')
+        print('2.\tThe channels_out and timeseries_out parameters indicate the corresponding dimension size output of the encoder'
+              '\n\tFor example, if we havea a 100x30 (timeseries x channel) dataset sample and use timeseries_out=10 & channels_out=4'
+              '\n\t    with target=full, our encoder will result in a 10x4 dataframe')
+        print('3.\tThe path_checkpoint is defaulted to None, but if a string with the checkpoint (i.e. previously trained autoencoder)'
+              '\n\t    is instead provided, it will load that model and continue training on it.'
+              '\n\t    If you are loading a previously trained model, it will inherit the following model parameters:'
+              '\n\t    target, channels_out, timeseries_out. The remainder of the parameters will be used as normal.')
 
 class HelperVisualize(Helper):
     def __init__(self, kw_dict):
@@ -204,32 +222,47 @@ class HelperGenerateSamples(Helper):
               '\n\tEspecially, the generation of large number of sequences can be boosted by increasing this parameter')
 
 
+
 def default_inputs_training_gan():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
-        'train_gan': [bool, 'Train a GAN', True, 'Training a GAN'],
         'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
-        # 'filter_generator': [bool, 'Use low-pass filter on the generator output', False, 'Using a low-pass filter on the GAN output'],
-        'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
+        # 'windows_slices': [bool, 'Use sliding windows instead of whole sequences', False, 'Using windows slices'],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
-        'patch_size': [int, 'Patch size', 20, 'Patch size: '],
+        # 'patch_size': [int, 'Patch size', 20, 'Patch size: '],
         'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence', 0, 'Input sequence length: '],
-        # 'seq_len_generated': [int, 'Length of the generated sequence; If -1 this parameter is set automatically', -1, 'Generated sequence length: '],
-        'sample_interval': [int, 'Interval of epochs between saving samples', 10, 'Sample interval: '],
+        'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        # 'gan_type': [str, 'Type of the GAN; "transformer" or "autoencoder"', 'transformer', 'GAN type: '],
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
+        'path_autoencoder': [str, 'Path to the autoencoder; Only usable with Autoencoder-GAN', '', 'Autoencoder checkpoint: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        # 'multichannel': [bool, 'Multi-channel training regime', False, 'Multi-channel training regime: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
     }
 
     return kw_dict
 
+def default_inputs_training_autoencoder():
+    kw_dict = {
+        'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
+        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
+        'file': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
+        'path_checkpoint': [str, 'Path to a trained model to continue training', None, 'Model: '],
+        'save_name': [str, 'Name to save model', None, 'Model save name: '],
+        'target': [str, 'Target dimension (channel, timeseries, full) to encode', 'full', 'Target: '],
+        'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
+        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
+        'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],
+        'timeseries_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
+        'n_epochs': [int, 'Number of epochs to train for', 100, 'Number of epochs: '],
+        'batch_size': [int, 'Batch size', 128, 'Batch size: '],
+    }
+    return kw_dict
 
 def default_inputs_training_classifier():
     kw_dict = {
@@ -362,6 +395,9 @@ def parse_arguments(arguments, kw_dict=None, file=None):
         elif file == 'generate_samples_main.py':
             system_args = default_inputs_generate_samples()
             helper = HelperGenerateSamples(system_args)
+        elif file == 'autoencoder_training_main.py':
+            system_args = default_inputs_training_autoencoder()
+            helper = HelperAutoencoder(system_args)
     else:
         system_args = kw_dict
         helper = Helper(kw_dict)
