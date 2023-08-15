@@ -74,7 +74,7 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
 
         # Interpolate between real and fake samples
         interpolated_samples = epsilon * real_samples + (1 - epsilon) * fake_samples
-        interpolated_samples = torch.autograd.Variable(interpolated_samples, requires_grad=True)
+        # interpolated_samples = torch.autograd.Variable(interpolated_samples, requires_grad=True)
 
         # Calculate critic scores for interpolated samples
         critic_scores = discriminator(interpolated_samples)

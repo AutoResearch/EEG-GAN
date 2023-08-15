@@ -3,8 +3,148 @@ import math
 import torch
 from torch import nn, Tensor
 
+from nn_architecture.ae_networks import Autoencoder
+
 
 # insert here all different kinds of generators and discriminators
+class Generator(nn.Module):
+    def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=2, dropout=.1, **kwargs):
+        """
+        :param latent_dim: latent dimension
+        :param output_dim: output dimension
+        :param hidden_dim: hidden dimension
+        :param num_layers: number of layers
+        :param dropout: dropout rate
+
+        """
+
+        super(Generator, self).__init__()
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.latent_dim = latent_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        self.num_layers = num_layers
+        self.act_out = nn.ReLU()
+
+        modulelist = nn.ModuleList()
+        modulelist.append(nn.Linear(latent_dim, hidden_dim))
+        modulelist.append(self.act_out)
+        modulelist.append(nn.Dropout(dropout))
+        for _ in range(num_layers):
+            modulelist.append(nn.Linear(hidden_dim, hidden_dim))
+            modulelist.append(self.act_out)
+            modulelist.append(nn.Dropout(dropout))
+        modulelist.append(nn.Linear(hidden_dim, output_dim))
+        modulelist.append(self.act_out)
+
+        self.block = nn.Sequential(*modulelist)
+
+    def forward(self, z):
+        return self.block(z)
+
+
+class Discriminator(nn.Module):
+    def __init__(self, input_dim, hidden_dim=256, num_layers=2, dropout=.1, **kwargs):
+        """
+        :param input_dim: input dimension
+        :param hidden_dim: hidden dimension
+        :param num_layers: number of layers
+        :param dropout: dropout rate
+        """
+        super(Discriminator, self).__init__()
+
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.linear_in = nn.Linear(input_dim, hidden_dim)
+        self.linear_out = nn.Linear(hidden_dim, 1)
+        self.act_out = nn.ReLU()
+
+        modulelist = nn.ModuleList()
+        modulelist.append(nn.Linear(input_dim, hidden_dim))
+        modulelist.append(self.act_out)
+        modulelist.append(nn.Dropout(dropout))
+        for _ in range(num_layers):
+            modulelist.append(nn.Linear(hidden_dim, hidden_dim))
+            modulelist.append(self.act_out)
+            modulelist.append(nn.Dropout(dropout))
+        modulelist.append(nn.Linear(hidden_dim, 1))
+
+        self.block = nn.Sequential(*modulelist)
+
+    def forward(self, x):
+        return self.block(x)
+
+
+class AutoencoderGenerator(Generator):
+    """Autoencoder generator"""
+
+    def __init__(self, latent_dim, autoencoder: Autoencoder, **kwargs):
+        """
+        :param autoencoder: Autoencoder model; Decoder takes in array and decodes into multidimensional array of shape (batch, sequence_length, channels)
+        """
+        self.output_dim = autoencoder.output_dim
+        # check if output_dim_2 is attribute of autoencoder
+        if hasattr(autoencoder, 'output_dim_2'):
+            self.output_dim_2 = autoencoder.output_dim_2
+        else:
+            self.output_dim_2 = 1
+        super(AutoencoderGenerator, self).__init__(latent_dim, self.output_dim*self.output_dim_2, **kwargs)
+        self.autoencoder = autoencoder
+        self.decode = True
+
+    def forward(self, z):
+        """
+        :param z: input array of shape (batch, latent_dim)
+        :return: output array of shape (batch, sequence_length, channels)
+        """
+        x = super(AutoencoderGenerator, self).forward(z)
+        if self.decode:
+            x = self.autoencoder.decode(x.reshape(-1, self.output_dim_2, self.output_dim//self.output_dim_2))
+        return x
+
+    def decode_output(self, mode=True):
+        self.decode = mode
+
+
+class AutoencoderDiscriminator(Discriminator):
+    """Autoencoder discriminator"""
+
+    def __init__(self, input_dim, autoencoder: Autoencoder, **kwargs):
+        """
+        :param autoencoder: Autoencoder model; Encoder takes in multidimensional array of shape (batch, sequence_length, channels) and encodes into array
+        """
+        self.output_dim = autoencoder.output_dim
+        self.output_dim_2 = 1 if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim_2
+        input_dim = input_dim - autoencoder.input_dim + self.output_dim*self.output_dim_2
+        super(AutoencoderDiscriminator, self).__init__(input_dim, **kwargs)
+        self.autoencoder = autoencoder
+        self.encode = True
+
+    def forward(self, z):
+        """
+        :param z: input array of shape (batch, sequence_length, channels + conditions)
+        :return: output array of shape (batch, 1)
+        """
+        if self.encode:
+            x = self.autoencoder.encode(z[:, :, :self.autoencoder.input_dim])
+            # flatten x
+            x = x.reshape(-1, 1, x.shape[-2]*x.shape[-1])
+            conditions = z[:, 0, self.autoencoder.input_dim:]
+            if conditions.dim() < x.dim():
+                conditions = conditions.unsqueeze(1)
+            x = self.block(torch.concat((x, conditions), dim=-1))
+        else:
+            x = self.block(z)
+        return x
+
+    def encode_input(self, mode=True):
+        self.encode = mode
+
 
 class CondLstmDiscriminator(nn.Module):
     """Conditional LSTM Discriminator"""
@@ -49,11 +189,12 @@ class CondLstmDiscriminator(nn.Module):
 
 class CondLstmGenerator(nn.Module):
     """Conditional LSTM generator"""
+
     def __init__(self, hidden_size=128, latent_dim=10, num_layers=1):
         super(CondLstmGenerator, self).__init__()
 
         self.latent_dim = latent_dim
-        self.lstm1 = nn.LSTM(latent_dim+1, hidden_size, num_layers=num_layers, batch_first=True, dropout=0.3)
+        self.lstm1 = nn.LSTM(latent_dim + 1, hidden_size, num_layers=num_layers, batch_first=True, dropout=0.3)
         self.linear = nn.Linear(hidden_size, 1)
         self.act_function = nn.Tanh()
 
@@ -81,18 +222,19 @@ class CondLstmGenerator(nn.Module):
 
 class CnnGenerator(nn.Module):
     """Convolutional generator"""
+
     def __init__(self, hidden_size=128, latent_dim=16, variables_out=7):
         super(CnnGenerator, self).__init__()
 
         self.conv1 = nn.Conv1d(1, hidden_size, kernel_size=(4,), bias=False)
-        self.conv2 = nn.Conv1d(hidden_size, int(hidden_size/2), kernel_size=(4,), bias=False)
-        self.conv3 = nn.Conv1d(int(hidden_size/2), variables_out, kernel_size=(4,), bias=False)
+        self.conv2 = nn.Conv1d(hidden_size, int(hidden_size / 2), kernel_size=(4,), bias=False)
+        self.conv3 = nn.Conv1d(int(hidden_size / 2), variables_out, kernel_size=(4,), bias=False)
         self.conv_out = nn.Conv1d(variables_out, variables_out, kernel_size=(1,), bias=True)
         # self.linear = nn.Linear(int(hidden_size/2), 1)
         self.sigmoid = nn.Sigmoid()
         self.batchnorm1 = nn.BatchNorm1d(hidden_size)
         self.batchnorm2 = nn.BatchNorm1d(hidden_size)
-        self.batchnorm3 = nn.BatchNorm1d(int(hidden_size/2))
+        self.batchnorm3 = nn.BatchNorm1d(int(hidden_size / 2))
         self.batchnorm4 = nn.BatchNorm1d(variables_out)
         self.relu = nn.LeakyReLU()
         self.maxpool = nn.MaxPool1d(kernel_size=(variables_out,))
@@ -115,12 +257,13 @@ class CnnGenerator(nn.Module):
         y = self.relu(self.batchnorm3(self.conv2(y)))
         y = self.relu(self.batchnorm4(self.conv3(y)))
         y = self.maxpool(self.conv_out(y)).squeeze(-1)
-        y = self.sigmoid(y)*2
+        y = self.sigmoid(y) * 2
         return y
 
 
 class RCDiscriminator(nn.Module):
     """Recurrent convolutional discriminator for conditional GAN"""
+
     def __init__(self, hidden_size=128, latent_dim=16):
         super(RCDiscriminator, self).__init__()
 
@@ -128,12 +271,12 @@ class RCDiscriminator(nn.Module):
 
         self.conv1 = nn.Conv1d(1, hidden_size, kernel_size=(4,))
         self.conv2 = nn.Conv1d(hidden_size, hidden_size, kernel_size=(4,))
-        self.conv3 = nn.Conv1d(hidden_size, int(hidden_size/2), kernel_size=(4,))
-        self.conv_out = nn.Conv1d(int(hidden_size/2), 1, kernel_size=(4,))
+        self.conv3 = nn.Conv1d(hidden_size, int(hidden_size / 2), kernel_size=(4,))
+        self.conv_out = nn.Conv1d(int(hidden_size / 2), 1, kernel_size=(4,))
 
         self.batchnorm1 = nn.BatchNorm1d(hidden_size)
         self.batchnorm2 = nn.BatchNorm1d(hidden_size)
-        self.batchnorm3 = nn.BatchNorm1d(int(hidden_size/2))
+        self.batchnorm3 = nn.BatchNorm1d(int(hidden_size / 2))
         self.relu = nn.LeakyReLU()
         self.maxpool = nn.MaxPool1d(kernel_size=(5,))
 
@@ -229,7 +372,8 @@ class PositionalEncoder(nn.Module):
 
 
 class TransformerGenerator(nn.Module):
-    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, encoder=None, decoder=None,  **kwargs):
+    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1,
+                 encoder=None, decoder=None, **kwargs):
         super(TransformerGenerator, self).__init__()
 
         self.latent_dim = latent_dim
@@ -241,7 +385,7 @@ class TransformerGenerator(nn.Module):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
+        # self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
         self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
         # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
@@ -267,8 +411,8 @@ class TransformerGenerator(nn.Module):
         #    param.requires_grad = False
 
     def forward(self, data):
-        x = self.pe(data)
-        x = self.linear_enc_in(x) #[0] --> only for lstm
+        # x = self.pe(data)
+        x = self.linear_enc_in(data)  # [0] --> only for lstm
         x = self.encoder(x)
         x = self.act_out(self.linear_enc_out(x)[:, -1]).reshape(-1, self.seq_len, self.channels)
         # x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
@@ -300,7 +444,7 @@ class TransformerDiscriminator(nn.Module):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.pe = PositionalEncoder(batch_first=True, d_model=channels)
+        # self.pe = PositionalEncoder(batch_first=True, d_model=channels)
         self.linear_enc_in = nn.Linear(channels, hidden_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
                                                         dropout=dropout, batch_first=True)
@@ -313,8 +457,8 @@ class TransformerDiscriminator(nn.Module):
         #    param.requires_grad = False
 
     def forward(self, data):
-        x = self.pe(data)
-        x = self.linear_enc_in(x)
+        # x = self.pe(data)
+        x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)[:, -1]  # .reshape(-1, self.channels)
         # x = self.mask(x, data[:,:,self.latent_dim-self.channels:].diff(dim=1))
