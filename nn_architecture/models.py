@@ -5,7 +5,6 @@ from torch import nn, Tensor
 
 from nn_architecture.ae_networks import Autoencoder
 
-
 # insert here all different kinds of generators and discriminators
 class Generator(nn.Module):
     def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=2, dropout=.1, **kwargs):
@@ -339,6 +338,8 @@ class PositionalEncoder(nn.Module):
 
         super().__init__()
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.d_model = d_model
 
         self.dropout = nn.Dropout(p=dropout)
@@ -430,7 +431,6 @@ class TransformerGenerator(nn.Module):
         data[mask_index] = mask
         return data
 
-
 class TransformerDiscriminator(nn.Module):
     def __init__(self, channels, n_classes=1, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):
         super(TransformerDiscriminator, self).__init__()
@@ -465,3 +465,312 @@ class TransformerDiscriminator(nn.Module):
         # x = self.tanh(x)
         # x = self.decoder(x)
         return x
+  
+'''
+# ----------------------------------------------------------------------------------------------------------------------
+# Autoencoders
+# ----------------------------------------------------------------------------------------------------------------------
+
+class TransformerAutoencoder(nn.Module):
+    def __init__(self, input_dim, output_dim, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerAutoencoder, self).__init__()
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
+
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        self.linear_enc_in = nn.Linear(input_dim, input_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(input_dim, output_dim)
+
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        self.linear_dec_in = nn.Linear(output_dim, output_dim)
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=output_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
+        self.linear_dec_out = nn.Linear(output_dim, input_dim)
+
+        self.tanh = nn.Tanh()
+
+    def forward(self, data):
+        x = self.encode(data.to(self.device))
+        x = self.decode(x)
+        return x
+
+    def encode(self, data):
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x)
+        x = self.linear_enc_in(data)
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)
+        x = self.tanh(x)
+        return x
+
+    def decode(self, encoded):
+        #x = self.pe_dec(encoded)
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(encoded)
+        x = self.decoder(x)
+        x = self.linear_dec_out(x)
+        x = self.tanh(x)
+        return x
+
+    def save(self, path):
+        path = '../trained_ae'
+        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
+        # torch.save(save, os.path.join(path, file))
+        
+class Autoencoder(nn.Module):
+    def __init__(self, input_dim, output_dim, hidden_dim, num_layers=3, dropout=0.1, **kwargs):
+        super(Autoencoder, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
+        self.activation = nn.Sigmoid()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # encoder block of linear layers constructed in a loop and passed to a sequential container
+        encoder_block = []
+        encoder_block.append(nn.Linear(input_dim, hidden_dim))
+        encoder_block.append(nn.Dropout(dropout))
+        encoder_block.append(self.activation)
+        for i in range(num_layers):
+            encoder_block.append(nn.Linear(hidden_dim, hidden_dim))
+            encoder_block.append(nn.Dropout(dropout))
+            encoder_block.append(self.activation)
+        encoder_block.append(nn.Linear(hidden_dim, output_dim))
+        encoder_block.append(self.activation)
+        self.encoder = nn.Sequential(*encoder_block)
+
+        # decoder block of linear layers constructed in a loop and passed to a sequential container
+        decoder_block = []
+        decoder_block.append(nn.Linear(output_dim, hidden_dim))
+        decoder_block.append(nn.Dropout(dropout))
+        decoder_block.append(self.activation)
+        for i in range(num_layers):
+            decoder_block.append(nn.Linear(hidden_dim, hidden_dim))
+            decoder_block.append(nn.Dropout(dropout))
+            decoder_block.append(self.activation)
+        decoder_block.append(nn.Linear(hidden_dim, input_dim))
+        decoder_block.append(self.activation)
+        self.decoder = nn.Sequential(*decoder_block)
+
+    def forward(self, x):
+        encoded = self.encoder(x.to(self.device))
+        decoded = self.decoder(encoded)
+        return decoded
+
+    def encode(self, data):
+        return self.encoder(data.to(self.device))
+
+    def decode(self, encoded):
+        return self.decoder(encoded)
+
+class TransformerFlattenAutoencoder(Autoencoder):
+    def __init__(self, input_dim, output_dim, sequence_length, hidden_dim=1024, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerFlattenAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout)
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.sequence_length = sequence_length
+
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        self.linear_enc_in = nn.Linear(input_dim, input_dim)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=1, nhead=1, dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.linear_enc_out_1 = nn.Linear(sequence_length*input_dim, hidden_dim)
+        self.linear_enc_out_2 = nn.Linear(hidden_dim, output_dim)
+
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        self.linear_dec_in = nn.Linear(output_dim, output_dim)
+        decoder_layer = nn.TransformerEncoderLayer(d_model=1, nhead=1, dropout=dropout, batch_first=True)
+        self.decoder = nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
+        self.linear_dec_out_1 = nn.Linear(output_dim, hidden_dim)
+        self.linear_dec_out_2 = nn.Linear(hidden_dim, input_dim*sequence_length)
+
+        self.tanh = nn.Sigmoid()
+
+    def forward(self, data):
+        x = self.encode(data.to(self.device))
+        x = self.decode(x)
+        return x
+
+    def encode(self, data):
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x).reshape(data.shape[0], self.sequence_length*self.input_dim, 1)
+        x = self.linear_enc_in(data).reshape(data.shape[0], self.sequence_length*self.input_dim, 1)
+        x = self.encoder(x)
+        x = self.linear_enc_out_1(x.permute(0, 2, 1))
+        x = self.linear_enc_out_2(x)
+        x = self.tanh(x)
+        return x
+
+    def decode(self, encoded):
+        #x = self.pe_dec(encoded)
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(encoded)
+        x = self.decoder(x.permute(0, 2, 1))
+        x = self.linear_dec_out_1(x.permute(0, 2, 1))
+        x = self.linear_dec_out_2(x).reshape(encoded.shape[0], self.sequence_length, self.input_dim)
+        x = self.tanh(x)
+        return x
+
+    def save(self, path):
+        path = '../trained_ae'
+        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
+        # torch.save(save, os.path.join(path, file))
+        
+class TransformerDoubleAutoencoder(nn.Module):
+    def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerDoubleAutoencoder, self).__init__()
+        
+        # parameters
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.hidden_dim = hidden_dim
+        self.num_layers = num_layers
+        self.dropout = dropout
+        
+        # encoder block features
+        #self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
+        self.linear_enc_in = nn.Linear(input_dim, input_dim)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+        self.linear_enc_out = nn.Linear(input_dim, output_dim)
+
+        # encoder block sequence
+        #self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
+        self.linear_enc_in_seq = nn.Linear(sequence_length, sequence_length)
+        self.encoder_layer_seq = nn.TransformerEncoderLayer(d_model=sequence_length, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder_seq = nn.TransformerEncoder(self.encoder_layer_seq, num_layers=num_layers)
+        self.linear_enc_out_seq = nn.Linear(sequence_length, output_dim_2)
+
+        # decoder block sequence
+        #self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
+        self.linear_dec_in_seq = nn.Linear(output_dim_2, output_dim_2)
+        self.decoder_layer_seq = nn.TransformerEncoderLayer(d_model=output_dim_2, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder_seq = nn.TransformerEncoder(self.decoder_layer_seq, num_layers=num_layers)
+        self.linear_dec_out_seq = nn.Linear(output_dim_2, sequence_length)
+
+        # decoder block features
+        #self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
+        self.linear_dec_in = nn.Linear(output_dim, output_dim)
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=output_dim, nhead=2, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
+        self.linear_dec_out = nn.Linear(output_dim, input_dim)
+
+        self.tanh = nn.Tanh()
+
+    def forward(self, data):
+        x = self.encode(data.to(self.device))
+        x = self.decode(x)
+        return x
+
+    def encode(self, data):
+        # encoder features
+        #x = self.pe_enc(data)
+        #x = self.linear_enc_in(x)
+        x = self.linear_enc_in(data)
+        x = self.encoder(x)
+        x = self.linear_enc_out(x)
+        x = self.tanh(x)
+
+        # encoder sequence
+        #x = self.pe_enc_seq(x.permute(0, 2, 1))
+        #x = self.linear_enc_in_seq(x)
+        x = self.linear_enc_in_seq(x.permute(0, 2, 1))
+        x = self.encoder_seq(x)
+        x = self.linear_enc_out_seq(x)
+        x = self.tanh(x)
+        return x.permute(0, 2, 1)
+
+    def decode(self, encoded):
+        # decoder sequence
+        #x = self.pe_dec_seq(encoded.permute(0, 2, 1))
+        #x = self.linear_dec_in_seq(x)
+        x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
+        x = self.decoder_seq(x)
+        x = self.linear_dec_out_seq(x)
+        x = self.tanh(x)
+
+        # decoder features
+        #x = self.pe_dec(x.permute(0, 2, 1))
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(x.permute(0, 2, 1))
+        x = self.decoder(x)
+        x = self.linear_dec_out(x)
+        x = self.tanh(x)
+        return x
+
+    def save(self, path):
+        path = '../trained_ae'
+        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
+        # torch.save(save, os.path.join(path, file))
+         
+def train_model(model, dataloader, optimizer, criterion):
+    model.train() #Sets it into training mode
+    total_loss = 0
+    for batch in dataloader:
+        optimizer.zero_grad()
+        inputs = batch.float()
+        outputs = model(inputs)
+        loss = criterion(outputs, inputs)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+    return total_loss / len(dataloader)
+
+def test_model(model, dataloader, criterion):
+    model.eval()
+    total_loss = 0
+    with torch.no_grad():
+        batch = dataloader.dataset[np.random.randint(0, len(dataloader), dataloader.batch_size)]
+        inputs = batch.float()
+        outputs = model(inputs)
+        loss = criterion(outputs, inputs)
+        total_loss += loss.item()
+    return total_loss / len(dataloader)
+
+def train(num_epochs, model, train_dataloader, test_dataloader, optimizer, criterion, configuration: Optional[dict] = None):
+    try:
+        train_losses = []
+        test_losses = []
+        trigger = True
+        for epoch in range(num_epochs):
+            train_loss = train_model(model, train_dataloader, optimizer, criterion)
+            test_loss = test_model(model, test_dataloader, criterion)
+            train_losses.append(train_loss)
+            test_losses.append(test_loss)
+            model.config['trained_epochs'][-1] += 1
+            print(f"Epoch {epoch + 1}/{num_epochs} (Model Total: {str(sum(model.config['trained_epochs']))}): train_loss={train_loss:.6f}, test_loss={test_loss:.6f}")
+            trigger = save_checkpoint(model, epoch, trigger, 100)
+        return train_losses, test_losses, model
+    except KeyboardInterrupt:
+        print("keyboard interrupt detected.")
+        return train_losses, test_losses, model
+
+def save_checkpoint(model, epoch, trigger, criterion = 100):
+    if (epoch+1) % criterion == 0:
+        model_dict = dict(state_dict = model.state_dict(), config = model.config)
+        
+        # toggle between checkpoint files to avoid corrupted file during training
+        if trigger:
+            save(model_dict, 'checkpoint_01.pth', verbose=False)
+            trigger = False
+        else:
+            save(model_dict, 'checkpoint_02.pth', verbose=False)
+            trigger = True
+            
+    return trigger
+            
+def save(model, file, path = 'trained_ae', verbose = True):
+    torch.save(model, os.path.join(path, file))
+    if verbose:
+        print("Saved model and configuration to " + os.path.join(path, file))
+'''
