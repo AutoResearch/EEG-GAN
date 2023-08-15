@@ -5,6 +5,8 @@ import numpy as np
 
 from nn_architecture import losses, models
 from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
+from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator
+
 
 # https://machinelearningmastery.com/how-to-implement-wasserstein-loss-for-generative-adversarial-networks/
 # For implementation of Wasserstein-GAN see link above
@@ -38,7 +40,6 @@ class Trainer:
 
         self.generator = generator
         self.discriminator = discriminator
-
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
@@ -50,6 +51,8 @@ class Trainer:
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
             self.loss.set_lambda_gp(self.lambda_gp)
+
+        self.epochs_done = 0
 
         self.prev_g_loss = 0
         self.configuration = {
@@ -71,6 +74,7 @@ class Trainer:
             'b1': self.b1,
             'b2': self.b2,
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+            'path_autoencoder': opt['path_autoencoder'] if 'path_autoencoder' in opt else None,
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
             'dataloader': {
@@ -81,8 +85,8 @@ class Trainer:
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
                 'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
                 'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
-            }
-
+            },
+            # 'epochs_done': self.epochs_done,
         }
 
         self.d_losses = []
@@ -91,9 +95,10 @@ class Trainer:
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
         gen_samples = []
-
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
+        if not os.path.exists(path_checkpoint):
+            os.makedirs(path_checkpoint)
         trigger_checkpoint_01 = True
         checkpoint_01_file = 'checkpoint_01.pt'
         checkpoint_02_file = 'checkpoint_02.pt'
@@ -142,6 +147,7 @@ class Trainer:
                     self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
                     trigger_checkpoint_01 = True
 
+            self.epochs_done += 1
             self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
@@ -151,46 +157,57 @@ class Trainer:
     def batch_train(self, data, data_labels, train_generator):
         """Trains the GAN-Model on one batch of data.
         No further batch-processing. Give batch as to-be-used."""
-        batch_size = data.shape[0]
+        gen_cond_data_orig = None
 
-        # channels should be in the 1st dimension. We save this change until now to minimize changes to the code from
-        # before it was implemented for multiple electrodes
-        # data = data.permute(0, 2, 1)
-        # data_labels = data_labels.permute(0, 2, 1)
+        batch_size = data.shape[0]
 
         # gen_cond_data for prediction purposes; implemented but not tested right now;
         gen_cond_data = data[:, :self.input_sequence_length, :].to(self.device)
-        # TODO: We have to zero some channels for channel recovery
+
         # Channel recovery roughly implemented
         if self.input_sequence_length == self.sequence_length and self.n_channels > 1:
             recovery = 0.3
-            zero_index = np.random.randint(0, self.n_channels, int(self.n_channels*recovery))
+            zero_index = np.random.randint(0, self.n_channels, np.max((1, int(self.n_channels*recovery))))
             gen_cond_data[:, :, zero_index] = 0
 
-        seq_length = max(1, self.input_sequence_length)
-        gen_labels = torch.cat((data_labels.repeat(1, seq_length, 1).to(self.device), gen_cond_data), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
+        # if self.generator is instance of AutoencoderGenerator encode gen_cond_data to speed up training
+        if isinstance(self.generator, AutoencoderGenerator) and self.input_sequence_length != 0:
+            # pad gen_cond_data to match input sequence length of autoencoder
+            gen_cond_data_orig = gen_cond_data
+            gen_cond_data = torch.cat((torch.zeros((batch_size, self.sequence_length - self.input_sequence_length, self.n_channels)).to(self.device), gen_cond_data), dim=1)
+            gen_cond_data = self.generator.autoencoder.encode(gen_cond_data)
+            gen_cond_data = gen_cond_data.reshape(-1, 1, gen_cond_data.shape[-1]*gen_cond_data.shape[-2])
+
+        seq_length = max(1, gen_cond_data.shape[1])
+        gen_labels = torch.cat((gen_cond_data, data_labels.repeat(1, seq_length, 1).to(self.device)), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
+        disc_labels = data_labels
 
         # -----------------
         #  Train Generator
         # -----------------
         if train_generator:
+
+            # enable training mode for generator; disable training mode for discriminator + freeze discriminator weights
             self.generator.train()
-            self.discriminator.eval()  # TODO: Check if plausible; Seems that eval() does not freeze the weights
-            self.generator_optimizer.zero_grad()
+            self.discriminator.eval()
 
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
+            z = torch.cat((gen_labels, z), dim=-1).to(self.device)
 
             # Generate a batch of samples
-            gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+            gen_imgs = self.generator(z)
 
-            fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-            fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-            fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
+            if gen_cond_data_orig is not None:
+                # gen_cond_data was encoded before; use the original form to make fake data
+                fake_data = self.make_fake_data(gen_imgs, data_labels, gen_cond_data_orig)
+            else:
+                fake_data = self.make_fake_data(gen_imgs, data_labels, gen_cond_data)
+
+            # Compute loss/validity of generated data and update generator
             validity = self.discriminator(fake_data)
-
             g_loss = self.loss.generator(validity)
+            self.generator_optimizer.zero_grad()
             g_loss.backward()
             self.generator_optimizer.step()
 
@@ -203,39 +220,55 @@ class Trainer:
         #  Train Discriminator
         # ---------------------
 
+        # enable training mode for discriminator; disable training mode for generator + freeze generator weights
         self.generator.eval()
         self.discriminator.train()
-        self.discriminator_optimizer.zero_grad()
 
-        z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-        # gen_labels = torch.cat((data_labels[:, 0, :], gen_cond_data[:, 0, :]), dim=1).to(self.device)
-        z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-        gen_imgs = self.generator(z).reshape(batch_size, self.n_channels, 1, self.sequence_length_generated)
+        # Create a batch of generated samples
+        with torch.no_grad():
+            self.discriminator_optimizer.zero_grad()
 
-        # Loss for fake images
-        fake_data = torch.cat((gen_cond_data.view(batch_size, self.n_channels, 1, gen_cond_data.shape[1]), gen_imgs), dim=-1).to(self.device) if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length else gen_imgs
-        fake_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        fake_data = torch.cat((fake_data, fake_labels), dim=1).to(self.device)
+            # Sample noise and labels as generator input
+            z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
+            z = torch.cat((gen_labels, z), dim=-1).to(self.device)
+
+            # Generate a batch of fake samples
+            gen_imgs = self.generator(z)
+            if gen_cond_data_orig is not None:
+                # gen_cond_data was encoded before; use the original form to make fake data
+                fake_data = self.make_fake_data(gen_imgs, disc_labels, gen_cond_data_orig)
+            else:
+                fake_data = self.make_fake_data(gen_imgs, disc_labels, gen_cond_data)
+
+            if self.epochs_done % self.sample_interval == 0:
+                # TODO: Inform Chad that gen_samples is now [condition, channels, sequence]
+                # decode gen_imgs if necessary - decoding only necessary if not prediction case or seq2seq case
+                if isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode:
+                    gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim//self.generator.output_dim_2))
+                    # concatenate gen_cond_data_orig with decoded fake_data
+                    # currently redundant because gen_cond_data is None in this case
+                    if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
+                        if gen_cond_data_orig is not None:
+                            gen_samples = torch.cat((gen_cond_data_orig, gen_samples), dim=1).to(self.device)
+                        else:
+                            gen_samples = torch.cat((gen_cond_data, gen_samples), dim=1).to(self.device)
+                else:
+                    gen_samples = fake_data[:, :, :self.n_channels]
+                # concatenate channel names, conditions and generated samples
+                gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device), gen_samples), dim=1)  # if self.channel_names is not None else fake_data[:, :, :self.n_channels].clone()
+                gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), gen_samples), dim=1)  # if self.n_conditions > 0 else gen_samples
+            else:
+                gen_samples = None
+
+            real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+            real_data = torch.cat((real_data, disc_labels.repeat(1, real_data.shape[1], 1)), dim=-1).to(self.device)
+
+        # Loss for real and generated samples
         validity_fake = self.discriminator(fake_data)
-
-        # TODO: Inform Chad that gen_samples is now [channel, condition, sequence]
-        # concatenate channel names, conditions and generated samples
-        gen_samples = torch.cat((data_labels.repeat(1, self.n_channels, 1),
-                                 fake_data[:, :self.n_channels].view(batch_size,  self.n_channels, self.sequence_length)), dim=-1)
-        if self.channel_names is not None:
-            gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, self.n_channels, 1).repeat(batch_size, 1, 1).to(self.device),
-                                     gen_samples), dim=-1)
-        gen_samples = gen_samples
-
-        # Loss for real images
-        real_labels = data_labels.view(batch_size, self.n_conditions, 1, 1).repeat(1, 1, 1, self.sequence_length).to(self.device)
-        real_data = data.view(batch_size, self.n_channels, 1, self.sequence_length).to(self.device)
-        real_data = torch.cat((real_data, real_labels), dim=1).to(self.device)
         validity_real = self.discriminator(real_data)
 
         # Total discriminator loss and update
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
-            # discriminator, real_images, fake_images, real_labels, fake_labels
             d_loss = self.loss.discriminator(validity_real, validity_fake, self.discriminator, real_data, fake_data)
         else:
             d_loss = self.loss.discriminator(validity_real, validity_fake)
@@ -261,6 +294,7 @@ class Trainer:
             'generator_loss': self.g_losses,
             'generated_samples': generated_samples,
             'configuration': self.configuration,
+            'epochs_done': self.epochs_done,
         }, path_checkpoint)
 
     def load_checkpoint(self, path_checkpoint):
@@ -315,3 +349,24 @@ class Trainer:
         return torch.randn((batch_size, sequence_length, latent_dim), device=device).float()
         # else:
         #     return torch.randn((batch_size, latent_dim), device=device).float()
+
+    def make_fake_data(self, gen_imgs, data_labels, condition_data=None):
+        """
+        :param gen_imgs: generated data from generator of shape (batch_size, sequence_length, n_channels)
+        :param data_labels: scalar labels/conditions for generated data of shape (batch_size, 1, n_conditions)
+        :param condition_data: additional data for conditioning the generator of shape (batch_size, input_sequence_length, n_channels)
+        """
+        # if input_sequence_length is available and self.generator is instance of AutoencoderGenerator
+        # decode gen_imgs, concatenate with gen_cond_data_orig and encode again to speed up training
+        if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
+            # prediction case
+            if gen_imgs.shape[1] == self.sequence_length:
+                gen_imgs = gen_imgs[:, self.input_sequence_length:, :]
+            fake_data = torch.cat((condition_data, gen_imgs), dim=1).to(self.device)
+        else:
+            fake_data = gen_imgs
+        if data_labels.shape[-1] != 0:
+            # concatenate labels with fake data if labels are available
+            fake_data = torch.cat((fake_data, data_labels.repeat(1, fake_data.shape[1], 1)), dim=-1).to(self.device)
+
+        return fake_data
