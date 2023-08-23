@@ -120,11 +120,12 @@ def main():
         # if (opt['target'] == 'timeseries') | (opt['target'] == 'full'):
         #     print(f"timeseries_out: {opt['timeseries_out']}")
         #     print('-----------------------------------\n')
+
     elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
         raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
             
     if opt['target'] == 'channels':
-        model = TransformerAutoencoder(input_dim=input_dim, output_dim=opt['channels_out']).to(device)
+        model = TransformerAutoencoder(input_dim=input_dim, output_dim=opt['channels_out']).to(opt['device'])
     elif opt['target'] == 'timeseries':
         raise NotImplementedError("Timeseries encoding target is not yet implemented.")
     elif opt['target'] == 'full':

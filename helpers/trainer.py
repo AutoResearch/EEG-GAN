@@ -76,6 +76,8 @@ class GANTrainer(Trainer):
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
             self.loss.set_lambda_gp(self.lambda_gp)
 
+        self.d_losses = []
+        self.g_losses = []
         self.trained_epochs = 0
 
         self.prev_g_loss = 0
@@ -88,6 +90,7 @@ class GANTrainer(Trainer):
             'input_sequence_length': self.input_sequence_length,
             'batch_size': self.batch_size,
             'epochs': self.epochs,
+            'trained_epochs': self.trained_epochs,
             'sample_interval': self.sample_interval,
             'learning_rate': self.learning_rate,
             'n_conditions': self.n_conditions,
@@ -110,11 +113,8 @@ class GANTrainer(Trainer):
                 'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
                 'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
             },
-            'history': opt['history'] if 'history' in opt else None,
+            'history': opt['history'] if 'history' in opt else {},
         }
-
-        self.d_losses = []
-        self.g_losses = []
 
     def training(self, dataset):
         """Batch training of the conditional Wasserstein-GAN with GP."""
@@ -309,6 +309,9 @@ class GANTrainer(Trainer):
         if discriminator is None:
             discriminator = self.discriminator
 
+        self.configuration['trained_epochs'] = self.trained_epochs
+        self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+
         torch.save({
             'generator': generator.state_dict(),
             'discriminator': discriminator.state_dict(),
@@ -427,7 +430,7 @@ class AETrainer(Trainer):
 
         self.configuration = {
             'device': self.device,
-            'class': str(self.model.__class__.__name__),
+            'model_class': str(self.model.__class__.__name__),
             'batch_size': self.batch_size,
             'n_epochs': self.epochs,
             'sample_interval': self.sample_interval,
