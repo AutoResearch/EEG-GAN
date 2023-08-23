@@ -5,6 +5,7 @@ import torch
 
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader
 
 import helpers.trainer as trainer
 from helpers.dataloader import Dataloader
@@ -116,8 +117,9 @@ class AEDDPTrainer(trainer.AETrainer):
 
     def set_ddp_framework(self):
         # set ddp generator and discriminator
-        self.model.to(self.rank)
-        self.generator = DDP(self.model, device_ids=[self.rank], find_unused_parameters=True) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
+        self.model.to(self.device)
+        self.model.device = self.device
+        self.model = DDP(self.model, device_ids=[self.rank], find_unused_parameters=True) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
 
         # safe optimizer state_dicts, init new ddp optimizer and load state_dicts
         opt_state = self.optimizer.state_dict()
@@ -156,41 +158,42 @@ def _setup_trainer(rank, trainer_ddp):
 
     return trainer_ddp
 
-
 def _ddp_training(trainer_ddp, opt):
-    # calculate partition of dataset for each process
-    # make sure all partitions are the same size
-    # partition_size = opt['n_samples'] // training.world_size
-    # start_index = int(opt['n_samples'] / training.world_size * training.rank)
-    # end_index = start_index + partition_size
-
-    # load dataset
-    if not 'conditions' in opt:
+    # load data
+    if 'conditions' not in opt:
         opt['conditions'] = ['']
     dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
                             norm_data=True, channel_label=opt['channel_label'])
-    dataset = dataloader.get_data()#[start_index:end_index]
+    dataset = dataloader.get_data()
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
-
-    # print(f"Rank {training.rank} has {len(dataset)} samples and index {start_index} to {end_index}.")
 
     if trainer_ddp.batch_size > len(dataset):
         raise ValueError(f"Batch size {trainer_ddp.batch_size} is larger than the partition size {len(dataset)}.")
 
     # train
     if isinstance(trainer_ddp, GANDDPTrainer):
+        path = 'trained_models'
+        model_prefix = 'gan'
         gen_samples = trainer_ddp.training(dataset)
     elif isinstance(trainer_ddp, AEDDPTrainer):
+        path = 'trained_ae'
+        model_prefix = 'ae'
         train_data = dataset[:int(len(dataset) * opt['train_ratio'])]
         test_data = dataset[int(len(dataset) * opt['train_ratio']):]
+        train_data = DataLoader(train_data, batch_size=trainer_ddp.batch_size, shuffle=True)
+        test_data = DataLoader(test_data, batch_size=trainer_ddp.batch_size, shuffle=True)
         trainer_ddp.training(train_data, test_data)
+    else:
+        raise ValueError(f"Trainer type {type(trainer_ddp)} not supported.")
 
     # save checkpoint
     if trainer_ddp.rank == 0:
-        path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'gan_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
-        trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+        filename = f'{model_prefix}_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
+        if isinstance(trainer_ddp, GANDDPTrainer):
+            trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+        elif isinstance(trainer_ddp, AEDDPTrainer):
+            trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename))
 
         print("GAN training finished.")
         print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")

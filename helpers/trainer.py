@@ -465,7 +465,7 @@ class AETrainer(Trainer):
             checkpoint_02_file = 'checkpoint_02.pt'
 
             for epoch in range(self.epochs):
-                train_loss, test_loss = self.batch_train(train_data.to(self.device), test_data.to(self.device))
+                train_loss, test_loss = self.batch_train(train_data, test_data)
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
 
@@ -502,8 +502,8 @@ class AETrainer(Trainer):
             self.optimizer.zero_grad()
             # inputs = nn.BatchNorm1d(batch.shape[-1])(batch.float().permute(0, 2, 1)).permute(0, 2, 1)
             # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
-            inputs = batch.float()
-            outputs = self.model(inputs.to(self.model.device))
+            inputs = batch.float().to(self.model.device)
+            outputs = self.model(inputs)
             loss = self.loss(outputs, inputs)
             loss.backward()
             self.optimizer.step()
@@ -515,8 +515,8 @@ class AETrainer(Trainer):
         total_loss = 0
         with torch.no_grad():
             for batch in data:
-                inputs = batch.float()
-                outputs = self.model(inputs.to(self.model.device))
+                inputs = batch.float().to(self.model.device)
+                outputs = self.model(inputs)
                 loss = self.loss(outputs, inputs)
                 total_loss += loss.item()
         return total_loss / len(data)
