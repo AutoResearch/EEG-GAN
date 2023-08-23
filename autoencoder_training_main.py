@@ -62,7 +62,7 @@ def main():
     #     return (dataset-x_min)/(x_max-x_min)
     
     data = Dataloader(path=opt['path_dataset'],
-                      col_label=opt['conditions'], channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
+                      channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
                       norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
     dataset = data.get_data()
     # dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
@@ -109,7 +109,7 @@ def main():
         
         # Report changes to user
         print(f"Loading model {opt['path_checkpoint']}.\n\nInhereting the following parameters:")
-        print(f"parameter:\t\told value -> new value")
+        print("parameter:\t\told value -> new value")
         print(f"target:\t\t\t{target_old} -> {opt['target']}")
         print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
         print(f"timeseries_out:\t{timeseries_out_old} -> {opt['timeseries_out']}")

@@ -465,7 +465,7 @@ class AETrainer(Trainer):
             checkpoint_02_file = 'checkpoint_02.pt'
 
             for epoch in range(self.epochs):
-                train_loss, test_loss = self.batch_train(train_data, test_data)
+                train_loss, test_loss = self.batch_train(train_data.to(self.device), test_data.to(self.device))
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
 

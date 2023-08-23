@@ -165,6 +165,8 @@ def _ddp_training(trainer_ddp, opt):
     # end_index = start_index + partition_size
 
     # load dataset
+    if not 'conditions' in opt:
+        opt['conditions'] = ['']
     dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
                             norm_data=True, channel_label=opt['channel_label'])
     dataset = dataloader.get_data()#[start_index:end_index]

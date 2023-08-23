@@ -14,7 +14,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label=None, channel_label=None):#, multichannel: Union[bool, List[str]]=False):
+                 kw_timestep='Time', col_label='', channel_label=None):#, multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -42,7 +42,7 @@ class Dataloader:
             # get first column index of a time step
             n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
 
-            if col_label and not isinstance(col_label, list):
+            if not isinstance(col_label, list):
                 col_label = [col_label]
 
             # Get labels and data
