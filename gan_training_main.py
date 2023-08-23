@@ -140,16 +140,15 @@ def main():
         # initialize the autoencoder
         if opt['path_autoencoder'] != '':
             ae_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))
-            ae_state_dict = ae_dict['model']
             if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
-                autoencoder = TransformerAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
+                autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
             elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
-                autoencoder = TransformerDoubleAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
+                autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
             elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
-                autoencoder = TransformerFlattenAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
+                autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
             else:
                 raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-            autoencoder.load_state_dict(ae_state_dict)
+            autoencoder.load_state_dict(ae_dict['model'])
             # freeze the autoencoder
             for param in autoencoder.parameters():
                 param.requires_grad = False
