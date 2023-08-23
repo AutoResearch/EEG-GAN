@@ -148,7 +148,7 @@ def main():
             elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
                 autoencoder = TransformerFlattenAutoencoder(**ae_state_dict, sequence_length=opt['sequence_length'])
             else:
-                raise ValueError(f'Autoencoder class {ae_dict['configuration']['model_class']} not recognized.')
+                raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
             autoencoder.load_state_dict(ae_state_dict)
             # freeze the autoencoder
             for param in autoencoder.parameters():
