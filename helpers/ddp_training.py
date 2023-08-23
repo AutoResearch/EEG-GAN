@@ -157,7 +157,7 @@ def _setup_trainer(rank, trainer_ddp):
     return trainer_ddp
 
 
-def _ddp_training(trainer_ddp: GANDDPTrainer, opt):
+def _ddp_training(trainer_ddp, opt):
     # calculate partition of dataset for each process
     # make sure all partitions are the same size
     # partition_size = opt['n_samples'] // training.world_size
@@ -176,7 +176,12 @@ def _ddp_training(trainer_ddp: GANDDPTrainer, opt):
         raise ValueError(f"Batch size {trainer_ddp.batch_size} is larger than the partition size {len(dataset)}.")
 
     # train
-    gen_samples = trainer_ddp.training(dataset)
+    if isinstance(trainer_ddp, GANDDPTrainer):
+        gen_samples = trainer_ddp.training(dataset)
+    elif isinstance(trainer_ddp, AEDDPTrainer):
+        train_data = dataset[:int(len(dataset) * opt['train_ratio'])]
+        test_data = dataset[int(len(dataset) * opt['train_ratio']):]
+        trainer_ddp.training(train_data, test_data)
 
     # save checkpoint
     if trainer_ddp.rank == 0:

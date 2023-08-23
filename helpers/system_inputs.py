@@ -258,7 +258,7 @@ def default_inputs_training_autoencoder():
         'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
         'save_name': [str, 'Name to save model', None, 'Model save name: '],
         'target': [str, 'Target dimension (channel, timeseries, full) to encode; full is recommended;', 'full', 'Target: '],
-        'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
+        # 'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],

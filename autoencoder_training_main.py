@@ -6,7 +6,7 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
-from joblib._multiprocessing_helpers import mp
+import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
@@ -32,7 +32,7 @@ def main():
         'path_checkpoint': default_args['path_checkpoint'],
         'save_name': default_args['save_name'],
         'target': default_args['target'],
-        'conditions': default_args['conditions'],
+        # 'conditions': default_args['conditions'],
         'channel_label': default_args['channel_label'],
         'channels_out': default_args['channels_out'],
         'timeseries_out': default_args['timeseries_out'],
@@ -41,7 +41,7 @@ def main():
         'train_ratio': default_args['train_ratio'],
         'ddp': default_args['ddp'],
         'ddp_backend': default_args['ddp_backend'],
-        'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
+        # 'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
         'norm_data': True,
         'std_data': False,
         'diff_data': False,
@@ -65,7 +65,7 @@ def main():
                       col_label=opt['conditions'], channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
                       norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
     dataset = data.get_data()
-    dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
+    # dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
     # dataset = scale(dataset)
     
     # Split data function
@@ -140,7 +140,7 @@ def main():
         "path_checkpoint": [opt['path_checkpoint']],
         # "save_name": save_name,
         # "target": target,
-        "conditions": [opt['conditions']],
+        # "conditions": [opt['conditions']],
         "channel_label": [opt['channel_label']],
         # "channels_out": channels_out,
         # "timeseries_out": timeseries_out,
