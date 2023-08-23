@@ -84,10 +84,6 @@ def main():
     input_dim = dataset.shape[-1]
     seq_length = dataset.shape[1]
     
-    opt['input_dim'] = input_dim
-    opt["output_dim"] = opt['channels_out']
-    opt["output_dim_2"] = opt['timeseries_out']
-    
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
     test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True)
@@ -128,12 +124,17 @@ def main():
     elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
         raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
     
+    #Add parameters to tracking
+    opt['input_dim'] = input_dim
+    opt["output_dim"] = opt['channels_out']
+    opt["output_dim_2"] = opt['timeseries_out']
+    
     if opt['target'] == 'channels':
-        model = TransformerAutoencoder(input_dim=input_dim, output_dim=opt['channels_out']).to(opt['device'])
+        model = TransformerAutoencoder(input_dim=opt['input_dim'], output_dim=opt['output_dim']).to(opt['device'])
     elif opt['target'] == 'timeseries':
         raise NotImplementedError("Timeseries encoding target is not yet implemented.")
     elif opt['target'] == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=input_dim, output_dim=opt['channels_out'], sequence_length=seq_length , output_dim_2=opt['timeseries_out']).to(opt['device'])
+        model = TransformerDoubleAutoencoder(input_dim=opt['input_dim'], output_dim=opt['output_dim'], sequence_length=seq_length , output_dim_2=opt['output_dim_2']).to(opt['device'])
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
