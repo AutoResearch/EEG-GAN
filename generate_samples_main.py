@@ -7,7 +7,7 @@ import torch
 
 from helpers import system_inputs
 from helpers.dataloader import Dataloader
-from helpers.trainer import Trainer
+from helpers.trainer import GANTrainer
 from nn_architecture.models import TransformerGenerator, AutoencoderGenerator
 from nn_architecture.ae_networks import TransformerDoubleAutoencoder
 
@@ -162,8 +162,8 @@ def main():
             input_sequence = None
         with torch.no_grad():
             # draw latent variable
-            z = Trainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim,
-                                               sequence_length=seq_len, device=device)
+            z = GANTrainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim,
+                                                  sequence_length=seq_len, device=device)
             # concat with conditions and input sequence
             z = torch.cat((z, labels_in), dim=-1).float().to(device)
             # generate samples

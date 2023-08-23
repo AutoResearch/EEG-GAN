@@ -6,172 +6,216 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
+from joblib._multiprocessing_helpers import mp
 from torch.utils.data import DataLoader
 
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
+from helpers.trainer import AETrainer
+from helpers.ddp_training import AEDDPTrainer, run
+from helpers.get_master import find_free_port
+
 
 def main():
 
-
-    # ----------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Configure training parameters
-    # ----------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
     default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
     print('-----------------------------------\n')
 
-    #User inputs
-    file = default_args['file']
-    path_checkpoint = default_args['path_checkpoint']
-    save_name = default_args['save_name']
-    target = default_args['target']
-    conditions = default_args['conditions']
-    channel_label = default_args['channel_label']
-    channels_out = default_args['channels_out']
-    timeseries_out = default_args['timeseries_out']
-    n_epochs = default_args['n_epochs']
-    batch_size = default_args['batch_size']
-    
-    num_conditions = len(conditions)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    #Scale function
-    def scale(dataset):
-        x_min, x_max = dataset.min(), dataset.max()
-        return (dataset-x_min)/(x_max-x_min)
-        
+    # User inputs
+    opt = {
+        'path_dataset': default_args['path_dataset'],
+        'path_checkpoint': default_args['path_checkpoint'],
+        'save_name': default_args['save_name'],
+        'target': default_args['target'],
+        'conditions': default_args['conditions'],
+        'channel_label': default_args['channel_label'],
+        'channels_out': default_args['channels_out'],
+        'timeseries_out': default_args['timeseries_out'],
+        'n_epochs': default_args['n_epochs'],
+        'batch_size': default_args['batch_size'],
+        'train_ratio': default_args['train_ratio'],
+        'ddp': default_args['ddp'],
+        'ddp_backend': default_args['ddp_backend'],
+        'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
+        'norm_data': True,
+        'std_data': False,
+        'diff_data': False,
+        'kw_timestep': default_args['kw_timestep'],
+        'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+        'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
+        'history': None,
+        'trained_epochs': 0
+    }
+
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
 
-    data = Dataloader(file, col_label=conditions, channel_label=channel_label)
-    dataset = data.get_data()
-    dataset = dataset[:,num_conditions:,:].to(device) #Remove labels
-    dataset = scale(dataset)
+    # Scale function -> Not necessary; already in dataloader -> param: norm_data=True
+    # def scale(dataset):
+    #     x_min, x_max = dataset.min(), dataset.max()
+    #     return (dataset-x_min)/(x_max-x_min)
     
-    #Split data function
-    def split_data(dataset, test_size=.3):
+    data = Dataloader(path=opt['path_dataset'],
+                      col_label=opt['conditions'], channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
+                      norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
+    dataset = data.get_data()
+    dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
+    # dataset = scale(dataset)
+    
+    # Split data function
+    def split_data(dataset, train_size=.8):
         num_samples = dataset.shape[0]
         shuffle_index = np.arange(num_samples)
         np.random.shuffle(shuffle_index)
         
-        cutoff_index = int(num_samples*test_size)
-        test = dataset[shuffle_index[0:cutoff_index]]
-        train = dataset[shuffle_index[cutoff_index:]]
-        
+        cutoff_index = int(num_samples*train_size)
+        train = dataset[shuffle_index[:cutoff_index]]
+        test = dataset[shuffle_index[cutoff_index:]]
+
         return test, train
 
-    #Determine input_dim, output_dim, and seq_length
+    # Determine input_dim, output_dim, and seq_length
     input_dim = dataset.shape[-1]
     seq_length = dataset.shape[1]
     
-    #Split dataset and convert to pytorch dataloader class
-    test_dataset, train_dataset = split_data(dataset)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-        
-    # ----------------------------------------------------------------------------------------------------------------------
+    # Split dataset and convert to pytorch dataloader class
+    test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
+    test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=opt['batch_size'], shuffle=True)
+
+    # ------------------------------------------------------------------------------------------------------------------
     # Initiate and train autoencoder
-    # ----------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-    #Initiate autoencoder
-    if path_checkpoint:
-        model_dict = torch.load(path_checkpoint)
-        model_state = model_dict['state_dict']
+    # Initiate autoencoder
+    model_dict = None
+    if default_args['load_checkpoint'] and os.path.isfile(opt['path_checkpoint']):
+        model_dict = torch.load(opt['path_checkpoint'])
+        # model_state = model_dict['state_dict']
+
+        target_old = opt['target']
+        channels_out_old = opt['channels_out']
+        timeseries_out_old = opt['timeseries_out']
+
+        opt['target'] = model_dict['configuration']['target']
+        opt['channels_out'] = model_dict['configuration']['channels_out']
+        opt['timeseries_out'] = model_dict['configuration']['timeseries_out']
         
-        target = model_dict['config']['target']
-        channels_out = model_dict['config']['channels_out']
-        timeseries_out = model_dict['config']['timeseries_out']
-        
-        #Report changes to user
-        print(f"Loading model {path_checkpoint}. \n\nInhereting the following parameters:")
-        print(f"Target: {target}")
-        if (target == 'channels') | (target == 'full'):
-            print(f"channels_out: {channels_out}")
-        if (target == 'timeseries') | (target == 'full'):
-            print(f"timeseries_out: {timeseries_out}")
-            print('-----------------------------------\n')
+        # Report changes to user
+        print(f"Loading model {opt['path_checkpoint']}.\n\nInhereting the following parameters:")
+        print(f"parameter:\t\told value -> new value")
+        print(f"target:\t\t\t{target_old} -> {opt['target']}")
+        print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
+        print(f"timeseries_out:\t{timeseries_out_old} -> {opt['timeseries_out']}")
+        print('-----------------------------------\n')
+        # print(f"Target: {opt['target']}")
+        # if (opt['target'] == 'channels') | (opt['target'] == 'full'):
+        #     print(f"channels_out: {opt['channels_out']}")
+        # if (opt['target'] == 'timeseries') | (opt['target'] == 'full'):
+        #     print(f"timeseries_out: {opt['timeseries_out']}")
+        #     print('-----------------------------------\n')
+    elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
+        raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
             
-    if target == 'channels':
-        model = TransformerAutoencoder(input_dim=input_dim, output_dim=channels_out).to(device)
-    elif target == 'timeseries':
-        raise ValueError("Timeseries encoding target is not yet implemented")
-    elif target == 'full':
-        #model = TransformerFlattenAutoencoder(input_dim=input_dim, sequence_length=seq_length, output_dim=channels_out).to(device) 
-        model = TransformerDoubleAutoencoder(input_dim=input_dim, output_dim=channels_out, sequence_length=seq_length , output_dim_2=timeseries_out).to(device) 
+    if opt['target'] == 'channels':
+        model = TransformerAutoencoder(input_dim=input_dim, output_dim=opt['channels_out']).to(device)
+    elif opt['target'] == 'timeseries':
+        raise NotImplementedError("Timeseries encoding target is not yet implemented.")
+    elif opt['target'] == 'full':
+        model = TransformerDoubleAutoencoder(input_dim=input_dim, output_dim=opt['channels_out'], sequence_length=seq_length , output_dim_2=opt['timeseries_out']).to(opt['device'])
     else:
-        raise ValueError(f"Encode target '{target}' not recognized, options are 'channels', 'timeseries', or 'full'.")
+        raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
-    if path_checkpoint:
-        model.load_state_dict(model_state)
-        
-    #Populate model configuration
-    config = {
-        "file" : [file],
-        "path_checkpoint" : path_checkpoint,
-        "save_name" : save_name,
-        "target" : target,
-        "conditions" : [conditions],
-        "channel_label" : [channel_label],
-        "channels_out" : channels_out,
-        "timeseries_out" : timeseries_out,
-        "n_epochs" : [n_epochs],
-        "batch_size" : [batch_size],
+    # Populate model configuration
+    history = {
         "trained_epochs": [0],
+        "path_dataset": [opt['path_dataset']],
+        "path_checkpoint": [opt['path_checkpoint']],
+        # "save_name": save_name,
+        # "target": target,
+        "conditions": [opt['conditions']],
+        "channel_label": [opt['channel_label']],
+        # "channels_out": channels_out,
+        # "timeseries_out": timeseries_out,
+        "n_epochs": [opt['n_epochs']],
+        "batch_size": [opt['batch_size']],
     }
+
+    if model_dict is not None:
+        # update history
+        for key in history.keys():
+            history[key] = model_dict['configuration']['history'][key] + history[key]
+
+        # Load trained model parameters
+        # if opt['path_checkpoint']:
+        #     model.load_state_dict(model_dict['model'])
+
+        # h_file = copy.deepcopy(model_dict['config']['path_dataset'])
+        # h_file.append(opt['path_dataset'])
+        # history['path_dataset'] = h_file
+        #
+        # model_conditions = copy.deepcopy(model_dict['config']['conditions'])
+        # model_conditions.append(opt['conditions'])
+        # history['conditions'] = model_conditions
+        #
+        # model_channel_label = copy.deepcopy(model_dict['config']['channel_label'])
+        # model_channel_label.append(opt['channel_label'])
+        # history['channel_label'] = model_channel_label
+        #
+        # n_epochs = copy.deepcopy(model_dict['config']['n_epochs'])
+        # n_epochs.append(opt['n_epochs'])
+        # history['n_epochs'] = n_epochs
+        #
+        # batch_size = copy.deepcopy(model_dict['config']['batch_size'])
+        # batch_size.append(opt['batch_size'])
+        # history['batch_size'] = batch_size
+        #
+        # trained_epochs = copy.deepcopy(model_dict['config']['trained_epochs'])
+        # trained_epochs.append(0)
+        # history['trained_epochs'] = trained_epochs
+
+    # add updated history to opt
+    # model.config = config
+    opt['history'] = history
+
+    # Training parameters
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    # criterion = nn.MSELoss()
+    # train_loss, test_loss, model = train(n_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
     
-    if path_checkpoint:
-        model_file = copy.deepcopy(model_dict['config']['file'])
-        model_file.append(file)
-        config['file'] = model_file
-        
-        model_conditions = copy.deepcopy(model_dict['config']['conditions'])
-        model_conditions.append(conditions)
-        config['conditions'] = model_conditions
-        
-        model_channel_label = copy.deepcopy(model_dict['config']['channel_label'])
-        model_channel_label.append(channel_label)
-        config['channel_label'] = model_channel_label
-        
-        model_nepochs = copy.deepcopy(model_dict['config']['n_epochs'])
-        model_nepochs.append(n_epochs)
-        config['n_epochs'] = model_nepochs
-        
-        model_batch = copy.deepcopy(model_dict['config']['batch_size'])
-        model_batch.append(batch_size)
-        config['batch_size'] = model_batch  
-        
-        model_trained = copy.deepcopy(model_dict['config']['trained_epochs'])
-        model_trained.append(0)
-        config['trained_epochs'] = model_trained
-  
-    model.config = config
+    if opt['ddp']:
+        trainer = AEDDPTrainer(model, opt)
+        if default_args['load_checkpoint']:
+            trainer.load_checkpoint(default_args['path_checkpoint'])
+        mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
+                 nprocs=opt['world_size'], join=True)
+    else:
+        trainer = AETrainer(model, opt)
+        if default_args['load_checkpoint']:
+            trainer.load_checkpoint(default_args['path_checkpoint'])
+        trainer.training(train_dataloader, test_dataloader)
+        model = trainer.model
+        print("Training finished.")
 
-    #Training parameters
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    criterion = nn.MSELoss()
+        # ----------------------------------------------------------------------------------------------------------------------
+        # Save autoencoder
+        # ----------------------------------------------------------------------------------------------------------------------
 
-    train_loss, test_loss, model = train(n_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
+        # Save model
+        # model_dict = dict(state_dict=model.state_dict(), config=model.config)
+        if opt['save_name'] is None:
+            fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
+            opt['save_name'] = f"ae_{fn}_{str(time.time()).split('.')[0]}.pt"
+        # save(model_dict, save_name)
+        trainer.save_checkpoint(opt['save_name'])
+        print(f"Model and configuration saved in {opt['save_name']}")
 
-    # ----------------------------------------------------------------------------------------------------------------------
-    # Save autoencoder
-    # ----------------------------------------------------------------------------------------------------------------------
 
-    #Save model
-    if model: 
-        model_dict = dict(state_dict = model.state_dict(), config = model.config)
-        if save_name == None:
-            fn = file.split('/')[-1].split('.csv')[0]
-            save_name = f"ae_{fn}_{str(time.time()).split('.')[0]}.pth"
-        save(model_dict, save_name)
-        
-        #Clean up temporary checkpoints
-        if os.path.isfile('trained_ae/checkpoint_01.pth'):
-            os.remove('trained_ae/checkpoint_01.pth')
-        if os.path.isfile('trained_ae/checkpoint_02.pth'):
-            os.remove('trained_ae/checkpoint_02.pth')
-        
 if __name__ == "__main__":
     main()

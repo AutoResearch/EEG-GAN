@@ -13,11 +13,35 @@ from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminato
 
 
 class Trainer:
+    def __init__(self):
+        pass
+
+    def training(self):
+        raise NotImplementedError
+
+    def batch_train(self):
+        raise NotImplementedError
+
+    def save_checkpoint(self):
+        raise NotImplementedError
+
+    def load_checkpoint(self):
+        raise NotImplementedError
+
+    def manage_checkpoints(self):
+        raise NotImplementedError
+
+    def print_log(self):
+        raise NotImplementedError
+
+
+class GANTrainer(Trainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
     Source: https://arxiv.org/pdf/1704.00028.pdf"""
 
     def __init__(self, generator, discriminator, opt):
         # training configuration
+        super().__init__()
         self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else 0
         self.input_sequence_length = opt['input_sequence_length'] if 'input_sequence_length' in opt else 0
@@ -52,13 +76,13 @@ class Trainer:
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
             self.loss.set_lambda_gp(self.lambda_gp)
 
-        self.epochs_done = 0
+        self.trained_epochs = 0
 
         self.prev_g_loss = 0
         self.configuration = {
             'device': self.device,
-            'generator': str(self.generator.__class__.__name__),
-            'discriminator': str(self.discriminator.__class__.__name__),
+            'generator_class': str(self.generator.__class__.__name__),
+            'discriminator_class': str(self.discriminator.__class__.__name__),
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
             'input_sequence_length': self.input_sequence_length,
@@ -78,15 +102,15 @@ class Trainer:
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
             'dataloader': {
-                'path': opt['path_dataset'] if 'path_dataset' in opt else None,
-                'col_label': opt['conditions'] if 'conditions' in opt else None,
+                'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+                'column_label': opt['conditions'] if 'conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
                 'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
                 'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
             },
-            # 'epochs_done': self.epochs_done,
+            'history': opt['history'] if 'history' in opt else None,
         }
 
         self.d_losses = []
@@ -147,7 +171,7 @@ class Trainer:
                     self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
                     trigger_checkpoint_01 = True
 
-            self.epochs_done += 1
+            self.trained_epochs += 1
             self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
@@ -240,7 +264,7 @@ class Trainer:
             else:
                 fake_data = self.make_fake_data(gen_imgs, disc_labels, gen_cond_data)
 
-            if self.epochs_done % self.sample_interval == 0:
+            if self.trained_epochs % self.sample_interval == 0:
                 # TODO: Inform Chad that gen_samples is now [condition, channels, sequence]
                 # decode gen_imgs if necessary - decoding only necessary if not prediction case or seq2seq case
                 if isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode:
@@ -293,9 +317,11 @@ class Trainer:
             'discriminator_loss': self.d_losses,
             'generator_loss': self.g_losses,
             'generated_samples': generated_samples,
+            'trained_epochs': self.trained_epochs,
             'configuration': self.configuration,
-            'epochs_done': self.epochs_done,
         }, path_checkpoint)
+
+        print(f"Checkpoint saved to {path_checkpoint}.")
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):
@@ -370,3 +396,179 @@ class Trainer:
             fake_data = torch.cat((fake_data, data_labels.repeat(1, fake_data.shape[1], 1)), dim=-1).to(self.device)
 
         return fake_data
+
+
+class AETrainer(Trainer):
+    """Trainer for conditional Wasserstein-GAN with gradient penalty.
+    Source: https://arxiv.org/pdf/1704.00028.pdf"""
+
+    def __init__(self, model, opt):
+        # training configuration
+        super().__init__()
+        self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
+        self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
+        self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
+        self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
+        self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
+
+        # model
+        self.model = model
+        self.model.to(self.device)
+
+        # optimizer and loss
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.loss = torch.nn.MSELoss()
+
+        # training statistics
+        self.trained_epochs = 0
+        self.train_loss = []
+        self.test_loss = []
+
+        self.configuration = {
+            'device': self.device,
+            'class': str(self.model.__class__.__name__),
+            'batch_size': self.batch_size,
+            'n_epochs': self.epochs,
+            'sample_interval': self.sample_interval,
+            'learning_rate': self.learning_rate,
+            'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+            'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
+            'timeseries_out': opt['timeseries_out'] if 'timeseries_out' in opt else None,
+            'channels_out': opt['channels_out'] if 'channels_out' in opt else None,
+            'target': opt['target'] if 'target' in opt else None,
+            'conditions': opt['conditions'] if 'conditions' in opt else None,
+            'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+            'trained_epochs': self.trained_epochs,
+            'dataloader': {
+                'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+                'col_label': opt['conditions'] if 'conditions' in opt else None,
+                'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
+                'std_data': opt['std_data'] if 'std_data' in opt else None,
+                'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
+                'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
+                'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+            },
+            'history': opt['history'] if 'history' in opt else None,
+        }
+
+    def training(self, train_data, test_data):
+        try:
+            path_checkpoint = 'trained_ae'
+            if not os.path.exists(path_checkpoint):
+                os.makedirs(path_checkpoint)
+            trigger_checkpoint_01 = True
+            checkpoint_01_file = 'checkpoint_01.pt'
+            checkpoint_02_file = 'checkpoint_02.pt'
+
+            for epoch in range(self.epochs):
+                train_loss, test_loss = self.batch_train(train_data, test_data)
+                self.train_loss.append(train_loss)
+                self.test_loss.append(test_loss)
+
+                # Save a checkpoint of the trained GAN and the generated samples every sample interval
+                if epoch % self.sample_interval == 0:
+                    # save models and optimizer states as checkpoints
+                    # toggle between checkpoint files to avoid corrupted file during training
+                    if trigger_checkpoint_01:
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file))
+                        trigger_checkpoint_01 = False
+                    else:
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file))
+                        trigger_checkpoint_01 = True
+
+                self.trained_epochs += 1
+                self.print_log(epoch + 1, train_loss, test_loss)
+
+            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
+
+        except KeyboardInterrupt:
+            # save model at KeyboardInterrupt
+            print("keyboard interrupt detected.\nSaving checkpoint...")
+            self.save_checkpoint()
+
+    def batch_train(self, train_data, test_data):
+        train_loss = self.train_model(train_data)
+        test_loss = self.test_model(test_data)
+        return train_loss, test_loss
+
+    def train_model(self, data):
+        self.model.train()
+        total_loss = 0
+        for batch in data:
+            self.optimizer.zero_grad()
+            # inputs = nn.BatchNorm1d(batch.shape[-1])(batch.float().permute(0, 2, 1)).permute(0, 2, 1)
+            # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
+            inputs = batch.float()
+            outputs = self.model(inputs.to(self.model.device))
+            loss = self.loss(outputs, inputs)
+            loss.backward()
+            self.optimizer.step()
+            total_loss += loss.item()
+        return total_loss / len(data)
+
+    def test_model(self, data):
+        self.model.eval()
+        total_loss = 0
+        with torch.no_grad():
+            for batch in data:
+                inputs = batch.float()
+                outputs = self.model(inputs.to(self.model.device))
+                loss = self.loss(outputs, inputs)
+                total_loss += loss.item()
+        return total_loss / len(data)
+
+    def save_checkpoint(self, path_checkpoint=None, model=None):
+        if path_checkpoint is None:
+            default_path = os.path.join('..', 'trained_ae')
+            if not os.path.exists(default_path):
+                os.makedirs(default_path)
+            path_checkpoint = os.path.join(default_path, 'checkpoint.pt')
+
+        if model is None:
+            model = self.model
+
+        self.configuration['trained_epochs'] = self.trained_epochs
+        self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+
+        torch.save({
+            'model': model.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'train_loss': self.train_loss,
+            'test_loss': self.test_loss,
+            'trained_epochs': self.trained_epochs,
+            'configuration': self.configuration,
+        }, path_checkpoint)
+
+        # torch.save(self.configuration, path_checkpoint)
+
+    def load_checkpoint(self, path_checkpoint):
+        if os.path.isfile(path_checkpoint):
+            # load state_dicts
+            state_dict = torch.load(path_checkpoint, map_location=self.device)
+            self.model.load_state_dict(state_dict['model'])
+            self.optimizer.load_state_dict(state_dict['optimizer'])
+        else:
+            raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
+
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None):
+        """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
+        but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
+        Therefore, there's no need for the saved samples."""
+
+        print("Managing checkpoints...")
+        # save current model as checkpoint.pt
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None)
+
+        for f in checkpoint_files:
+            if os.path.exists(os.path.join(path_checkpoint, f)):
+                os.remove(os.path.join(path_checkpoint, f))
+
+    def print_log(self, current_epoch, train_loss, test_loss):
+        print(
+            "[Epoch %d/%d] [Train loss: %f] [Test loss: %f]" % (current_epoch, self.epochs, train_loss, test_loss)
+        )
+
+    def set_optimizer_state(self, optimizer):
+        self.optimizer.load_state_dict(optimizer)
+        print('Optimizer state loaded successfully.')

@@ -150,6 +150,7 @@ class HelperMain(Helper):
         self.start_line()
         self.end_line()
 
+
 class HelperAutoencoder(Helper):
     def __init__(self, kw_dict):
         super().__init__(kw_dict)
@@ -168,6 +169,7 @@ class HelperAutoencoder(Helper):
               '\n\t    is instead provided, it will load that model and continue training on it.'
               '\n\t    If you are loading a previously trained model, it will inherit the following model parameters:'
               '\n\t    target, channels_out, timeseries_out. The remainder of the parameters will be used as normal.')
+
 
 class HelperVisualize(Helper):
     def __init__(self, kw_dict):
@@ -222,7 +224,6 @@ class HelperGenerateSamples(Helper):
               '\n\tEspecially, the generation of large number of sequences can be boosted by increasing this parameter')
 
 
-
 def default_inputs_training_gan():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
@@ -241,28 +242,33 @@ def default_inputs_training_gan():
         'path_autoencoder': [str, 'Path to the autoencoder; Only usable with Autoencoder-GAN', '', 'Autoencoder checkpoint: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
-        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
     }
 
     return kw_dict
+
 
 def default_inputs_training_autoencoder():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
+        'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'file': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
-        'path_checkpoint': [str, 'Path to a trained model to continue training', None, 'Model: '],
+        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
+        'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
         'save_name': [str, 'Name to save model', None, 'Model save name: '],
-        'target': [str, 'Target dimension (channel, timeseries, full) to encode', 'full', 'Target: '],
+        'target': [str, 'Target dimension (channel, timeseries, full) to encode; full is recommended;', 'full', 'Target: '],
         'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
+        'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],
         'timeseries_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
         'n_epochs': [int, 'Number of epochs to train for', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
+        'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
     }
     return kw_dict
+
 
 def default_inputs_training_classifier():
     kw_dict = {
@@ -398,6 +404,8 @@ def parse_arguments(arguments, kw_dict=None, file=None):
         elif file == 'autoencoder_training_main.py':
             system_args = default_inputs_training_autoencoder()
             helper = HelperAutoencoder(system_args)
+        else:
+            raise ValueError(f'File {file} not recognized.')
     else:
         system_args = kw_dict
         helper = Helper(kw_dict)

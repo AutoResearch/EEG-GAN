@@ -10,12 +10,12 @@ import helpers.trainer as trainer
 from helpers.dataloader import Dataloader
 
 
-class DDPTrainer(trainer.Trainer):
+class GANDDPTrainer(trainer.GANTrainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
     Source: https://arxiv.org/pdf/1704.00028.pdf"""
 
     def __init__(self, generator, discriminator, opt):
-        super(trainer.Trainer, self).__init__()
+        super(trainer.GANTrainer, self).__init__()
 
         # training configuration
         super().__init__(generator, discriminator, opt)
@@ -72,6 +72,59 @@ class DDPTrainer(trainer.Trainer):
         self.discriminator_optimizer.load_state_dict(d_opt_state)
 
 
+class AEDDPTrainer(trainer.AETrainer):
+    """Trainer for conditional Wasserstein-GAN with gradient penalty.
+    Source: https://arxiv.org/pdf/1704.00028.pdf"""
+
+    def __init__(self, model, opt):
+        super(trainer.AETrainer, self).__init__()
+
+        # training configuration
+        super().__init__(model, opt)
+
+        self.world_size = opt['world_size'] if 'world_size' in opt else 1
+
+    # ---------------------
+    #  DDP-specific modifications
+    # ---------------------
+
+    def save_checkpoint(self, path_checkpoint=None, model=None):
+        if self.rank == 0:
+            super().save_checkpoint(path_checkpoint, model=self.model.module)
+        # dist.barrier()
+
+    def print_log(self, current_epoch, train_loss, test_loss):
+        # if self.rank == 0:
+        # average the loss across all processes before printing
+        reduce_tensor = torch.tensor([train_loss, test_loss], dtype=torch.float32, device=self.device)
+        dist.all_reduce(reduce_tensor, op=dist.ReduceOp.SUM)
+        reduce_tensor /= self.world_size
+
+        super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
+
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None):
+        if self.rank == 0:
+            # print(f'Rank {self.rank} is managing checkpoints.')
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module)
+        #     print(f'Rank {self.rank} finished managing checkpoints.')
+        # print(f'Rank {self.rank} reached barrier.')
+        # dist.barrier()
+
+    def set_device(self, rank):
+        self.rank = rank
+        self.device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else f'cpu:{rank}')
+
+    def set_ddp_framework(self):
+        # set ddp generator and discriminator
+        self.model.to(self.rank)
+        self.generator = DDP(self.model, device_ids=[self.rank], find_unused_parameters=True) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
+
+        # safe optimizer state_dicts, init new ddp optimizer and load state_dicts
+        opt_state = self.optimizer.state_dict()
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.optimizer.load_state_dict(opt_state)
+
+
 def run(rank, world_size, master_port, backend, trainer_ddp, opt):
     _setup(rank, world_size, master_port, backend)
     trainer_ddp = _setup_trainer(rank, trainer_ddp)
@@ -89,22 +142,22 @@ def _setup(rank, world_size, master_port, backend):
     dist.init_process_group(backend, rank=rank, world_size=world_size, timeout=timedelta(seconds=30))
 
 
-def _setup_trainer(rank, training):
+def _setup_trainer(rank, trainer_ddp):
     # set device
-    training.set_device(rank)
-    print(f"Using device {training.device}.")
+    trainer_ddp.set_device(rank)
+    print(f"Using device {trainer_ddp.device}.")
 
     # construct DDP model
-    training.set_ddp_framework()
+    trainer_ddp.set_ddp_framework()
 
     # load checkpoint
     # if training.use_checkpoint:
     #     training.load_checkpoint(training.path_checkpoint)
 
-    return training
+    return trainer_ddp
 
 
-def _ddp_training(trainer_ddp: DDPTrainer, opt):
+def _ddp_training(trainer_ddp: GANDDPTrainer, opt):
     # calculate partition of dataset for each process
     # make sure all partitions are the same size
     # partition_size = opt['n_samples'] // training.world_size

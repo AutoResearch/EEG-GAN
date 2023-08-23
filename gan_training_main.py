@@ -6,9 +6,9 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 
-from helpers.trainer import Trainer
+from helpers.trainer import GANTrainer
 from helpers.get_master import find_free_port
-from helpers.ddp_training import run, DDPTrainer
+from helpers.ddp_training import run, GANDDPTrainer
 from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator, TransformerGenerator, TransformerDiscriminator
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
@@ -71,7 +71,7 @@ def main():
         'sample_interval': default_args['sample_interval'],
         'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
         # 'patch_size': default_args['patch_size'],
-        'kw_timestep': default_args['kw_timestep_dataset'],
+        'kw_timestep': default_args['kw_timestep'],
         'conditions': default_args['conditions'],
         'sequence_length': -1,
         'hidden_dim': 128,  # Dimension of hidden layers in discriminator and generator
@@ -88,7 +88,7 @@ def main():
     }
 
     dataloader = Dataloader(default_args['path_dataset'],
-                            kw_timestep=default_args['kw_timestep_dataset'],
+                            kw_timestep=default_args['kw_timestep'],
                             col_label=default_args['conditions'],
                             norm_data=norm_data,
                             std_data=std_data,
@@ -123,9 +123,7 @@ def main():
     #     opt['latent_dim'] += 1
     # make sure discriminator input size is even; constraint of positional encoding in TransformerDiscriminator
     channel_in_disc = opt['n_channels'] + opt['n_conditions']
-    sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != \
-                                                                                         opt['sequence_length'] else \
-    opt['sequence_length']
+    sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
     # make channel_in_disc even for positional encoding
     # if channel_in_disc % 2 != 0:
     #     channel_in_disc += 1
@@ -165,13 +163,13 @@ def main():
         discriminator = AutoencoderDiscriminator(input_dim=channel_in_disc,
                                                  autoencoder=autoencoder)
 
-    if isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
-        # if input_sequence_length is 0, do not decode the generator output during training
-        generator.decode_output(False)
+        if isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
+            # if input_sequence_length is 0, do not decode the generator output during training
+            generator.decode_output(False)
 
-    if isinstance(discriminator, AutoencoderDiscriminator) and opt['input_sequence_length'] == 0:
-        # if input_sequence_length is 0, do not encode the discriminator input during training
-        discriminator.encode_input(False)
+        if isinstance(discriminator, AutoencoderDiscriminator) and opt['input_sequence_length'] == 0:
+            # if input_sequence_length is 0, do not encode the discriminator input during training
+            discriminator.encode_input(False)
 
     print("Generator and discriminator initialized.")
 
@@ -184,13 +182,13 @@ def main():
     print("Training GAN...")
     print('-----------------------------------------\n')
     if ddp:
-        trainer = DDPTrainer(generator, discriminator, opt)
+        trainer = GANDDPTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
         mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, opt),
                  nprocs=world_size, join=True)
     else:
-        trainer = Trainer(generator, discriminator, opt)
+        trainer = GANTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
         gen_samples = trainer.training(dataset)
