@@ -443,6 +443,9 @@ class AETrainer(Trainer):
             # 'conditions': opt['conditions'] if 'conditions' in opt else None,
             'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
             'trained_epochs': self.trained_epochs,
+            'input_dim': opt['input_dim'],
+            'output_dim': opt['output_dim'],
+            'output_dim_2': opt['output_dim_2'],
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'col_label': opt['conditions'] if 'conditions' in opt else None,
@@ -533,15 +536,17 @@ class AETrainer(Trainer):
 
         self.configuration['trained_epochs'] = self.trained_epochs
         self.configuration['history']['trained_epochs'] = [self.trained_epochs]
-
-        torch.save({
+        
+        checkpoint_dict = {
             'model': model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'train_loss': self.train_loss,
             'test_loss': self.test_loss,
             'trained_epochs': self.trained_epochs,
             'configuration': self.configuration,
-        }, path_checkpoint)
+        }
+
+        torch.save(checkpoint_dict, path_checkpoint)
 
         # torch.save(self.configuration, path_checkpoint)
 

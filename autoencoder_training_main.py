@@ -146,6 +146,9 @@ def main():
         # "timeseries_out": timeseries_out,
         "n_epochs": [opt['n_epochs']],
         "batch_size": [opt['batch_size']],
+        "input_dim": [input_dim],
+        "output_dim": [opt['channels_out']],
+        "output_dim_2": [opt['timeseries_out']]
     }
 
     if model_dict is not None:
@@ -153,36 +156,6 @@ def main():
         for key in history.keys():
             history[key] = model_dict['configuration']['history'][key] + history[key]
 
-        # Load trained model parameters
-        # if opt['path_checkpoint']:
-        #     model.load_state_dict(model_dict['model'])
-
-        # h_file = copy.deepcopy(model_dict['config']['path_dataset'])
-        # h_file.append(opt['path_dataset'])
-        # history['path_dataset'] = h_file
-        #
-        # model_conditions = copy.deepcopy(model_dict['config']['conditions'])
-        # model_conditions.append(opt['conditions'])
-        # history['conditions'] = model_conditions
-        #
-        # model_channel_label = copy.deepcopy(model_dict['config']['channel_label'])
-        # model_channel_label.append(opt['channel_label'])
-        # history['channel_label'] = model_channel_label
-        #
-        # n_epochs = copy.deepcopy(model_dict['config']['n_epochs'])
-        # n_epochs.append(opt['n_epochs'])
-        # history['n_epochs'] = n_epochs
-        #
-        # batch_size = copy.deepcopy(model_dict['config']['batch_size'])
-        # batch_size.append(opt['batch_size'])
-        # history['batch_size'] = batch_size
-        #
-        # trained_epochs = copy.deepcopy(model_dict['config']['trained_epochs'])
-        # trained_epochs.append(0)
-        # history['trained_epochs'] = trained_epochs
-
-    # add updated history to opt
-    # model.config = config
     opt['history'] = history
 
     # Training parameters
@@ -216,7 +189,6 @@ def main():
         # save(model_dict, save_name)
         trainer.save_checkpoint(opt['save_name'])
         print(f"Model and configuration saved in {opt['save_name']}")
-
 
 if __name__ == "__main__":
     main()
