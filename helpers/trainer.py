@@ -532,7 +532,7 @@ class AETrainer(Trainer):
                 total_loss += loss.item()
         return total_loss / len(data)
 
-    def save_checkpoint(self, path_checkpoint=None, model=None):
+    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False):
         if path_checkpoint is None:
             default_path = os.path.join('..', 'trained_ae')
             if not os.path.exists(default_path):
@@ -542,8 +542,9 @@ class AETrainer(Trainer):
         if model is None:
             model = self.model
 
-        self.configuration['trained_epochs'] = self.trained_epochs
-        self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
+        if update_history:
+            self.configuration['trained_epochs'] = self.trained_epochs
+            self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
         
         checkpoint_dict = {
             'model': model.state_dict(),
