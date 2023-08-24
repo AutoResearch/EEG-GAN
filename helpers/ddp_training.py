@@ -72,7 +72,6 @@ class GANDDPTrainer(trainer.GANTrainer):
         self.generator_optimizer.load_state_dict(g_opt_state)
         self.discriminator_optimizer.load_state_dict(d_opt_state)
 
-
 class AEDDPTrainer(trainer.AETrainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
     Source: https://arxiv.org/pdf/1704.00028.pdf"""
@@ -89,9 +88,9 @@ class AEDDPTrainer(trainer.AETrainer):
     #  DDP-specific modifications
     # ---------------------
 
-    def save_checkpoint(self, path_checkpoint=None, model=None):
+    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False):
         if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, model=self.model.module)
+            super().save_checkpoint(path_checkpoint, model=self.model.module, update_history=update_history)
         # dist.barrier()
 
     def print_log(self, current_epoch, train_loss, test_loss):
