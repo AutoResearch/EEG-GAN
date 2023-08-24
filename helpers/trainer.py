@@ -494,7 +494,7 @@ class AETrainer(Trainer):
                 self.trained_epochs += 1
                 self.print_log(epoch + 1, train_loss, test_loss)
 
-            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
+            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True)
 
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
