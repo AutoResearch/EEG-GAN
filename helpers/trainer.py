@@ -499,7 +499,7 @@ class AETrainer(Trainer):
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
             print("keyboard interrupt detected.\nSaving checkpoint...")
-            self.save_checkpoint()
+            self.save_checkpoint(update_history=True)
 
     def batch_train(self, train_data, test_data):
         train_loss = self.train_model(train_data)
