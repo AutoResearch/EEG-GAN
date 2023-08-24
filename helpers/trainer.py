@@ -543,7 +543,7 @@ class AETrainer(Trainer):
             model = self.model
 
         self.configuration['trained_epochs'] = self.trained_epochs
-        self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+        self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
         
         checkpoint_dict = {
             'model': model.state_dict(),
