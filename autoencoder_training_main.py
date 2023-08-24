@@ -140,6 +140,7 @@ def main():
 
     # Populate model configuration
     history = {
+        "trained_epochs": [],
         "path_dataset": [opt['path_dataset']],
         "path_checkpoint": [opt['path_checkpoint']],
         # "save_name": save_name,
