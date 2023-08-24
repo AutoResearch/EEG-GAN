@@ -61,9 +61,13 @@ class GANTrainer(Trainer):
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
-
+            
         self.generator = generator
         self.discriminator = discriminator
+        if hasattr(generator,'module'):
+            self.generator = {k.partition('module.')[2]: v for k,v in generator}
+            self.discriminator = {k.partition('module.')[2]: v for k,v in discriminator}
+
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
@@ -284,7 +288,11 @@ class GANTrainer(Trainer):
             else:
                 gen_samples = None
 
-            real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+            if not hasattr(self.generator,'module'):
+                real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+            else:
+                real_data = self.generator.module.autoencoder.encode(data).reshape(-1, 1, self.discriminator.module.output_dim*self.discriminator.module.output_dim_2) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
+
             real_data = torch.cat((real_data, disc_labels.repeat(1, real_data.shape[1], 1)), dim=-1).to(self.device)
 
         # Loss for real and generated samples
