@@ -568,14 +568,14 @@ class AETrainer(Trainer):
         else:
             raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False):
         """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
         but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
         Therefore, there's no need for the saved samples."""
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None, update_history=update_history)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):

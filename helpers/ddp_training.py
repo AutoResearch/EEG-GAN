@@ -102,10 +102,10 @@ class AEDDPTrainer(trainer.AETrainer):
 
         super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module, update_history=update_history)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()
