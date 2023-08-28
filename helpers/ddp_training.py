@@ -161,8 +161,11 @@ def _ddp_training(trainer_ddp, opt):
     # load data
     if 'conditions' not in opt:
         opt['conditions'] = ['']
-    dataloader = Dataloader(opt['path_dataset'], kw_timestep=opt['kw_timestep'], col_label=opt['conditions'],
-                            norm_data=True, channel_label=opt['channel_label'])
+    dataloader = Dataloader(opt['path_dataset'],
+                            kw_timestep=opt['kw_timestep'],
+                            col_label=opt['conditions'],
+                            norm_data=True,
+                            channel_label=opt['channel_label'])
     dataset = dataloader.get_data()
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
@@ -173,6 +176,7 @@ def _ddp_training(trainer_ddp, opt):
     if isinstance(trainer_ddp, GANDDPTrainer):
         path = 'trained_models'
         model_prefix = 'gan'
+        dataset = DataLoader(dataset, batch_size=trainer_ddp.batch_size, shuffle=True)
         gen_samples = trainer_ddp.training(dataset)
     elif isinstance(trainer_ddp, AEDDPTrainer):
         path = 'trained_ae'

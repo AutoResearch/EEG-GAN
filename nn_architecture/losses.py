@@ -71,6 +71,7 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
 
         # Generate random epsilon
         epsilon = torch.rand(batch_size, 1, 1, device=device, requires_grad=True)
+        epsilon = epsilon.expand_as(real_samples)
 
         # Interpolate between real and fake samples
         interpolated_samples = epsilon * real_samples + (1 - epsilon) * fake_samples
@@ -80,9 +81,11 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         critic_scores = discriminator(interpolated_samples)
 
         # Compute gradients of critic scores with respect to interpolated samples
-        gradients = torch.autograd.grad(outputs=critic_scores, inputs=interpolated_samples,
+        gradients = torch.autograd.grad(outputs=critic_scores,
+                                        inputs=interpolated_samples,
                                         grad_outputs=torch.ones(critic_scores.size(), device=device),
-                                        create_graph=True, retain_graph=True)[0]
+                                        create_graph=True,
+                                        retain_graph=True)[0]
 
         # Calculate gradient penalty
         gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.gradient_penalty_weight

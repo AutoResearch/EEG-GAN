@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import torch
@@ -91,69 +93,29 @@ class Dataloader:
             self.dataset = dataset
             self.labels = labels
 
-    def get_data(self, sequence_length=None, windows_slices=False, stride=1, pre_pad=0, shuffle=True):
+    def get_data(self, shuffle=True):
         """returns the data as a tensor"""
-        if windows_slices:
-            raise NotImplementedError("Windows slices are not implemented yet.")
-            # pre-pad data with pre_pad zeros
-            data = torch.zeros((self.dataset.shape[0], self.dataset.shape[-1] + pre_pad))
-            data[:, :self.labels.shape[1]] = self.labels
-            data[:, pre_pad+self.labels.shape[-1]:] = self.dataset[:, self.labels.shape[-1]:]
-            # if windows_slices is True, return windows of size sequence_length with stride 1
-            if sequence_length < 0 or sequence_length + stride > self.dataset.shape[1]:
-                raise ValueError(f"If windows slices are used, the sequence_length must be positive and smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}) + stride (={stride}).")
-            dataset = self.windows_slices(data, sequence_length, stride=stride)
-        # elif windows_slices is False and sequence_length:
-        #     # if windows_slices is False, return only one window of size sequence_length from the beginning
-        #     if sequence_length == -1:
-        #         sequence_length = self.dataset.shape[1] - self.labels.shape[1]
-        #     if sequence_length < 0 or sequence_length > self.dataset.shape[1] - self.labels.shape[1]:
-        #         raise ValueError(f"If windows slices are not used, the sequence_length must be smaller than len(data) (={self.dataset.shape[1]-self.labels.shape[1]}).")
-        #     dataset = self.dataset[:, :sequence_length + self.labels.shape[1]]
-        else:
-            dataset = self.dataset
-
-        # shuffle dataset
         if shuffle:
-            dataset = dataset[torch.randperm(dataset.shape[0])]
-        return dataset
+            return self.dataset[torch.randperm(self.dataset.shape[0])]
+        else:
+            return self.dataset
 
     def get_labels(self):
         return self.labels
 
-    def dataset_split(self, dataset=None, train_size=0.8, test_size=None, shuffle=True):
+    def dataset_split(self, dataset=None, train_size=0.8, shuffle=True):
         """Split dataset into train and test set. Returns the indices of the split."""
-
-        if dataset is None:
-            dataset = self.dataset
-
-        if test_size is None:
-            test_size = 1 - train_size
-
-        if train_size + test_size > 1:
-            raise ValueError(f"train_size + test_size (={train_size}+{test_size}) must be >= 1.")
 
         # Split dataset into train and test set
         train_size = int(train_size * dataset.shape[0])
-        test_size = int(test_size * dataset.shape[0])
 
         if shuffle:
-            indices = torch.randperm(dataset.shape[0])
-            dataset = dataset[indices]
-        else:
-            indices = torch.arange(dataset.shape[0])
+            dataset = dataset[torch.randperm(self.dataset.shape[0])]
 
         train_dataset = dataset[:train_size]
-        test_dataset = dataset[train_size:train_size + test_size]
-        train_idx = indices[:train_size]
-        test_idx = indices[train_size:train_size + test_size]
+        test_dataset = dataset[train_size:]
 
-        # indices = np.array(range(dataset.shape[0]))
-        # if shuffle:
-        #     np.random.shuffle(indices)
-        # train_idx, test_idx = indices[:train_size], indices[train_size:train_size + test_size]
-
-        return train_dataset, test_dataset, train_idx, test_idx
+        return train_dataset, test_dataset
 
     def downsample(self, target_sequence_length):
         """Downsample data to target_sequence_length"""
@@ -168,7 +130,7 @@ class Dataloader:
     def get_std(self):
         return self.dataset_std
 
-    def windows_slices(self, sequence, window_size, stride=5):
+    def _windows_slices(self, sequence, window_size, stride=5):
         """Create a moving window of size window_size with stride stride.
         The last window is padded with 0 if it is smaller than window_size.
 
@@ -180,6 +142,7 @@ class Dataloader:
         Returns:
             torch.Tensor: Tensor of windows.
         """
+        warnings.warn("This function is deprecated and will be removed in future releases.", DeprecationWarning)
 
         # Create a moving window of size window_size with stride stride
         n_labels = self.labels.shape[1]
