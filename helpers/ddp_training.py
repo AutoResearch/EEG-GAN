@@ -90,7 +90,7 @@ class AEDDPTrainer(trainer.AETrainer):
 
     def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False, samples=None):
         if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, path_checkpoint=path_checkpoint, model=model, update_history=update_history, samples=samples)
+            super().save_checkpoint(path_checkpoint=path_checkpoint, model=model, update_history=update_history, samples=samples)
         # dist.barrier()
 
     def print_log(self, current_epoch, train_loss, test_loss):
