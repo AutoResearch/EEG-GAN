@@ -1,10 +1,4 @@
 
-'''
-THIS IS MEANT TO BE A TEMPORARY FILE UNTIL THIS FEATURE IS IMPLEMENTED.
-IF THIS IS STILL PART OF THE REPO, IT SHOULD BE DELETED
-AUG 24, 2023
-'''
-
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -53,6 +47,7 @@ for i in range(5):
     sample = np.random.choice(len(dataset), 1)
     data = dataset[sample,1:,:]
     axs[i].plot(data[0,:,0], label='Original')
-    axs[i].plot(autoencoder.decode(autoencoder.encode(data))[0,:,0].detach().numpy()), label='Reconstructed')
+    axs[i].plot(autoencoder.decode(autoencoder.encode(data))[0,:,0].detach().numpy(), label='Reconstructed')
     axs[i].legend()
 plt.show()
+
