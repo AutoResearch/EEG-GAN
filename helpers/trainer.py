@@ -61,9 +61,13 @@ class GANTrainer(Trainer):
         self.b1 = 0  # .5
         self.b2 = 0.9  # .999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
-
+            
         self.generator = generator
         self.discriminator = discriminator
+        if hasattr(generator,'module'):
+            self.generator = {k.partition('module.')[2]: v for k,v in generator}
+            self.discriminator = {k.partition('module.')[2]: v for k,v in discriminator}
+
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
@@ -284,7 +288,11 @@ class GANTrainer(Trainer):
             else:
                 gen_samples = None
 
-            real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+            if not hasattr(self.generator,'module'):
+                real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+            else:
+                real_data = self.generator.module.autoencoder.encode(data).reshape(-1, 1, self.discriminator.module.output_dim*self.discriminator.module.output_dim_2) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
+
             real_data = torch.cat((real_data, disc_labels.repeat(1, real_data.shape[1], 1)), dim=-1).to(self.device)
 
         # Loss for real and generated samples
@@ -486,12 +494,12 @@ class AETrainer(Trainer):
                 self.trained_epochs += 1
                 self.print_log(epoch + 1, train_loss, test_loss)
 
-            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
+            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True)
 
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
             print("keyboard interrupt detected.\nSaving checkpoint...")
-            self.save_checkpoint()
+            self.save_checkpoint(update_history=True)
 
     def batch_train(self, train_data, test_data):
         train_loss = self.train_model(train_data)
@@ -524,7 +532,7 @@ class AETrainer(Trainer):
                 total_loss += loss.item()
         return total_loss / len(data)
 
-    def save_checkpoint(self, path_checkpoint=None, model=None):
+    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False):
         if path_checkpoint is None:
             default_path = os.path.join('..', 'trained_ae')
             if not os.path.exists(default_path):
@@ -534,8 +542,9 @@ class AETrainer(Trainer):
         if model is None:
             model = self.model
 
-        self.configuration['trained_epochs'] = self.trained_epochs
-        self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+        if update_history:
+            self.configuration['trained_epochs'] = self.trained_epochs
+            self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
         
         checkpoint_dict = {
             'model': model.state_dict(),
@@ -559,14 +568,14 @@ class AETrainer(Trainer):
         else:
             raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False):
         """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
         but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
         Therefore, there's no need for the saved samples."""
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None, update_history=update_history)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):

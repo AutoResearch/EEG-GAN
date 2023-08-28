@@ -140,7 +140,7 @@ def main():
 
     # Populate model configuration
     history = {
-        "trained_epochs": [0],
+        "trained_epochs": [],
         "path_dataset": [opt['path_dataset']],
         "path_checkpoint": [opt['path_checkpoint']],
         # "save_name": save_name,
@@ -192,7 +192,8 @@ def main():
             fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
             opt['save_name'] = f"ae_{fn}_{str(time.time()).split('.')[0]}.pt"
         # save(model_dict, save_name)
-        trainer.save_checkpoint(opt['save_name'])
+    
+        trainer.save_checkpoint(opt['save_name'], update_history=True)
         print(f"Model and configuration saved in {opt['save_name']}")
 
 if __name__ == "__main__":
