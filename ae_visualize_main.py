@@ -24,7 +24,7 @@ elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
     autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
 else:
     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-autoencoder.load_state_dict(ae_dict['model'])
+autoencoder.load_state_dict(ae_dict['model'], strict=False)
 autoencoder.device = torch.device('cpu')
 print(ae_dict["configuration"]["history"])
 
