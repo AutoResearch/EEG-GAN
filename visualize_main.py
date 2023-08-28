@@ -247,24 +247,25 @@ def main():
             fft_data = data
         plot_fft_hist(fft_data)
 
+
 if __name__ == '__main__':
-    sys.argv = [
-                'csv',
-                'path_dataset=../generated_samples/gan_1ep_2chan_1cond.csv',
-                # 'checkpoint',
-                # 'path_dataset=../trained_models/gan_1ep_2chan_1cond.pt',
-                'conditions=Condition',
-                'channel_label=Electrode',
-                'n_samples=8',
-                # 'channel_plots',
-                'channel_index=0',
-                # 'loss',
-                # 'average',
-                'spectogram',
-                'fft',
-                # 'pca',
-                # 'tsne',
-                # 'path_comp_dataset=../data/gansMultiCondition_SHORT.csv',
-                'path_comp_dataset=../data/gansMultiCondition.csv',
-    ]
+    # sys.argv = [
+    #             'csv',
+    #             'path_dataset=../generated_samples/gan_1ep_2chan_1cond.csv',
+    #             # 'checkpoint',
+    #             # 'path_dataset=../trained_models/gan_1ep_2chan_1cond.pt',
+    #             'conditions=Condition',
+    #             'channel_label=Electrode',
+    #             'n_samples=8',
+    #             # 'channel_plots',
+    #             'channel_index=0',
+    #             # 'loss',
+    #             # 'average',
+    #             'spectogram',
+    #             'fft',
+    #             # 'pca',
+    #             # 'tsne',
+    #             # 'path_comp_dataset=../data/gansMultiCondition_SHORT.csv',
+    #             'path_comp_dataset=../data/gansMultiCondition.csv',
+    # ]
     main()
