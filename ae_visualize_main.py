@@ -1,14 +1,3 @@
-
-
-'''
-THIS IS MEANT TO BE A TEMPORARY FILE UNTIL THIS FEATURE IS IMPLEMENTED.
-IF THIS IS STILL PART OF THE REPO, IT SHOULD BE DELETED
-AUG 24, 2023
-
-'''
-
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -34,7 +23,7 @@ elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
     autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
 else:
     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-#autoencoder.load_state_dict(ae_dict['model'])
+autoencoder.load_state_dict(ae_dict['model'])
 autoencoder.device = torch.device('cpu')
 print(ae_dict["configuration"]["history"])
 
@@ -50,16 +39,13 @@ plt.show()
 def norm(data):
     return (data-np.min(data)) / (np.max(data) - np.min(data))
 
+dataset = norm(dataset.detach().numpy())
+
 fig, axs = plt.subplots(5,1)
 for i in range(5):
     sample = np.random.choice(len(dataset), 1)
     data = dataset[sample,1:,:]
-    axs[i].plot(norm(data[0,:,0].detach().numpy()),label='Original')
-    axs[i].plot(norm(autoencoder.decode(autoencoder.encode(data))[0,:,0].detach().numpy()),label='Reconstructed')
+    axs[i].plot(data[0,:,0], label='Original')
+    axs[i].plot(autoencoder.decode(autoencoder.encode(data))[0,:,0].detach().numpy()), label='Reconstructed')
     axs[i].legend()
 plt.show()
-
-
-
-
-
