@@ -1,515 +1,283 @@
-import os
 import sys
 import warnings
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 
 from helpers import system_inputs
-from nn_architecture import models
 from helpers.dataloader import Dataloader
 from helpers.visualize_pca import visualization_dim_reduction
-from helpers.visualize_spectogram import plot_spectogram, plot_fft_hist
+from helpers.visualize_spectogram import plot_fft_hist, plot_spectogram
 
 
-class PlotterGanTraining:
-    """This class is used to read samples from a csv-file and plot them.
-    Shape of the csv-file has to be (rows: samples, cols: (conditions, signal))"""
-
-    def __init__(self, load_file=True, filename=None, gan_or_emb='gan',
-                 get_original_dataset=False, n_conditions=1):
-        """if timestamp is None read files from directory generated_samples and
-        use most recent file indicated by the timestamp.
-        :param load_file: Boolean; if True load file to obtain dataset with time series samples.
-        :param file: String; If a specific file is to be read, the filename can be specified here.
-        :param gan_or_emb: String; 'gan' or 'emb' to indicate whether the file is a GAN or embedding sample.
-        :param load_data: Boolean; std, mean, min and max are computed with the original dataset.
-        :param n_conditions: Integer; Number of columns with conditions in the dataset before measurement."""
-
-        if gan_or_emb == 'gan':
-            self.filename = 'sample'
-            self.filetype = 'gan'
-        elif gan_or_emb == 'emb':
-            self.filename = 'embedding'
-            self.filetype = 'emb'
-        else:
-            raise ValueError('gan_or_emb has to be either gan or emb')
-
-        self.n_conditions = n_conditions
-        self.title = None
-        self.ylim = None
-
-        self.file = filename
-        if load_file:
-            if filename is None:
-                self.file = self.read_files()[-1]  # Store most recent file indicated by timestamp
-            else:
-                # Check if file is a csv file
-                if not filename.endswith('.csv'):
-                    raise ValueError('File is not a csv-file. Please choose a csv-file')
-                self.file = filename
-
-            self.df = self.read_file()
-
-            print("File: " + self.file)
-        # else:
-        #     print("No file loaded. Please use set_dataset to set the dataset.")
-
-        self.dataloader = None
-        if get_original_dataset:
-            # Instantiate Dataloader
-            path = r'C:\Users\Daniel\PycharmProjects\GanInNeuro\data\ganAverageERP.csv'
-            self.dataloader = Dataloader(path, diff_data=False, std_data=False, norm_data=True)
-
-    def read_files(self):
-        """This function reads the files from the directory generated_samples and returns a list of the files"""
-        files = []
-        for file in os.listdir('./generated_samples'):
-            if file.endswith('.csv'):
-                files.append(file)
-        files = [s for s in files if self.filename in s]
-        files.sort()
-        return files
-
-    def read_file(self):
-        """This function reads the file and returns a pandas dataframe"""
-        if self.filetype == 'gan':
-            return pd.read_csv(os.path.join(r'.\generated_samples', self.file), header=None)
-        else:
-            return pd.read_csv(os.path.join(r'.\generated_samples', self.file), header=None).T
-
-    def plot(self, stacked=False, batch_size=None, rows=None, n_samples=None, save=False):
-        """
-        This function plots the generated samples
-        :param stacked: (Bool) Defines if the samples are plotted in a stacked manner (incremented value range)
-        :param batch_size: (Int) Defines the batch size for one plot (number of plottet samples in one plot)
-        :param rows: (Int) Defines the number of the starting row of the sample-file; negative numbers are allowed
-        :param n_samples: (Int) Defines the number of samples to be plotted; samples are drawn uniformly from the file
-        :return:
-        """
-
-        # get std and mean of the original dataset
-        if self.dataloader is not None:
-            # mean = self.dataloader.get_mean().detach().cpu().numpy()
-            # std = self.dataloader.get_std().detach().cpu().numpy()
-            mean, std = 0, 1
-            data_min = self.dataloader.dataset_min.detach().cpu().numpy()
-            data_max = self.dataloader.dataset_max.detach().cpu().numpy()
-        else:
-            mean = 0
-            std = 1
-            data_min = 0
-            data_max = 1
-
-        # re-transform data
-        if isinstance(self.df, pd.DataFrame):
-            # kick out row with column names and convert to 2D numpy array
-            self.df = self.df.to_numpy()[1:, :]
-        df = self.df[:, self.n_conditions:]
-        # check if df has non-numeric values in the first row
-        if isinstance(df[0, 0], str):
-            df = df[1:, :].astype(float)
-        df = (df * std - mean) * (data_max - data_min) + data_min
-
-        if self.filetype == 'emb':
-            df = df.T
-            if np.abs(rows*2) < df.shape[0]:
-                rows *= 2
-            else:
-                rows = -df.shape[0] if rows < 0 else df.shape[0]
-            if batch_size is not None:
-                batch_size *= 2 if np.abs(batch_size)*2 < df.shape[0] else df.shape[0]
-
-        # Determine the starting row from which the samples are drawn
-        if rows is None:
-            rows = 0
-        if rows < 0:
-            rows = df.shape[0] + rows
-        if self.filetype == 'emb' and rows % 2 != 0:
-            Warning('The starting row has to be even for the embedding file. '
-                    'The starting row is set to the next even number.')
-            rows += 1
-        if rows > 0:
-            df = df[rows:, :]
-            remaining_samples = df.shape[0] if self.filetype == 'gan' else int(df.shape[0]/2)
-            print(f"number of remaining samples after cutting off the first rows: {remaining_samples}")
-
-        # Determine the number of samples to be plotted
-        sampling = True
-        if n_samples is None:
-            sampling = False
-            if self.filetype == 'gan':
-                n_samples = df.shape[0]
-            else:
-                n_samples = int(df.shape[0]/2)
-        if (n_samples > df.shape[0] and self.filetype == 'gan') or (n_samples > df.shape[0] / 2 and self.filetype == 'emb'):
-            Warning('n_samples is larger than the number of samples in the file. All samples are plotted.')
-            if self.filetype == 'gan':
-                n_samples = df.shape[0]
-            else:
-                n_samples = int(df.shape[0]/2)
-
-        # Draw samples uniformly from the file according to n_samples
-        index = np.linspace(0, df.shape[0] - 2, n_samples).astype(int)
-        if self.filetype == 'emb':
-            index_real = index
-            # all indexes have to be uneven in the case of embedding files
-            for i in range(n_samples):
-                if index_real[i] % 2 != 0:
-                    index_real[i] += 1
-            index_rec = index_real + 1
-            index = [i for j in zip(index_real, index_rec) for i in j]
-        df = df[index, :]
-
-        # If batch_size is None plot all samples in one plot
-        # Else plot the samples in batches of batch_size
-        if batch_size is None:
-            batch_size = df.shape[0]
-        else:
-            if (batch_size > n_samples and self.filetype == 'gan') or (batch_size > n_samples/2 and self.filetype == 'emb'):
-                batch_size = n_samples
-                Warning('batch_size is bigger than n_samples. Setting batch_size = n_samples')
-
-        filenames = []
-        for i in range(0, df.shape[0], batch_size):
-            batch = df[i:i + batch_size]
-            if stacked:
-                # Plot the continuous signals in subplots
-                fig, axs = plt.subplots(batch_size, sharex='all', sharey='all')
-                if self.filetype == 'gan':
-                    for j in range(0, batch.shape[0]):
-                        # plot each generated sample in another subplot
-                        axs[batch_size-1-j].plot(batch[j], 'c')
-                        if sampling:
-                            axs[batch_size-1-j].text(df.shape[1], batch[j].mean(), f'sample: {rows+index[i+j]}', horizontalalignment='right')
-                elif self.filetype == 'emb':
-                    # plot the real and the reconstructed sample from an embedding network
-                    for j in range(0, batch.shape[0], 2):
-                        axs[batch_size-1-j].plot(batch[j], 'c')
-                        axs[batch_size-1-j].plot(batch[j + 1], 'orange')
-                        if sampling:
-                            axs[batch_size-1-j].text(df.shape[1], batch[j].mean(), f'sample: {rows+index[i+j]}', horizontalalignment='right')
-                        plt.legend(['real', 'reconstructed'])
-                if self.title is not None:
-                    axs[0].set_title(self.title)
-            else:
-                # plot all samples in one plot
-                plt.plot(df)
-                if self.title is not None:
-                    plt.title(self.title)
-
-            # if self.ylim is not None:
-            #     plt.ylim(self.ylim)
-
-            if save:
-                path = 'plots'
-                if not os.path.exists(path):
-                    os.makedirs(path)
-                file = self.file.split(os.path.sep)[-1].split('.')[0]
-                filenames.append(os.path.join(path, f'{file}_{i}.png'))
-                plt.savefig(filenames[-1], dpi=600)
-            else:
-                plt.show()
-
-        return filenames
-
-    def set_dataset(self, gen_samples, conditions=False):
-        """Set the dataset with the generated samples.
-        :param gen_samples: Tensor or Numpy.array or pd.DataFrame; Generated samples.
-                            Shape: (rows: samples, cols: (conditions, signal))"""
-        if isinstance(gen_samples, torch.Tensor):
-            gen_samples = gen_samples.detach().cpu().numpy()
-
-        if len(gen_samples.shape) > 2:
-            gen_samples = gen_samples.reshape(-1, gen_samples.shape[-1])
-
-        if not isinstance(gen_samples, pd.DataFrame):
-            self.df = pd.DataFrame(gen_samples, columns=np.arange(gen_samples.shape[1]), index=np.arange(gen_samples.shape[0]))
-        else:
-            self.df = gen_samples
-
-    def get_dataset(self, labels=False):
-        dataset = self.df.to_numpy()
-        # if not column:
-        #     dataset = dataset[1:, :]
-        # if not index:
-        #     dataset = dataset[:, 1:]
-        if not labels:
-            dataset = dataset[:, self.n_conditions:]
-        return dataset
-
-    def set_title(self, title):
-        self.title = title
-
-    def set_y_lim(self, max, min=None):
-        """Set the y-axis limits.
-        :param max: integer or tuple of integers; Maximum value of the y-axis. If tuple ylim = max.
-        :param min: integer; Minimum value of the y-axis. If None ylim = (0, max)."""
-
-        if isinstance(max, tuple) and len(max) == 2 and min is None:
-            self.ylim = max
-        elif isinstance(max, int) and isinstance(min, int):
-            self.ylim = (min, max)
-        elif (isinstance(max, tuple) and len(max) == 1) and min is None:
-            self.ylim = (0, max[0])
-        elif isinstance(max, int) and min is None:
-            self.ylim = (0, max)
-        elif isinstance(max, tuple) and isinstance(min, int):
-            raise ValueError('max cannot be a 2D tuple if min is an int')
-        elif max is None:
-            raise ValueError('max cannot be None')
-
-        if not isinstance(self.ylim[0], int) or not isinstance(self.ylim[1], int):
-            raise ValueError('max and min have to be integers')
-
-        if self.ylim[0] > self.ylim[1]:
-            raise ValueError('min cannot be bigger than max')
-
-        if self.ylim[0] == self.ylim[1]:
-            raise ValueError('min cannot be equal to max')
-
-        self.ylim = (min, max)
-
-
-def fun_plot_losses(d_loss, g_loss, save, path_save=None, legend=None):
-    if legend is None:
-        legend = ['Discriminator loss', 'Generator loss']
-    plt.plot(d_loss, label=legend[0])
-    plt.plot(g_loss, label=legend[1])
-    plt.title(plotter.title)
-    plt.legend()
-    if save:
-        if path_save is None:
-            path_save = 'losses.png'
-            path_save = os.path.join('plots', path_save)
-        plt.savefig(path_save, dpi=600)
-    else:
-        plt.show()
-
-    return d_loss, g_loss
-
-
-def fun_plot_averaged(data, save=False, path_save=None):
-    data = data.mean(axis=0)
-    plt.plot(data)
-    if save:
-        if path_save is None:
-            path_save = 'averaged.png'
-            path_save = os.path.join('plots', path_save)
-        plt.savefig(path_save, dpi=600)
-    else:
-        plt.show()
-
-    return data
-
-
-if __name__ == '__main__':
-
-    # sys.argv = ["checkpoint", "file=gan_10000ep.pt", "training_file=ganAverageERP_multiCond_small.csv", "plot_losses"]
+def main():
     default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
 
     print('\n-----------------------------------------')
     print("System output:")
     print('-----------------------------------------\n')
 
-    experiment = default_args['experiment']
-    checkpoint = default_args['checkpoint']
-    csv_file = default_args['csv_file']
+    if default_args['csv'] + default_args['checkpoint'] != 1:  #  + default_args['experiment']
+        raise ValueError("Please specify only one of the following arguments: csv, checkpoint")
 
-    if sum([experiment, checkpoint, csv_file]) > 1:
-        raise ValueError('Only one of the following options can be active: experiment, checkpoint, csv_file')
-    elif sum([experiment, checkpoint, csv_file]) == 0:
-        raise ValueError('One of the following options must be active: experiment, checkpoint, csv_file')
+    if default_args['channel_index'][0] > -1 and (default_args['pca'] or default_args['tsne']):
+        print("Warning: channel_index is set to a specific value, but PCA or t-SNE is enabled.\n"
+              "PCA and t-SNE are only available for all channels. Ignoring channel_index.")
 
-    save = default_args['save']
-    # save_data = default_args['save_data']
-    file = default_args['file']
-    plot_losses = default_args['plot_losses']
-    averaged = default_args['averaged']
-    pca = default_args['pca']
-    tsne = default_args['tsne']
-    spectogram = default_args['spectogram']
-    fft_hist = default_args['fft_hist']
+    # throw error if checkpoint but csv-file is specified
+    if default_args['checkpoint'] and default_args['path_dataset'].split('.')[-1] == 'csv':
+        raise ValueError("Inconsistent parameter specification. 'checkpoint' was specified but a csv-file was given.")
 
-    training_file = default_args['training_file']
-    if training_file == training_file.split(os.path.sep)[0]:
-        # get default file if only filename is given
-        training_file = os.path.join('data', training_file)
+    # throw warning if checkpoint and conditions are given
+    if default_args['checkpoint'] and default_args['conditions'][0] != '':
+        warnings.warn("Conditions are given, but checkpoint is specified. Given conditions are ignored since they will be taken directly from the checkpoint file.")
 
-    # ----------------------------
-    # configuration of plotter
-    # ----------------------------
+    original_data = None
+    if default_args['csv']:
+        n_conditions = len(default_args['conditions']) if default_args['conditions'][0] != '' else 0
+        # load data with DataLoader
+        dataloader = Dataloader(path=default_args['path_dataset'],
+                                norm_data=True,
+                                kw_timestep=default_args['kw_timestep'],
+                                col_label=default_args['conditions'],
+                                channel_label=default_args['channel_label'], )
+        data = dataloader.get_data(shuffle=False)[:, n_conditions:].numpy()
+        conditions = dataloader.get_labels()[:, :, 0].numpy()
+        random = True
+    elif default_args['checkpoint']:
+        state_dict = torch.load(default_args['path_dataset'], map_location='cpu')
+        n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
+        sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
+        data = np.stack(state_dict['samples'])
+        if len(data.shape) == 2:
+            data = data.reshape((1, data.shape[0], data.shape[1]))
+        if len(data.shape) == 3:
+            conditions = data[:, :n_conditions, 0]
+            data = data[:, n_conditions:]
+        elif len(data.shape) == 4:
+            # autoencoder samples are saved as (n_samples, type, sequence_length, n_channels)
+            # type = 0: original, type = 1: reconstructed
+            conditions = data[:, 0, :n_conditions, 0]
+            original_data = data[:, 0, n_conditions:]
+            data = data[:, 1, n_conditions:]
 
-    n_conditions = default_args['n_conditions']
-    n_samples = default_args['n_samples']
-    batch_size = default_args['batch_size']
-    rows = default_args['starting_row']
-    gan_or_emb = 'gan'  # GAN samples: 'gan'; Embedding network samples: 'emb'; 'emb' was not tested yet!
-    legend = None
-
-    # ----------------------------
-    # data processing configuration
-    # ----------------------------
-
-    bandpass = default_args['bandpass']
-    # mvg_avg = default_args['mvg_avg']
-    # moving_average_window = default_args['mvg_avg_window']
-    norm_data = not plot_losses            # normalize data to the range [0, 1]
-    sequence_length = 24        # length of the sequence
-
-    # if bandpass and mvg_avg:
-    #     warnings.warn('Both filters are active ("mvg_avg" and "bandpass"). Consider using only one.')
-
-    if pca and tsne:
-        warnings.warn('Both dimensionality reduction methods are active ("pca" and "tsne"). "pca" will be used.')
-
-    if plot_losses and (pca or tsne):
-        raise RuntimeError('Dimensionality reduction methods cannot be used when plotting losses.')
-
-    # ----------------------------
-    # run program
-    # ----------------------------
-
-    title = 'generated training samples'  # title of plot --> Is adjusted automatically according to configuration
-    stacked = True
-    data = None                 # specified automatically according to configuration
-
-    # setup and configure according to generation or loading
-    if experiment or csv_file or checkpoint:
-        # load experimental data
-        load_file = True
-    else:
-        # do not load any file but generate samples
-        load_file = False
-
-    if experiment:
-        load_file, n_conditions, gan_or_emb, title = False, len(default_args['conditions']), 'gan', 'experimental data'
-        if file.split(os.path.sep)[0] == file:
-            # use default path
-            path = 'data'
-            file = os.path.join(path, file)
-        if not file.endswith('.csv'):
-            raise ValueError("Please specify a csv-file holding the experimental data.")
-        dataloader = Dataloader(path=file, kw_timestep=default_args['kw_timestep_dataset'], col_label=default_args['conditions'], norm_data=True)
-        data = dataloader.get_data()
-
-    if checkpoint:
-        # Load data from state_dict
-        # if filename extension is .pt --> load state_dict and get samples from it
-        if not file.endswith('.pt'):
-            raise ValueError("Please specify a .pt-file holding a dictionary with the training data.")
-        if file.split(os.path.sep)[0] == file:
-            # use default path
-            path = 'trained_models'
-            file = os.path.join(path, file)
-        state_dict = torch.load(file, map_location=torch.device('cpu'))
-        if not plot_losses:
-            data = np.array(state_dict['generated_samples'])
+            # set channel_plots to True if original_data was found in samples
+            if not default_args['channel_plots'] and data.shape[-1] > 1:
+                default_args['channel_plots'] = True
+                warnings.warn("Original data was found in checkpoint and data contains more than 1 channel. Setting channel_plots to True to improve the visualization quality.")
         else:
-            state_dict = torch.load(file, map_location=torch.device('cpu'))
-            keys = list(state_dict.keys())
-            if 'discriminator_loss' in keys and 'generator_loss' in keys:
-                d_loss = state_dict['discriminator_loss']
-                g_loss = state_dict['generator_loss']
-                legend = ['discriminator loss', 'generator loss']
-            elif 'train_loss' in keys and 'test_loss' in keys:
-                d_loss = state_dict['train_loss']
-                g_loss = state_dict['test_loss']
-                legend = ['train loss', 'test loss']
-            elif 'loss' in keys:
-                d_loss = np.array(state_dict['loss'])[:, 0].tolist()
-                g_loss = np.array(state_dict['loss'])[:, 1].tolist()
-                legend = ['train loss', 'test loss']
-            data = np.array([d_loss, g_loss])
-            title = 'training losses'
-            stacked = False
-            norm_data = False
-        load_file = False  # Otherwise most recent file from directory 'generated_samples' will be loaded
-
-    if csv_file:
-        # Load training data from csv file
-        if file.split(os.path.sep)[0] == file:
-            # use default path
-            path = 'generated_samples'
-            file = os.path.join(path, file)
-        if not file.endswith('.csv'):
-            raise ValueError("Please specify a .csv-file holding the training data.")
-        data = pd.read_csv(file, delimiter=',')
-        load_file = False
-
-    # setup plotter
-    plotter = PlotterGanTraining(load_file=load_file, filename=file,
-                                 gan_or_emb=gan_or_emb, n_conditions=n_conditions,
-                                 get_original_dataset=False)
-
-    if data is not None:
-        plotter.set_dataset(data)
-
-    # if mvg_avg:
-    #     # filter data with moving average from GenerateSamples class
-    #     plotter.set_dataset(GenerateSamples.moving_average(plotter.get_dataset(), w=moving_average_window))
-
-    if bandpass:
-        # filter data with bandpass filter from TtsGeneratorFiltered class
-        plotter.set_dataset(models.TtsGeneratorFiltered.filter(plotter.get_dataset(), scale=True))
-
-    # if norm_data:
-    #     # normalize each sample along time axis
-    #     plotter.set_dataset(GenerateSamples.normalize_data(plotter.get_dataset(), axis=1))
-
-    # plot data
-    legend_data = None
-    if plot_losses:
-        filename = file.split(os.path.sep)[-1].split('.')[0] + '_losses.png'
-        filename = os.path.join('plots', filename)
-        legend_data = legend
-        curve_data = fun_plot_losses(plotter.get_dataset()[0, :], plotter.get_dataset()[1, :], save, filename, legend)
-    elif averaged:
-        filename = file.split(os.path.sep)[-1].split('.')[0] + '_averaged.png'
-        filename = os.path.join('plots', filename)
-        legend_data = ['averaged']
-        curve_data = fun_plot_averaged(plotter.get_dataset(), save, filename)
-    elif spectogram:
-        filename = file.split(os.path.sep)[-1].split('.')[0] + '_spectogram.png'
-        filename = os.path.join('plots', filename)
-        curve_data = plot_spectogram(plotter.get_dataset(), save, filename)
-    elif fft_hist:
-        filename = file.split(os.path.sep)[-1].split('.')[0] + '_fft_hist.png'
-        filename = os.path.join('plots', filename)
-        curve_data = plot_fft_hist(plotter.get_dataset(), save, filename)
-    elif pca or tsne:
-        try:
-            ori_data = Dataloader(path=training_file, kw_timestep=default_args['kw_timestep_dataset'], col_label=default_args['conditions'],
-                       norm_data=True).get_data()[:, n_conditions:].unsqueeze(-1).detach().cpu().numpy()
-            # ori_data = Dataloader(path=training_file, norm_data=True).get_data().unsqueeze(-1).detach().cpu().numpy()[:, n_conditions:, :]
-        except Exception as e:
-            print("Training file was not of type experiment data. Trying to load the training file with the standard template of generated samples.")
-            ori_data = pd.read_csv(training_file, delimiter=',').to_numpy()
-            ori_data = ori_data.reshape(-1, ori_data.shape[1], 1)
-        gen_data = plotter.get_dataset()
-        gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)#[:, n_conditions:, :]
-        if ori_data.shape[1] > gen_data.shape[1]:
-            ori_data = ori_data[:, :gen_data.shape[1], :]
-        elif ori_data.shape[1] < gen_data.shape[1]:
-            gen_data = gen_data[:, :ori_data.shape[1], :]
-        if pca:
-            filename = file.split(os.path.sep)[-1].split('.')[0] + '_pca.png'
-            filename = os.path.join('plots',  filename)
-            legend = ['original data', 'generated data']
-            curve_data = visualization_dim_reduction(ori_data, gen_data, 'pca', save, filename)
-        elif tsne:
-            filename = file.split(os.path.sep)[-1].split('.')[0] + '_tsne.png'
-            filename = os.path.join('plots',  filename)
-            legend = ['original data', 'generated data']
-            curve_data = visualization_dim_reduction(ori_data, gen_data, 'tsne', save, filename, perplexity=default_args['tsne_perplexity'], iterations=default_args['tsne_iterations'])
+            raise ValueError(f"Invalid shape of data: {data.shape}")
+        random = False
     else:
-        plotter.set_title(title + f'; {file if file is not None else ""}')
-        filename = plotter.plot(stacked=stacked, batch_size=batch_size, n_samples=n_samples, rows=rows, save=save)
+        raise ValueError("Please specify one of the following arguments: csv, checkpoint")
 
-    if save:
-        if not isinstance(filename, list):
-            filename = [filename]
-        for f in filename:
-            print(f"Saved plot to {f}")
+    # set channel index
+    if default_args['channel_index'][0] == -1:
+        channel_index = np.arange(data.shape[-1])
+    else:
+        channel_index = default_args['channel_index']
+
+    # -----------------------------
+    # Normal curve plotting
+    # -----------------------------
+
+    if default_args['n_samples'] > 0:
+        print(f"Plotting {default_args['n_samples']} samples...")
+
+        # create a normal curve plot
+        if default_args['n_samples'] > data.shape[0]:
+            warnings.warn(f"n_samples ({default_args['n_samples']}) is larger than the number of samples ({data.shape[0]}).\n"
+                          f"Plotting all available samples instead.")
+            default_args['n_samples'] = data.shape[0]
+
+        if random:
+            index = np.random.randint(0, data.shape[0]-1, default_args['n_samples'])
+        else:
+            index = np.linspace(0, data.shape[0]-1, default_args['n_samples'], dtype=int)
+
+        ncols = 1 if not default_args['channel_plots'] else len(channel_index)
+        fig, axs = plt.subplots(nrows=default_args['n_samples'], ncols=ncols)
+        picking_type = 'randomly' if random else 'evenly'
+        if original_data is not None:
+            comparison = '; reconstructed (blue) vs original (orange)'
+        else:
+            comparison = ''
+        fig.suptitle(f'{picking_type} picked samples' + comparison)
+
+        for irow, i in enumerate(index):
+            if ncols == 1:
+                for j in channel_index:
+                    if default_args['n_samples'] == 1:
+                        axs.plot(data[i, :, j])
+                        if original_data is not None:
+                            axs.plot(original_data[i, :, j])
+                    else:
+                        axs[irow].plot(data[i, :, j])
+                        if original_data is not None:
+                            axs[irow].plot(original_data[i, :, j])
+            else:
+                for jcol, j in enumerate(channel_index):
+                    if default_args['n_samples'] == 1:
+                        axs[jcol].plot(data[i, :, j])
+                        if original_data is not None:
+                            axs[jcol].plot(original_data[i, :, j])
+                    else:
+                        axs[irow, jcol].plot(data[i, :, j])
+                        if original_data is not None:
+                            axs[irow, jcol].plot(original_data[i, :, j])
+
+        plt.show()
+
+    # -----------------------------
+    # Loss plotting
+    # -----------------------------
+
+    try:
+        if default_args['loss'] and not default_args['checkpoint']:
+            raise ValueError("Loss plotting only available for checkpoint and not csv")
+        elif default_args['loss']:
+            print("Plotting losses...")
+            # get all losses from state_dict
+            for key in state_dict.keys():
+                if 'loss' in key:
+                    plt.plot(state_dict[key], label=key, marker='.')
+            plt.title('training losses')
+            plt.legend()
+            plt.show()
+    except ValueError as e:
+        print(e)
+        
+    # -----------------------------
+    # Average plotting
+    # -----------------------------
+
+    if default_args['average']:
+        if n_conditions == 0:
+            print("Plotting averaged curves...")
+        else:
+            print("Plotting averaged curves over each set of conditions...")
+        # average over conditions
+        if n_conditions > 0:
+            conditions_set = np.unique(conditions, axis=0)
+            # sort samples by condition sets
+            averaged_data = []
+            for i, cond in enumerate(conditions_set):
+                index_cond = np.where(np.sum(conditions == cond, axis=1) == n_conditions)
+                averaged_data.append(np.mean(data[index_cond], axis=0))
+            # average over samples
+            averaged_data = np.array(averaged_data)
+        else:
+            averaged_data = np.mean(data, axis=0).reshape(1, data.shape[1], data.shape[2])
+            conditions_set = ['']
+
+        # plot averaged data
+        ncols = 1 if not default_args['channel_plots'] else len(channel_index)
+        nrows = averaged_data.shape[0]
+        fig, axs = plt.subplots(nrows=nrows, ncols=ncols)
+        if n_conditions == 0:
+            fig.suptitle('averaged curves')
+        else:
+            fig.suptitle('averaged curves over conditions')
+        for i, cond in enumerate(conditions_set):
+            if ncols == 1:
+                for j in channel_index:
+                    if nrows == 1:
+                        axs.plot(averaged_data[i, :, j])
+                    else:
+                        axs[i].plot(averaged_data[i, :, j])
+            else:
+                for jcol, j in enumerate(channel_index):
+                    if nrows == 1:
+                        axs[jcol].plot(averaged_data[i, :, j])
+                    else:
+                        axs[i, jcol].plot(averaged_data[i, :, j])
+            # axs[i].set_title(f'condition {cond}')
+            # set legend at the right hand side of the plot;
+            # legend carries the condition information
+            # make graph and legend visible within the figure
+            if not default_args['channel_plots']:
+                if nrows == 1:
+                    axs.legend([f'{cond}'], loc='center right', bbox_to_anchor=(1, 0.5))
+                else:
+                    axs[i].legend([f'{cond}'], loc='center right', bbox_to_anchor=(1, 0.5))
+            else:
+                if nrows == 1:
+                    axs[-1].legend([f'{cond}'], loc='center right', bbox_to_anchor=(1, 0.5))
+                else:
+                    axs[i, -1].legend([f'{cond}'], loc='center right', bbox_to_anchor=(1, 0.5))
+        plt.show()
+
+    # -----------------------------
+    # PCA and t-SNE plotting
+    # -----------------------------
+
+    if default_args['pca'] or default_args['tsne']:
+        if original_data is None and default_args['path_comp_dataset'] != '':
+            # load comparison data
+            dataloader_comp = Dataloader(path=default_args['path_comp_dataset'],
+                                         norm_data=True,
+                                         kw_timestep=default_args['kw_timestep'],
+                                         col_label=default_args['conditions'],
+                                         channel_label=default_args['channel_label'], )
+            original_data = dataloader_comp.get_data(shuffle=False)[:, n_conditions:].numpy()
+        elif original_data is None and default_args['path_comp_dataset'] == '':
+            raise ValueError("No comparison data found for PCA or t-SNE. Please specify a comparison dataset with the argument 'path_comp_dataset'.")
+
+        if default_args['pca']:
+            print("Plotting PCA...")
+            visualization_dim_reduction(original_data, data, 'pca', False, 'pca_file')
+
+        if default_args['tsne']:
+            print("Plotting t-SNE...")
+            visualization_dim_reduction(original_data, data, 'tsne', False, 'tsne_file')
+
+    # -----------------------------
+    # Spectogram plotting
+    # -----------------------------
+
+    if default_args['spectogram']:
+        print("Plotting spectograms...")
+        if data.shape[-1] > 1:
+            warnings.warn(f"Spectogram plotting is only available for 1 channel but {data.shape[-1]} channels were given. Plotting only the first channel instead.")
+            fft_data = data[:, :, 0]
+        else:
+            fft_data = data
+        plot_spectogram(fft_data)
+
+    # -----------------------------
+    # FFT plotting
+    # -----------------------------
+
+    if default_args['fft']:
+        print("Plotting FFT...")
+        if data.shape[-1] > 1:
+            warnings.warn(f"FFT plotting is only available for 1 channel but {data.shape[-1]} channels were given. Plotting only the first channel instead.")
+            fft_data = data[:, :, 0]
+        else:
+            fft_data = data
+        plot_fft_hist(fft_data)
+
+
+if __name__ == '__main__':
+    # sys.argv = [
+    #             # 'csv',
+    #             # 'path_dataset=generated_samples/gan_1ep_2chan_1cond.csv',
+    #             'checkpoint',
+    #             'path_dataset=trained_ae/ae_gansMultiCondition.pt',
+    #             # 'conditions=Condition',
+    #             'channel_label=Electrode',
+    #             'n_samples=8',
+    #             # 'channel_plots',
+    #             # 'channel_index=0',
+    #             'loss',
+    #             # 'average',
+    #             # 'spectogram',
+    #             # 'fft',
+    #             'pca',
+    #             'tsne',
+    #             # 'path_comp_dataset=data/gansMultiCondition_SHORT.csv',
+    #             # 'path_comp_dataset=data/gansMultiCondition.csv',
+    # ]
+    main()

@@ -31,9 +31,9 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
     """
 
     # Analysis sample size (for faster computation)
-    anal_sample_no = min([1000, len(ori_data), len(generated_data)])
-    idx_ori = np.random.permutation(len(ori_data))[:anal_sample_no]
-    idx_gen = np.random.permutation(len(generated_data))[:anal_sample_no]
+    analysis_sample_no = min([1000, len(ori_data), len(generated_data)])
+    idx_ori = np.random.permutation(len(ori_data))[:analysis_sample_no]
+    idx_gen = np.random.permutation(len(generated_data))[:analysis_sample_no]
 
     # Data preprocessing
     ori_data = np.asarray(ori_data)
@@ -44,7 +44,7 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
 
     no, seq_len, dim = ori_data.shape
 
-    for i in range(anal_sample_no):
+    for i in range(analysis_sample_no):
         if (i == 0):
             prep_data = np.reshape(np.mean(ori_data[0, :, :], 1), [1, seq_len])
             prep_data_hat = np.reshape(np.mean(generated_data[0, :, :], 1), [1, seq_len])
@@ -55,7 +55,7 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
                                             np.reshape(np.mean(generated_data[i, :, :], 1), [1, seq_len])))
 
     # Visualization parameter
-    colors = ["red" for i in range(anal_sample_no)] + ["blue" for i in range(anal_sample_no)]
+    colors = ["red" for i in range(analysis_sample_no)] + ["blue" for i in range(analysis_sample_no)]
 
     results_ori = None
     results_gen = None
@@ -82,8 +82,8 @@ def visualization_dim_reduction(ori_data, generated_data, analysis, save, save_n
         tsne = TSNE(n_components=2, verbose=1, perplexity=perplexity, n_iter=iterations)
         tsne_results = tsne.fit_transform(prep_data_final)
 
-        results_ori = tsne_results[:anal_sample_no, :]
-        results_gen = tsne_results[anal_sample_no:, :]
+        results_ori = tsne_results[:analysis_sample_no, :]
+        results_gen = tsne_results[analysis_sample_no:, :]
 
         title = 't-SNE plot'
         xlabel = 'x-tsne'

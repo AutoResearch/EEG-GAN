@@ -5,6 +5,7 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.multiprocessing as mp
+from torch.utils.data import DataLoader
 
 from helpers.trainer import GANTrainer
 from helpers.get_master import find_free_port
@@ -94,8 +95,7 @@ def main():
                             std_data=std_data,
                             diff_data=diff_data,
                             channel_label=default_args['channel_label'])
-    dataset = dataloader.get_data(sequence_length=opt['sequence_length'],
-                                  pre_pad=opt['sequence_length'] - default_args['input_sequence_length'])
+    dataset = dataloader.get_data()
 
     opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
@@ -117,16 +117,8 @@ def main():
 
     latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else \
     opt['latent_dim'] + opt['n_conditions']
-    # make sure latent_dim_in is even; constraint of positional encoding in TransformerGenerator
-    # if latent_dim_in % 2 != 0:
-    #     latent_dim_in += 1
-    #     opt['latent_dim'] += 1
-    # make sure discriminator input size is even; constraint of positional encoding in TransformerDiscriminator
     channel_in_disc = opt['n_channels'] + opt['n_conditions']
     sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
-    # make channel_in_disc even for positional encoding
-    # if channel_in_disc % 2 != 0:
-    #     channel_in_disc += 1
 
     # Initialize generator, discriminator and trainer
     if opt['path_autoencoder'] == '':
@@ -138,21 +130,20 @@ def main():
                                                  hidden_dim=opt['hidden_dim'])
     else:
         # initialize the autoencoder
-        if opt['path_autoencoder'] != '':
-            ae_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))
-            if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
-                autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
-            elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
-                autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
-            elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
-                autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
-            else:
-                raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-            autoencoder.load_state_dict(ae_dict['model'])
-            # freeze the autoencoder
-            for param in autoencoder.parameters():
-                param.requires_grad = False
-            autoencoder.eval()
+        ae_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))
+        if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
+            autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
+        elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
+            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
+        elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
+            autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
+        else:
+            raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+        autoencoder.load_state_dict(ae_dict['model'])
+        # freeze the autoencoder
+        for param in autoencoder.parameters():
+            param.requires_grad = False
+        autoencoder.eval()
 
         # if prediction or seq2seq, adjust latent_dim_in to encoded input size
         if opt['input_sequence_length'] != 0:
@@ -185,19 +176,21 @@ def main():
         trainer = GANDDPTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
-        mp.spawn(run, args=(world_size, find_free_port(), ddp_backend, trainer, opt),
+        mp.spawn(run,
+                 args=(world_size, find_free_port(), ddp_backend, trainer, opt),
                  nprocs=world_size, join=True)
     else:
         trainer = GANTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
+        dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True)
         gen_samples = trainer.training(dataset)
 
         # save final models, optimizer states, generated samples, losses and configuration as final result
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
 
         generator = trainer.generator
         discriminator = trainer.discriminator
