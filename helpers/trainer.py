@@ -150,7 +150,7 @@ class GANTrainer(Trainer):
                 else:
                     train_generator = False
 
-                d_loss, g_loss, gen_imgs = self.batch_train(data, data_labels, train_generator)
+                d_loss, g_loss, gen_samples_batch = self.batch_train(data, data_labels, train_generator)
 
                 d_loss_batch += d_loss
                 g_loss_batch += g_loss
@@ -161,7 +161,7 @@ class GANTrainer(Trainer):
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
-                gen_samples.append(gen_imgs[np.random.randint(0, batch_size)].detach().cpu().numpy())
+                gen_samples.append(gen_samples_batch[np.random.randint(0, batch_size)].detach().cpu().numpy())
                 # save models and optimizer states as checkpoints
                 # toggle between checkpoint files to avoid corrupted file during training
                 if trigger_checkpoint_01:
@@ -279,7 +279,7 @@ class GANTrainer(Trainer):
                 else:
                     gen_samples = fake_data[:, :, :self.n_channels]
                 # concatenate channel names, conditions and generated samples
-                gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device), gen_samples), dim=1)  # if self.channel_names is not None else fake_data[:, :, :self.n_channels].clone()
+                # gen_samples = torch.cat((torch.tensor(self.channel_names).view(1, 1, self.n_channels).repeat(batch_size, 1, 1).to(self.device), gen_samples), dim=1)  # if self.channel_names is not None else fake_data[:, :, :self.n_channels].clone()
                 gen_samples = torch.cat((data_labels.permute(0, 2, 1).repeat(1, 1, self.n_channels), gen_samples), dim=1)  # if self.n_conditions > 0 else gen_samples
             else:
                 gen_samples = None

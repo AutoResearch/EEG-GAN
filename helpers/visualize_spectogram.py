@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 
 def plot_fft_hist(data, save=False, path_save=None):
-    """fft of a sample from the dataset ganAverageERP.csv"""
     x = list(range(data.shape[1]))
 
     # apply fast fourier transform and take absolute values
@@ -33,6 +32,9 @@ def plot_fft_hist(data, save=False, path_save=None):
     ybins = ybins[:-1] + (ybins[1] - ybins[0]) / 2
     plt.pcolormesh(xbins, ybins, h.T, shading='gouraud')
     plt.yscale('log')
+    plt.ylabel('Count')
+    plt.xlabel('Frequency [Hz]')
+    plt.title('FFT Histogram')
 
     if save:
         if path_save is None:
@@ -66,6 +68,8 @@ def plot_spectogram(x, save=False, path_save=None):
     # plt.yscale('log')
     plt.ylim(10**-3, 50**1)
     plt.ylabel('Frequency [Hz]')
+    plt.xlabel('Time [sec]')
+    plt.title('Spectogram')
 
     if save:
         if path_save is None:
