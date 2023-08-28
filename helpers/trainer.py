@@ -169,10 +169,10 @@ class GANTrainer(Trainer):
                 # save models and optimizer states as checkpoints
                 # toggle between checkpoint files to avoid corrupted file during training
                 if trigger_checkpoint_01:
-                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), generated_samples=gen_samples)
+                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=gen_samples)
                     trigger_checkpoint_01 = False
                 else:
-                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), generated_samples=gen_samples)
+                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), samples=gen_samples)
                     trigger_checkpoint_01 = True
 
             self.trained_epochs += 1
@@ -309,7 +309,7 @@ class GANTrainer(Trainer):
 
         return d_loss.item(), g_loss, gen_samples
 
-    def save_checkpoint(self, path_checkpoint=None, generated_samples=None, generator=None, discriminator=None):
+    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None):
         if path_checkpoint is None:
             path_checkpoint = 'trained_models'+os.path.sep+'checkpoint.pt'
         if generator is None:
@@ -327,7 +327,7 @@ class GANTrainer(Trainer):
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
             'discriminator_loss': self.d_losses,
             'generator_loss': self.g_losses,
-            'generated_samples': generated_samples,
+            'samples': samples,
             'trained_epochs': self.trained_epochs,
             'configuration': self.configuration,
         }, path_checkpoint)
@@ -475,36 +475,41 @@ class AETrainer(Trainer):
             checkpoint_01_file = 'checkpoint_01.pt'
             checkpoint_02_file = 'checkpoint_02.pt'
 
+            samples = []
+
             for epoch in range(self.epochs):
-                train_loss, test_loss = self.batch_train(train_data, test_data)
+                train_loss, test_loss, sample = self.batch_train(train_data, test_data)
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
+                if len(sample) > 0:
+                    samples.append(sample)
 
                 # Save a checkpoint of the trained GAN and the generated samples every sample interval
                 if epoch % self.sample_interval == 0:
                     # save models and optimizer states as checkpoints
                     # toggle between checkpoint files to avoid corrupted file during training
                     if trigger_checkpoint_01:
-                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file))
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=samples)
                         trigger_checkpoint_01 = False
                     else:
-                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file))
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), samples=samples)
                         trigger_checkpoint_01 = True
 
                 self.trained_epochs += 1
                 self.print_log(epoch + 1, train_loss, test_loss)
 
             self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True)
+            return samples
 
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
-            print("keyboard interrupt detected.\nSaving checkpoint...")
-            self.save_checkpoint(update_history=True)
+            print("Keyboard interrupt detected.\nSaving checkpoint...")
+            self.save_checkpoint(update_history=True, samples=samples)
 
     def batch_train(self, train_data, test_data):
         train_loss = self.train_model(train_data)
-        test_loss = self.test_model(test_data)
-        return train_loss, test_loss
+        test_loss, samples = self.test_model(test_data)
+        return train_loss, test_loss, samples
 
     def train_model(self, data):
         self.model.train()
@@ -524,15 +529,20 @@ class AETrainer(Trainer):
     def test_model(self, data):
         self.model.eval()
         total_loss = 0
+        samples = []
         with torch.no_grad():
             for batch in data:
                 inputs = batch.float().to(self.model.device)
                 outputs = self.model(inputs)
                 loss = self.loss(outputs, inputs)
                 total_loss += loss.item()
-        return total_loss / len(data)
+                if self.trained_epochs % self.sample_interval == 0:
+                    samples.append(np.concatenate([inputs.unsqueeze(1).detach().cpu().numpy(), outputs.unsqueeze(1).detach().cpu().numpy()], axis=1))
+        if len(samples) > 0:
+            samples = np.concatenate(samples, axis=0)[np.random.randint(0, len(samples))]
+        return total_loss / len(data), samples
 
-    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False):
+    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False, samples=None):
         if path_checkpoint is None:
             default_path = os.path.join('..', 'trained_ae')
             if not os.path.exists(default_path):
@@ -552,12 +562,11 @@ class AETrainer(Trainer):
             'train_loss': self.train_loss,
             'test_loss': self.test_loss,
             'trained_epochs': self.trained_epochs,
+            'samples': samples,
             'configuration': self.configuration,
         }
 
         torch.save(checkpoint_dict, path_checkpoint)
-
-        # torch.save(self.configuration, path_checkpoint)
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):

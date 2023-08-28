@@ -265,6 +265,7 @@ def default_inputs_training_autoencoder():
         'timeseries_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
         'n_epochs': [int, 'Number of epochs to train for', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
+        'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
     }
     return kw_dict

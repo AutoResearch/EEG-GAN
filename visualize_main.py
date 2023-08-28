@@ -12,20 +12,6 @@ from helpers.visualize_pca import visualization_dim_reduction
 from helpers.visualize_spectogram import plot_fft_hist, plot_spectogram
 
 
-class Plotter:
-    """Plotting class"""
-
-    CHECKPOINT = 2
-    EXPERIMENT = 3
-    CSV = 4
-
-    def __init__(self):
-        pass
-
-    def plot(self, title, xlabel, ylabel, n_subplots=8, n_plots=1, save_path=None):
-        pass
-
-
 def main():
     default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
 
@@ -48,14 +34,7 @@ def main():
     if default_args['checkpoint'] and default_args['conditions'][0] != '':
         warnings.warn("Conditions are given, but checkpoint is specified. Given conditions are ignored since they will be taken directly from the checkpoint file.")
 
-    # throw error if PCA is enabled but no comparison dataset is given
-    if default_args['pca'] and default_args['path_comp_dataset'] == '':
-        raise ValueError("PCA computation is True but keyword 'path_comp_dataset' is not given. Please specify a path to a dataset for comparison of the PCA.")
-
-    # throw error if t-SNE is enabled but no comparison dataset is given
-    if default_args['tsne'] and default_args['path_comp_dataset'] == '':
-        raise ValueError("t-SNE computation is True but keyword 'path_comp_dataset' is not given. Please specify a path to a dataset for comparison of the t-SNE.")
-
+    original_data = None
     if default_args['csv']:
         n_conditions = len(default_args['conditions']) if default_args['conditions'][0] != '' else 0
         # load data with DataLoader
@@ -69,11 +48,27 @@ def main():
         random = True
     elif default_args['checkpoint']:
         state_dict = torch.load(default_args['path_dataset'], map_location='cpu')
-        n_conditions = state_dict['configuration']['n_conditions']
-        sequence_length_generated = state_dict['configuration']['sequence_length_generated']
-        data = np.stack(state_dict['generated_samples'])
-        conditions = data[:, :n_conditions, 0]
-        data = data[:, n_conditions:]
+        n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
+        sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
+        data = np.stack(state_dict['samples'])
+        if len(data.shape) == 2:
+            data = data.reshape((1, data.shape[0], data.shape[1]))
+        if len(data.shape) == 3:
+            conditions = data[:, :n_conditions, 0]
+            data = data[:, n_conditions:]
+        elif len(data.shape) == 4:
+            # autoencoder samples are saved as (n_samples, type, sequence_length, n_channels)
+            # type = 0: original, type = 1: reconstructed
+            conditions = data[:, 0, :n_conditions, 0]
+            original_data = data[:, 0, n_conditions:]
+            data = data[:, 1, n_conditions:]
+
+            # set channel_plots to True if original_data was found in samples
+            if not default_args['channel_plots'] and data.shape[-1] > 1:
+                default_args['channel_plots'] = True
+                warnings.warn("Original data was found in checkpoint and data contains more than 1 channel. Setting channel_plots to True to improve the visualization quality.")
+        else:
+            raise ValueError(f"Invalid shape of data: {data.shape}")
         random = False
     else:
         raise ValueError("Please specify one of the following arguments: csv, checkpoint")
@@ -98,28 +93,40 @@ def main():
             default_args['n_samples'] = data.shape[0]
 
         if random:
-            index = np.random.randint(0, data.shape[0], default_args['n_samples'])
+            index = np.random.randint(0, data.shape[0]-1, default_args['n_samples'])
         else:
-            index = np.linspace(0, data.shape[0], default_args['n_samples'], dtype=int)
+            index = np.linspace(0, data.shape[0]-1, default_args['n_samples'], dtype=int)
 
         ncols = 1 if not default_args['channel_plots'] else len(channel_index)
         fig, axs = plt.subplots(nrows=default_args['n_samples'], ncols=ncols)
         picking_type = 'randomly' if random else 'evenly'
-        fig.suptitle(f'{picking_type} picked samples')
+        if original_data is not None:
+            comparison = '; reconstructed (blue) vs original (orange)'
+        else:
+            comparison = ''
+        fig.suptitle(f'{picking_type} picked samples' + comparison)
 
         for irow, i in enumerate(index):
             if ncols == 1:
                 for j in channel_index:
                     if default_args['n_samples'] == 1:
                         axs.plot(data[i, :, j])
+                        if original_data is not None:
+                            axs.plot(original_data[i, :, j])
                     else:
                         axs[irow].plot(data[i, :, j])
+                        if original_data is not None:
+                            axs[irow].plot(original_data[i, :, j])
             else:
                 for jcol, j in enumerate(channel_index):
                     if default_args['n_samples'] == 1:
                         axs[jcol].plot(data[i, :, j])
+                        if original_data is not None:
+                            axs[jcol].plot(original_data[i, :, j])
                     else:
                         axs[irow, jcol].plot(data[i, :, j])
+                        if original_data is not None:
+                            axs[irow, jcol].plot(original_data[i, :, j])
 
         plt.show()
 
@@ -207,19 +214,24 @@ def main():
     # -----------------------------
 
     if default_args['pca'] or default_args['tsne']:
-        # load comparison data
-        dataloader_comp = Dataloader(path=default_args['path_comp_dataset'],
-                                     norm_data=True,
-                                     kw_timestep=default_args['kw_timestep'],
-                                     col_label=default_args['conditions'],
-                                     channel_label=default_args['channel_label'], )
-        data_comp = dataloader_comp.get_data(shuffle=False)[:, n_conditions:].numpy()
+        if original_data is None and default_args['path_comp_dataset'] != '':
+            # load comparison data
+            dataloader_comp = Dataloader(path=default_args['path_comp_dataset'],
+                                         norm_data=True,
+                                         kw_timestep=default_args['kw_timestep'],
+                                         col_label=default_args['conditions'],
+                                         channel_label=default_args['channel_label'], )
+            original_data = dataloader_comp.get_data(shuffle=False)[:, n_conditions:].numpy()
+        elif original_data is None and default_args['path_comp_dataset'] == '':
+            raise ValueError("No comparison data found for PCA or t-SNE. Please specify a comparison dataset with the argument 'path_comp_dataset'.")
 
         if default_args['pca']:
-            visualization_dim_reduction(data_comp, data, 'pca', False, 'pca_file')
+            print("Plotting PCA...")
+            visualization_dim_reduction(original_data, data, 'pca', False, 'pca_file')
 
         if default_args['tsne']:
-            visualization_dim_reduction(data_comp, data, 'tsne', False, 'tsne_file')
+            print("Plotting t-SNE...")
+            visualization_dim_reduction(original_data, data, 'tsne', False, 'tsne_file')
 
     # -----------------------------
     # Spectogram plotting
@@ -249,23 +261,23 @@ def main():
 
 
 if __name__ == '__main__':
-    # sys.argv = [
-    #             'csv',
-    #             'path_dataset=../generated_samples/gan_1ep_2chan_1cond.csv',
-    #             # 'checkpoint',
-    #             # 'path_dataset=../trained_models/gan_1ep_2chan_1cond.pt',
-    #             'conditions=Condition',
-    #             'channel_label=Electrode',
-    #             'n_samples=8',
-    #             # 'channel_plots',
-    #             'channel_index=0',
-    #             # 'loss',
-    #             # 'average',
-    #             'spectogram',
-    #             'fft',
-    #             # 'pca',
-    #             # 'tsne',
-    #             # 'path_comp_dataset=../data/gansMultiCondition_SHORT.csv',
-    #             'path_comp_dataset=../data/gansMultiCondition.csv',
-    # ]
+    sys.argv = [
+                # 'csv',
+                # 'path_dataset=generated_samples/gan_1ep_2chan_1cond.csv',
+                'checkpoint',
+                'path_dataset=trained_ae/ae_gansMultiCondition.pt',
+                # 'conditions=Condition',
+                'channel_label=Electrode',
+                'n_samples=8',
+                # 'channel_plots',
+                # 'channel_index=0',
+                'loss',
+                # 'average',
+                # 'spectogram',
+                # 'fft',
+                'pca',
+                'tsne',
+                # 'path_comp_dataset=data/gansMultiCondition_SHORT.csv',
+                # 'path_comp_dataset=data/gansMultiCondition.csv',
+    ]
     main()

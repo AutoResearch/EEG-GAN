@@ -27,9 +27,9 @@ class GANDDPTrainer(trainer.GANTrainer):
     #  DDP-specific modifications
     # ---------------------
 
-    def save_checkpoint(self, path_checkpoint=None, generated_samples=None, generator=None, discriminator=None):
+    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None):
         if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, generated_samples, generator=self.generator.module, discriminator=self.discriminator.module)
+            super().save_checkpoint(path_checkpoint, samples, generator=self.generator.module, discriminator=self.discriminator.module)
         # dist.barrier()
 
     def print_log(self, current_epoch, d_loss, g_loss):
@@ -190,7 +190,7 @@ def _ddp_training(trainer_ddp, opt):
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'{model_prefix}_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
         if isinstance(trainer_ddp, GANDDPTrainer):
-            trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), generated_samples=gen_samples)
+            trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
         elif isinstance(trainer_ddp, AEDDPTrainer):
             trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename))
 

@@ -32,6 +32,7 @@ def main():
         'path_checkpoint': default_args['path_checkpoint'],
         'save_name': default_args['save_name'],
         'target': default_args['target'],
+        'sample_interval': default_args['sample_interval'],
         # 'conditions': default_args['conditions'],
         'channel_label': default_args['channel_label'],
         'channels_out': default_args['channels_out'],
@@ -178,7 +179,7 @@ def main():
         trainer = AETrainer(model, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
-        trainer.training(train_dataloader, test_dataloader)
+        samples = trainer.training(train_dataloader, test_dataloader)
         model = trainer.model
         print("Training finished.")
 
@@ -190,10 +191,10 @@ def main():
         # model_dict = dict(state_dict=model.state_dict(), config=model.config)
         if opt['save_name'] is None:
             fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
-            opt['save_name'] = f"ae_{fn}_{str(time.time()).split('.')[0]}.pt"
+            opt['save_name'] = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
         # save(model_dict, save_name)
     
-        trainer.save_checkpoint(opt['save_name'], update_history=True)
+        trainer.save_checkpoint(opt['save_name'], update_history=True, samples=samples)
         print(f"Model and configuration saved in {opt['save_name']}")
 
 if __name__ == "__main__":
