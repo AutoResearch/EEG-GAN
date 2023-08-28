@@ -88,9 +88,9 @@ class AEDDPTrainer(trainer.AETrainer):
     #  DDP-specific modifications
     # ---------------------
 
-    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False):
+    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False, samples=None):
         if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, model=self.model.module, update_history=update_history)
+            super().save_checkpoint(path_checkpoint, path_checkpoint=path_checkpoint, model=model, update_history=update_history, samples=samples)
         # dist.barrier()
 
     def print_log(self, current_epoch, train_loss, test_loss):
