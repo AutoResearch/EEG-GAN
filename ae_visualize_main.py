@@ -49,7 +49,7 @@ for i in range(5):
     sample = np.random.choice(len(dataset), 1)
     data = dataset[sample,1:,:]
     axs[i].plot(data[0,:,0], label='Original')
-    axs[i].plot(autoencoder.decode(autoencoder.encode(data))[0,:,0].detach().numpy(), label='Reconstructed')
+    axs[i].plot(autoencoder.decode(autoencoder.encode(torch.from_numpy(data)))[0,:,0].detach().numpy(), label='Reconstructed')
     axs[i].legend()
 plt.show()
 
