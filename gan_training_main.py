@@ -5,6 +5,7 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.multiprocessing as mp
+from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from torch.utils.data import DataLoader
 
 from helpers.trainer import GANTrainer
@@ -139,6 +140,7 @@ def main():
             autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=opt['sequence_length'])
         else:
             raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+        consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
         autoencoder.load_state_dict(ae_dict['model'])
         # freeze the autoencoder
         for param in autoencoder.parameters():
