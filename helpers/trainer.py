@@ -3,6 +3,7 @@ import os
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
+from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 from nn_architecture import losses
 from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
@@ -558,6 +559,7 @@ class AETrainer(Trainer):
         if os.path.isfile(path_checkpoint):
             # load state_dicts
             state_dict = torch.load(path_checkpoint, map_location=self.device)
+            consume_prefix_in_state_dict_if_present(state_dict['model'], 'module.')
             self.model.load_state_dict(state_dict['model'])
             self.optimizer.load_state_dict(state_dict['optimizer'])
         else:
