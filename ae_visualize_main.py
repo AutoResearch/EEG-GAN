@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 
@@ -24,6 +25,7 @@ elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
     autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
 else:
     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+consume_prefix_in_state_dict_if_present(ae_dict['model'],'module.')
 autoencoder.load_state_dict(ae_dict['model'])
 autoencoder.device = torch.device('cpu')
 print(ae_dict["configuration"]["history"])
