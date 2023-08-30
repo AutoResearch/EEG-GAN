@@ -120,6 +120,7 @@ def main():
 
     # load generator weights
     generator.load_state_dict(state_dict['generator'])
+    generator.to(device)
 
     # check given conditions that they are numeric
     for i, x in enumerate(condition):
