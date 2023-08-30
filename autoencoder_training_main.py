@@ -24,7 +24,7 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------
 
     default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
-    print('-----------------------------------\n')
+    print('-----------------------------------------\n')
 
     # User inputs
     opt = {

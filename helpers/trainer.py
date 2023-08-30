@@ -153,8 +153,8 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-                self.d_losses.append(d_loss)
-                self.g_losses.append(g_loss)
+            self.d_losses.append(d_loss_batch/i_batch)
+            self.g_losses.append(g_loss_batch/i_batch)
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:

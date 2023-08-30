@@ -31,7 +31,7 @@ def main():
     if len(condition) == 1 and condition[0] == 'None':
         condition = []
 
-    file = default_args['file']
+    file = default_args['path_file']
     if file.split(os.path.sep)[0] == file:
         # use default path if no path is given
         path = 'trained_models'
