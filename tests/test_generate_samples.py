@@ -11,7 +11,7 @@ if __name__ == '__main__':
         # '2channel': ["file=..\\trained_models\\gan_1ep_2chan.pt", "path_samples=..\\generated_samples\\gan_1ep_2chan.csv"],
         # '2channel_1condition': ["file=..\\trained_models\\gan_1ep_2chan_1cond.pt", "path_samples=..\\generated_samples\\gan_1ep_2chan_1cond.csv", "conditions=0"],
 
-        '2channel_2conditions': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "channel_label=Electrode", "conditions=Trial,Condition"],
+        # '2channel_2conditions': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "channel_label=Electrode", "conditions=Trial,Condition"],
         # 'prediction': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "patch_size=20", "input_sequence_length=70"],
         # 'prediction_1condition': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "patch_size=20", "input_sequence_length=70", "conditions=Condition"],
         # 'prediction_2conditions': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "patch_size=20", "input_sequence_length=70", "conditions=Trial,Condition"],
@@ -26,9 +26,9 @@ if __name__ == '__main__':
         # 'seq2seq_2channel_2conditions': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "input_sequence_length=-1", "channel_label=Electrode", "conditions=Trial,Condition"],
 
         # configurations for autoencoder GAN
-        # 'autoencoder_basic': ["file=..\\trained_models\\gan_1ep_ae.pt", "path_samples=..\\generated_samples\\gan_1ep_ae.csv"],
-        # 'autoencoder_1condition': ["file=..\\trained_models\\gan_1ep_ae_1cond.pt", "path_samples=..\\generated_samples\\gan_1ep_ae_1cond.csv", "conditions=0"],
-        # 'autoencoder_2conditions': ["file=..\\trained_models\\gan_1ep_ae_2cond.pt", "path_samples=..\\generated_samples\\gan_1ep_ae_2cond.csv", "conditions=0,1"],
+        # 'autoencoder_basic': ["path_file=..\\trained_models\\checkpoint.pt", "path_samples=..\\generated_samples\\test.csv"],
+        # 'autoencoder_1condition': ["path_file=..\\trained_models\\gan_1ep_ae_1cond.pt", "path_samples=..\\generated_samples\\gan_1ep_ae_1cond.csv", "conditions=0"],
+        'autoencoder_2conditions': ["path_file=..\\trained_models\\checkpoint.pt", "path_samples=..\\generated_samples\\gan_1ep_ae_2cond.csv", "conditions=0,1"],
 
         # 'autoencoder_prediction': ["path_dataset=../data/ganTrialElectrodeERP_p50_e8_len100_SHORT.csv", "gan_type=autoencoder", "input_sequence_length=70", "channel_label=Electrode"],
         # 'autoencoder_prediction_1condition': ["path_dataset=../data/ganTrialElectrodeERP_p50_e8_len100_SHORT.csv", "gan_type=autoencoder", "input_sequence_length=70", "channel_label=Electrode", "conditions=Condition"],

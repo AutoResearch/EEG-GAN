@@ -90,10 +90,10 @@ def main():
     else:
         # load autoencoder
         ae_state_dict = torch.load(state_dict['configuration']['path_autoencoder'], map_location='cpu')["model"]
-        if ae_state_dict['class'] == 'TransformerDoubleAutoencoder':
+        if ae_state_dict['model'] == 'TransformerDoubleAutoencoder':
             autoencoder = TransformerDoubleAutoencoder(**ae_state_dict, sequence_length=sequence_length)
         else:
-            raise ValueError(f'Autoencoder class {ae_state_dict["class"]} not recognized.')
+            raise ValueError(f'Autoencoder class {ae_state_dict['model']} not recognized.')
         autoencoder.load_state_dict(ae_state_dict['state_dict'])
         # freeze the autoencoder
         for param in autoencoder.parameters():
