@@ -46,6 +46,8 @@ def main():
     if path_samples.split(os.path.sep)[0] == path_samples:
         # use default path if no path is given
         path = 'generated_samples'
+        if not os.path.exists(path):
+            os.makedirs(path)
         path_samples = os.path.join(path, path_samples)
 
     state_dict = torch.load(file, map_location='cpu')
