@@ -93,7 +93,7 @@ def main():
         if ae_state_dict['model'] == 'TransformerDoubleAutoencoder':
             autoencoder = TransformerDoubleAutoencoder(**ae_state_dict, sequence_length=sequence_length)
         else:
-            raise ValueError(f'Autoencoder class {ae_state_dict['model']} not recognized.')
+            raise ValueError(f'Autoencoder class {ae_state_dict["model"]} not recognized.')
         autoencoder.load_state_dict(ae_state_dict['state_dict'])
         # freeze the autoencoder
         for param in autoencoder.parameters():
