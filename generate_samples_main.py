@@ -191,9 +191,9 @@ def main():
     # save samples
     print("Saving samples...")
     # check if column condition labels are given
-    if state_dict['configuration']['dataloader']['col_label'] and len(
-            state_dict['configuration']['dataloader']['col_label']) == n_conditions:
-        col_labels = state_dict['configuration']['dataloader']['col_label']
+    if state_dict['configuration']['dataloader']['column_label'] and len(
+            state_dict['configuration']['dataloader']['column_label']) == n_conditions:
+        col_labels = state_dict['configuration']['dataloader']['column_label']
     else:
         if n_conditions > 0:
             col_labels = [f'Condition {i}' for i in range(n_conditions)]
