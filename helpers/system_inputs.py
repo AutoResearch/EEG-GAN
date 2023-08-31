@@ -252,8 +252,11 @@ def default_inputs_training_autoencoder():
         'n_epochs': [int, 'Number of epochs to train for', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
+        'hidden_dim': [int, 'Hidden dimension of the transformer', 256, 'Hidden dimension: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'num_layers': [int, 'Number of layers of the transformer', 2, 'Number of layers: '],
+        'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
     }
     return kw_dict
 

@@ -41,6 +41,9 @@ def main():
         'batch_size': default_args['batch_size'],
         'train_ratio': default_args['train_ratio'],
         'learning_rate': default_args['learning_rate'],
+        'hidden_dim': default_args['hidden_dim'],
+        'num_heads': default_args['num_heads'],
+        'num_layers': default_args['num_layers'],
         'ddp': default_args['ddp'],
         'ddp_backend': default_args['ddp_backend'],
         # 'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
@@ -132,11 +135,22 @@ def main():
     opt["output_dim_2"] = opt['timeseries_out']
     
     if opt['target'] == 'channels':
-        model = TransformerAutoencoder(input_dim=opt['input_dim'], output_dim=opt['output_dim']).to(opt['device'])
+        model = TransformerAutoencoder(input_dim=opt['input_dim'],
+                                       output_dim=opt['output_dim'],
+                                       output_dim_2=opt['output_dim_2'],
+                                       hidden_dim=opt['hidden_dim'],
+                                       num_layers=opt['num_layers'],
+                                       num_heads=opt['num_heads'],).to(opt['device'])
     elif opt['target'] == 'timeseries':
         raise NotImplementedError("Timeseries encoding target is not yet implemented.")
     elif opt['target'] == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=opt['input_dim'], output_dim=opt['output_dim'], sequence_length=seq_length , output_dim_2=opt['output_dim_2']).to(opt['device'])
+        model = TransformerDoubleAutoencoder(input_dim=opt['input_dim'],
+                                             output_dim=opt['output_dim'],
+                                             sequence_length=seq_length ,
+                                             output_dim_2=opt['output_dim_2'],
+                                             hidden_dim=opt['hidden_dim'],
+                                             num_layers=opt['num_layers'],
+                                             num_heads=opt['num_heads'],).to(opt['device'])
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
@@ -145,17 +159,12 @@ def main():
         "trained_epochs": [],
         "path_dataset": [opt['path_dataset']],
         "path_checkpoint": [opt['path_checkpoint']],
-        # "save_name": save_name,
-        # "target": target,
-        # "conditions": [opt['conditions']],
         "channel_label": [opt['channel_label']],
-        # "channels_out": channels_out,
-        # "timeseries_out": timeseries_out,
         "n_epochs": [opt['n_epochs']],
         "batch_size": [opt['batch_size']],
         "input_dim": [input_dim],
-        "output_dim": [opt['channels_out']],
-        "output_dim_2": [opt['timeseries_out']]
+        "channels_out": [opt['channels_out']],
+        "timeseries_out": [opt['timeseries_out']]
     }
 
     if model_dict is not None:
@@ -165,11 +174,6 @@ def main():
 
     opt['history'] = history
 
-    # Training parameters
-    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    # criterion = nn.MSELoss()
-    # train_loss, test_loss, model = train(n_epochs, model, train_dataloader, test_dataloader, optimizer, criterion)
-    
     if opt['ddp']:
         trainer = AEDDPTrainer(model, opt)
         if default_args['load_checkpoint']:
