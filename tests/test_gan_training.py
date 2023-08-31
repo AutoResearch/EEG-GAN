@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
         # configurations for autoencoder GAN
         # 'autoencoder_basic': ["path_dataset=../data/ganTrialElectrodeERP_p50_e8_len100_SHORT.csv", "path_autoencoder=../trained_ae/transformer2D_ae.pt", "channel_label=Electrode"],
-        'autoencoder_1condition': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "load_checkpoint", "path_checkpoint=../trained_models/checkpoint.pt", "path_autoencoder=../trained_ae/ae_gansMultiCondition_SHORT.pt", "channel_label=Electrode", "conditions=Condition"],
-        # 'autoencoder_2conditions': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "path_autoencoder=../trained_ae/ae_gansMultiCondition_SHORT.pt", "channel_label=Electrode", "conditions=Trial,Condition"],
+        # 'autoencoder_1condition': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "load_checkpoint", "path_checkpoint=../trained_models/checkpoint.pt", "path_autoencoder=../trained_ae/ae_gansMultiCondition_SHORT.pt", "channel_label=Electrode", "conditions=Condition"],
+        'autoencoder_2conditions': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "path_autoencoder=../trained_ae/ae_gansMultiCondition_SHORT.pt", "channel_label=Electrode", "conditions=Trial,Condition", "hidden_dim=64", "activation=leakyrelu", "num_layers=1",],
         # 'autoencoder_prediction': ["path_dataset=../data/ganTrialElectrodeERP_p50_e8_len100_SHORT.csv", "path_autoencoder=../trained_ae/transformer2D_ae.pt", "input_sequence_length=70", "channel_label=Electrode"],
         # 'autoencoder_prediction_1condition': ["path_dataset=../data/ganTrialElectrodeERP_p50_e8_len100_SHORT.csv", "path_autoencoder=../trained_ae/transformer2D_ae.pt", "input_sequence_length=70", "channel_label=Electrode", "conditions=Condition"],
         # 'autoencoder_prediction_2conditions': ["path_dataset=../data/ganTrialElectrodeERP_p50_e8_len100_SHORT.csv", "path_autoencoder=../trained_ae/transformer2D_ae.pt", "input_sequence_length=70", "channel_label=Electrode", "conditions=Trial,Condition"],

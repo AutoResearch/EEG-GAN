@@ -225,7 +225,7 @@ def default_inputs_training_gan():
         'hidden_dim': [int, 'Hidden dimension of the GAN components', 256, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
-        'activation': [str, 'Activation function of the GAN components; Options: [relu, sigmoid, tanh, linear]', 'relu', 'Activation function: '],
+        'activation': [str, 'Activation function of the GAN components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'relu', 'Activation function: '],
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
         'path_autoencoder': [str, 'Path to the autoencoder; Only usable with Autoencoder-GAN', '', 'Autoencoder checkpoint: '],

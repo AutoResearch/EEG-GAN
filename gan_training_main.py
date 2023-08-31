@@ -76,11 +76,12 @@ def main():
         'kw_timestep': default_args['kw_timestep'],
         'conditions': default_args['conditions'],
         'sequence_length': -1,
-        'hidden_dim': 128,  # Dimension of hidden layers in discriminator and generator
+        'hidden_dim': default_args['hidden_dim'],  # Dimension of hidden layers in discriminator and generator
+        'num_layers': default_args['num_layers'],
+        'activation': default_args['activation'],
         'latent_dim': 16,  # Dimension of the latent space
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
-        'n_lstm': 2,  # number of lstm layers for lstm GAN
         'world_size': world_size,  # number of processes for distributed training
         # 'multichannel': default_args['multichannel'],
         'channel_label': default_args['channel_label'],
@@ -152,9 +153,15 @@ def main():
             new_input_dim = autoencoder.output_dim if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim*autoencoder.output_dim_2
             latent_dim_in += new_input_dim - autoencoder.input_dim
         generator = AutoencoderGenerator(latent_dim=latent_dim_in,
-                                         autoencoder=autoencoder)
+                                         autoencoder=autoencoder,
+                                         num_layers=opt['num_layers'],
+                                         hidden_dim=opt['hidden_dim'],
+                                         activation=opt['activation'],)
         discriminator = AutoencoderDiscriminator(input_dim=channel_in_disc,
-                                                 autoencoder=autoencoder)
+                                                 autoencoder=autoencoder,
+                                                 num_layers=opt['num_layers'],
+                                                 hidden_dim=opt['hidden_dim'],
+                                                 activation=opt['activation'],)
 
         if isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
             # if input_sequence_length is 0, do not decode the generator output during training

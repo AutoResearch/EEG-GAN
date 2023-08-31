@@ -31,6 +31,8 @@ class Generator(nn.Module):
             self.act_out = nn.Sigmoid()
         elif activation == 'tanh':
             self.act_out = nn.Tanh()
+        elif activation == 'leakyrelu':
+            self.act_out = nn.LeakyReLU()
         else:
             self.act_out = nn.Identity()
             warnings.warn(
@@ -77,6 +79,8 @@ class Discriminator(nn.Module):
             self.act_out = nn.Sigmoid()
         elif activation == 'tanh':
             self.act_out = nn.Tanh()
+        elif activation == 'leakyrelu':
+            self.act_out = nn.LeakyReLU()
         else:
             self.act_out = nn.Identity()
             warnings.warn(f"Activation function of type '{activation}' was recognized. Setting activation function to 'linear'.")
