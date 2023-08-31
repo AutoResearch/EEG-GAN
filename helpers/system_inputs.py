@@ -222,7 +222,10 @@ def default_inputs_training_gan():
         # 'patch_size': [int, 'Patch size', 20, 'Patch size: '],
         'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence (not implemented yet)', 0, 'Input sequence length: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
+        'hidden_dim': [int, 'Hidden dimension of the GAN components', 256, 'Hidden dimension: '],
+        'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'activation': [str, 'Activation function of the GAN components; Options: [relu, sigmoid, tanh, linear]', 'relu', 'Activation function: '],
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
         'path_autoencoder': [str, 'Path to the autoencoder; Only usable with Autoencoder-GAN', '', 'Autoencoder checkpoint: '],
@@ -253,10 +256,10 @@ def default_inputs_training_autoencoder():
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'hidden_dim': [int, 'Hidden dimension of the transformer', 256, 'Hidden dimension: '],
-        'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
-        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
         'num_layers': [int, 'Number of layers of the transformer', 2, 'Number of layers: '],
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
+        'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
+        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
     }
     return kw_dict
 
