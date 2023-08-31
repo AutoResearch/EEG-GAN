@@ -253,6 +253,7 @@ def default_inputs_training_autoencoder():
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
+        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
     }
     return kw_dict
 
