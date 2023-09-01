@@ -264,8 +264,16 @@ class GANTrainer(Trainer):
 
             if self.trained_epochs % self.sample_interval == 0:
                 # decode gen_imgs if necessary - decoding only necessary if not prediction case or seq2seq case
-                if isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode:
-                    gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim//self.generator.output_dim_2))
+                if not hasattr(self.generator, 'module'):
+                    decode_imgs = isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode
+                else:
+                    decode_imgs = isinstance(self.generator.module, AutoencoderGenerator) and not self.generator.module.decode
+                    
+                if decode_imgs:
+                    if not hasattr(self.generator, 'module'):
+                        gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim//self.generator.output_dim_2))
+                    else:
+                        gen_samples = self.generator.module.autoencoder.decode(fake_data[:, :, :self.generator.module.output_dim].reshape(-1, self.generator.module.output_dim_2, self.generator.module.output_dim//self.generator.module.output_dim_2))
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
                     if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
