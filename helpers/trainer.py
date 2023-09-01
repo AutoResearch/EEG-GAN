@@ -486,7 +486,7 @@ class AETrainer(Trainer):
                 self.trained_epochs += 1
                 self.print_log(epoch + 1, train_loss, test_loss)
 
-            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True)
+            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
             return samples
 
         except KeyboardInterrupt:
@@ -566,14 +566,14 @@ class AETrainer(Trainer):
         else:
             raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False, samples=None):
         """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
         but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
         Therefore, there's no need for the saved samples."""
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None, update_history=update_history)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None, update_history=update_history, samples=samples)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):
