@@ -172,7 +172,7 @@ class GANTrainer(Trainer):
             self.trained_epochs += 1
             self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
 
-        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
+        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
 
         return gen_samples
 
@@ -338,14 +338,14 @@ class GANTrainer(Trainer):
         else:
             Warning("No checkpoint-file found. Using random initialization.")
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None):
         """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
         but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
         Therefore, there's no need for the saved samples."""
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator, samples=samples)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):

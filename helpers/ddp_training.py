@@ -41,10 +41,10 @@ class GANDDPTrainer(trainer.GANTrainer):
 
         super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module, samples=samples)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()
