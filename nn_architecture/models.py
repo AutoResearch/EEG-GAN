@@ -1,4 +1,5 @@
 import math
+import warnings
 
 import torch
 from torch import nn, Tensor
@@ -7,7 +8,7 @@ from nn_architecture.ae_networks import Autoencoder
 
 # insert here all different kinds of generators and discriminators
 class Generator(nn.Module):
-    def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=2, dropout=.1, **kwargs):
+    def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=4, dropout=.1, activation='relu', **kwargs):
         """
         :param latent_dim: latent dimension
         :param output_dim: output dimension
@@ -24,7 +25,18 @@ class Generator(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.num_layers = num_layers
-        self.act_out = nn.ReLU()
+        if activation == 'relu':
+            self.act_out = nn.ReLU()
+        elif activation == 'sigmoid':
+            self.act_out = nn.Sigmoid()
+        elif activation == 'tanh':
+            self.act_out = nn.Tanh()
+        elif activation == 'leakyrelu':
+            self.act_out = nn.LeakyReLU()
+        else:
+            self.act_out = nn.Identity()
+            warnings.warn(
+                f"Activation function of type '{activation}' was recognized. Setting activation function to 'linear'.")
 
         modulelist = nn.ModuleList()
         modulelist.append(nn.Linear(latent_dim, hidden_dim))
@@ -44,7 +56,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, input_dim, hidden_dim=256, num_layers=2, dropout=.1, **kwargs):
+    def __init__(self, input_dim, hidden_dim=256, num_layers=4, dropout=.1, activation='relu', **kwargs):
         """
         :param input_dim: input dimension
         :param hidden_dim: hidden dimension
@@ -61,7 +73,17 @@ class Discriminator(nn.Module):
 
         self.linear_in = nn.Linear(input_dim, hidden_dim)
         self.linear_out = nn.Linear(hidden_dim, 1)
-        self.act_out = nn.ReLU()
+        if activation == 'relu':
+            self.act_out = nn.ReLU()
+        elif activation == 'sigmoid':
+            self.act_out = nn.Sigmoid()
+        elif activation == 'tanh':
+            self.act_out = nn.Tanh()
+        elif activation == 'leakyrelu':
+            self.act_out = nn.LeakyReLU()
+        else:
+            self.act_out = nn.Identity()
+            warnings.warn(f"Activation function of type '{activation}' was recognized. Setting activation function to 'linear'.")
 
         modulelist = nn.ModuleList()
         modulelist.append(nn.Linear(input_dim, hidden_dim))

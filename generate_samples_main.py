@@ -4,12 +4,14 @@ import sys
 import numpy as np
 import pandas as pd
 import torch
+from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 from helpers import system_inputs
 from helpers.dataloader import Dataloader
 from helpers.trainer import GANTrainer
 from nn_architecture.models import TransformerGenerator, AutoencoderGenerator
-from nn_architecture.ae_networks import TransformerDoubleAutoencoder
+from nn_architecture.ae_networks import TransformerDoubleAutoencoder, TransformerAutoencoder, \
+    TransformerFlattenAutoencoder
 
 
 def main():
@@ -31,7 +33,7 @@ def main():
     if len(condition) == 1 and condition[0] == 'None':
         condition = []
 
-    file = default_args['file']
+    file = default_args['path_file']
     if file.split(os.path.sep)[0] == file:
         # use default path if no path is given
         path = 'trained_models'
@@ -44,6 +46,8 @@ def main():
     if path_samples.split(os.path.sep)[0] == path_samples:
         # use default path if no path is given
         path = 'generated_samples'
+        if not os.path.exists(path):
+            os.makedirs(path)
         path_samples = os.path.join(path, path_samples)
 
     state_dict = torch.load(file, map_location='cpu')
@@ -89,12 +93,19 @@ def main():
         generator.eval()
     else:
         # load autoencoder
-        ae_state_dict = torch.load(state_dict['configuration']['path_autoencoder'], map_location='cpu')["model"]
-        if ae_state_dict['class'] == 'TransformerDoubleAutoencoder':
-            autoencoder = TransformerDoubleAutoencoder(**ae_state_dict, sequence_length=sequence_length)
+        ae_dict = torch.load(state_dict['configuration']['path_autoencoder'], map_location=torch.device('cpu'))
+        if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
+            autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
+        elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
+            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'],
+                                                       sequence_length=sequence_length)
+        elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
+            autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'],
+                                                        sequence_length=sequence_length)
         else:
-            raise ValueError(f'Autoencoder class {ae_state_dict["class"]} not recognized.')
-        autoencoder.load_state_dict(ae_state_dict['state_dict'])
+            raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+        consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
+        autoencoder.load_state_dict(ae_dict['model'])
         # freeze the autoencoder
         for param in autoencoder.parameters():
             param.requires_grad = False
@@ -111,6 +122,7 @@ def main():
 
     # load generator weights
     generator.load_state_dict(state_dict['generator'])
+    generator.to(device)
 
     # check given conditions that they are numeric
     for i, x in enumerate(condition):
@@ -181,9 +193,9 @@ def main():
     # save samples
     print("Saving samples...")
     # check if column condition labels are given
-    if state_dict['configuration']['dataloader']['col_label'] and len(
-            state_dict['configuration']['dataloader']['col_label']) == n_conditions:
-        col_labels = state_dict['configuration']['dataloader']['col_label']
+    if state_dict['configuration']['dataloader']['column_label'] and len(
+            state_dict['configuration']['dataloader']['column_label']) == n_conditions:
+        col_labels = state_dict['configuration']['dataloader']['column_label']
     else:
         if n_conditions > 0:
             col_labels = [f'Condition {i}' for i in range(n_conditions)]

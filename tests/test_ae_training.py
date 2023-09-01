@@ -5,13 +5,13 @@ from autoencoder_training_main import main
 if __name__ == '__main__':
     configurations = {
         # configurations for normal GAN
-        'basic': ["path_dataset=../data/gansMultiCondition.csv", "channels_out=2", "timeseries_out=10"],
+        'basic': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "channels_out=2", "timeseries_out=10"],
         # 'load_checkpoint': ["path_dataset=../data/gansMultiCondition_SHORT.csv", "load_checkpoint"],
         # 'load_checkpoint_specific_file': ["path_dataset=../data/gansMultiCondition.csv", "load_checkpoint", "path_checkpoint=trained_ae/checkpoint.pt"],
     }
 
     # general parameters
-    n_epochs = 20
+    n_epochs = 1
     batch_size = 32
     channel_label = "Electrode"
     sample_interval = 1
