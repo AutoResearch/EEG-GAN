@@ -540,7 +540,7 @@ class AETrainer(Trainer):
 
     def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False, samples=None):
         if path_checkpoint is None:
-            default_path = os.path.join('..', 'trained_ae')
+            default_path = 'trained_ae'
             if not os.path.exists(default_path):
                 os.makedirs(default_path)
             path_checkpoint = os.path.join(default_path, 'checkpoint.pt')
