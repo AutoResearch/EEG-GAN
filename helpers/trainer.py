@@ -450,6 +450,7 @@ class AETrainer(Trainer):
             'input_dim': opt['input_dim'],
             'output_dim': opt['output_dim'],
             'output_dim_2': opt['output_dim_2'],
+            'num_layers': opt['num_layers'],
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'col_label': opt['conditions'] if 'conditions' in opt else None,
