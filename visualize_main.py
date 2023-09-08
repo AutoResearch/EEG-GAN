@@ -32,7 +32,7 @@ def main():
 
     # throw warning if checkpoint and conditions are given
     if default_args['checkpoint'] and default_args['conditions'][0] != '':
-        warnings.warn("Conditions are given, but checkpoint is specified. Given conditions are ignored since they will be taken directly from the checkpoint file.")
+        warnings.warn("Conditions are given, but checkpoint is specified. Given conditions will be ignored and taken from the checkpoint file if the checkpoint file contains the conditions parameter.")
 
     original_data = None
     if default_args['csv']:
@@ -49,6 +49,13 @@ def main():
     elif default_args['checkpoint']:
         state_dict = torch.load(default_args['path_dataset'], map_location='cpu')
         n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
+        if (n_conditions == 0) & (default_args['conditions'][0] != ''):
+            dataloader = Dataloader(path=default_args['path_dataset'],
+                                norm_data=True,
+                                kw_timestep=default_args['kw_timestep'],
+                                col_label=default_args['conditions'],
+                                channel_label=default_args['channel_label'], )
+            n_conditions = dataloader.get_labels()[:, :, 0].numpy().shape[-1]
         sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
         data = np.stack(state_dict['samples'])
         if len(data.shape) == 2:
