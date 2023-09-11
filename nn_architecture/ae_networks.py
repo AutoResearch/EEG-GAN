@@ -61,9 +61,14 @@ class Autoencoder(nn.Module):
 
 
 class TransformerAutoencoder(Autoencoder):
-    def __init__(self, input_dim, output_dim, hidden_dim=256, num_layers=3, num_heads=4, dropout=0.1, **kwargs):
+
+    TARGET_CHANNELS = 0
+    TARGET_TIMESERIES = 1
+
+    def __init__(self, input_dim: int, output_dim: int, target: int, hidden_dim=256, num_layers=3, num_heads=4, dropout=0.1, **kwargs):
         super(TransformerAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout)
 
+        self.target = target
         self.num_heads = num_heads
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -79,7 +84,7 @@ class TransformerAutoencoder(Autoencoder):
         self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
         self.linear_dec_out = nn.Linear(hidden_dim, input_dim)
 
-        self.tanh = nn.Sigmoid()
+        self.activation = nn.Tanh()
 
     def forward(self, data):
         x = self.encode(data.to(self.device))
@@ -88,10 +93,12 @@ class TransformerAutoencoder(Autoencoder):
 
     def encode(self, data):
         # x = self.pe_enc(data)
+        if self.target == self.TARGET_TIMESERIES:
+            data = data.permute(0, 2, 1)
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
-        x = self.tanh(x)
+        x = self.activation(x)
         return x
 
     def decode(self, encoded):
@@ -99,7 +106,9 @@ class TransformerAutoencoder(Autoencoder):
         x = self.linear_dec_in(encoded)
         x = self.decoder(x)
         x = self.linear_dec_out(x)
-        x = self.tanh(x)
+        x = self.activation(x)
+        if self.target == self.TARGET_TIMESERIES:
+            x = x.permute(0, 2, 1)
         return x
 
     def save(self, path):
@@ -146,7 +155,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
         self.linear_dec_out = nn.Linear(hidden_dim, input_dim)
 
-        self.tanh = nn.Tanh()
+        self.activation = nn.Tanh()
 
     def forward(self, data):
         x = self.encode(data.to(self.device))
@@ -159,14 +168,14 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
-        x = self.tanh(x)
+        x = self.activation(x)
 
         # encoder sequence
         # x = self.pe_enc_seq(x.permute(0, 2, 1))
         x = self.linear_enc_in_seq(x.permute(0, 2, 1))
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
-        x = self.tanh(x)
+        x = self.activation(x)
         return x.permute(0, 2, 1)
 
     def decode(self, encoded):
@@ -175,14 +184,14 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
         x = self.decoder_seq(x)
         x = self.linear_dec_out_seq(x)
-        x = self.tanh(x)
+        x = self.activation(x)
 
         # decoder features
         # x = self.pe_dec(x.permute(0, 2, 1))
         x = self.linear_dec_in(x.permute(0, 2, 1))
         x = self.decoder(x)
         x = self.linear_dec_out(x)
-        x = self.tanh(x)
+        x = self.activation(x)
         return x
 
     def save(self, path):

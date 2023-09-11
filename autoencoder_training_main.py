@@ -137,12 +137,17 @@ def main():
     if opt['target'] == 'channels':
         model = TransformerAutoencoder(input_dim=opt['input_dim'],
                                        output_dim=opt['output_dim'],
-                                       output_dim_2=opt['output_dim_2'],
+                                       target=TransformerAutoencoder.TARGET_CHANNELS,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],).to(opt['device'])
-    elif opt['target'] == 'timeseries':
-        raise NotImplementedError("Timeseries encoding target is not yet implemented.")
+    elif opt['target'] == 'time':
+        model = TransformerAutoencoder(input_dim=seq_length,
+                                       output_dim=opt['timeseries_out'],
+                                       target=TransformerAutoencoder.TARGET_TIMESERIES,
+                                       hidden_dim=opt['hidden_dim'],
+                                       num_layers=opt['num_layers'],
+                                       num_heads=opt['num_heads'], ).to(opt['device'])
     elif opt['target'] == 'full':
         model = TransformerDoubleAutoencoder(input_dim=opt['input_dim'],
                                              output_dim=opt['output_dim'],
@@ -152,7 +157,7 @@ def main():
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],).to(opt['device'])
     else:
-        raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'timeseries', or 'full'.")
+        raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
 
     # Populate model configuration
     history = {

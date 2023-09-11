@@ -1,22 +1,13 @@
 import os
 import sys
-
 import torch
 
 from helpers import system_inputs
 
-if __name__ == "__main__":
-
+def main():
     default_args = system_inputs.parse_arguments(sys.argv, kw_dict=system_inputs.default_inputs_get_gan_config())
 
-    file = default_args['file']
-
-    for arg in sys.argv:
-        if not arg.endswith('.py'):
-            if '=' in arg:
-                arg = arg.split('=')
-                if arg[0] == 'file':
-                    file = arg[1]
+    file = default_args['path_file']
 
     if file.split(os.path.sep)[0] == file:
         # use default path if no path is given
@@ -28,3 +19,7 @@ if __name__ == "__main__":
     for key, value in state_dict['configuration'].items():
         print(f'\t{key}: {value}')
     print('\n')
+
+if __name__ == "__main__":
+    # sys.argv = ["path_file=trained_models\gan_ddp_8000ep_tanh.pt"]
+    main()

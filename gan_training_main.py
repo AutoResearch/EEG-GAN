@@ -204,12 +204,6 @@ def main():
         generator = trainer.generator
         discriminator = trainer.discriminator
 
-        if isinstance(discriminator, AutoencoderDiscriminator):
-            discriminator.encode_input()
-
-        if isinstance(generator, AutoencoderGenerator):
-            generator.decode_output()
-
         print("GAN training finished.")
         print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
 
@@ -217,9 +211,13 @@ def main():
 
 
 if __name__ == '__main__':
-    # sys.argv = ['path_dataset=data\ganTrialElectrodeERP_p50_e8_len100.csv',
-    #             'path_autoencoder=trained_ae/transformerFlatten_ae.pt',
-    #             'n_epochs=1',
-    #             'channel_label=Electrode',
-    #             'conditions=Condition',]
+    sys.argv = [
+        "path_dataset=data/ganTrialElectrodeERP_p50_e8_len100.csv",
+        "path_autoencoder=trained_ae/ae_ganTrialElectrodeERP_p50_e8_len100.pt",
+        "load_checkpoint",
+        "path_checkpoint=trained_models\gan_ddp_8000ep_tanh.pt",
+        "n_epochs=1",
+        "conditions=Condition",
+        "channel_label=Electrode",
+    ]
     main()
