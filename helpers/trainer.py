@@ -458,6 +458,7 @@ class AETrainer(Trainer):
             'output_dim_2': opt['output_dim_2'],
             'num_layers': opt['num_layers'],
             'num_heads': opt['num_heads'],
+            'activation': opt['activation'],
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'col_label': opt['conditions'] if 'conditions' in opt else None,

@@ -164,18 +164,12 @@ def main():
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
 
-    # Populate model configuration
-    history = {
-        "trained_epochs": [],
-        "path_dataset": [opt['path_dataset']],
-        "path_checkpoint": [opt['path_checkpoint']],
-        "channel_label": [opt['channel_label']],
-        "n_epochs": [opt['n_epochs']],
-        "batch_size": [opt['batch_size']],
-        "input_dim": [input_dim],
-        "channels_out": [opt['channels_out']],
-        "timeseries_out": [opt['timeseries_out']]
-    }
+    # Populate model configuration    
+    history = {}
+    for key in opt.keys():
+        if (not key == 'history') | (not key == 'trained_epochs'):
+            history[key] = [opt[key]]
+    history['trained_epochs'] = []
 
     if model_dict is not None:
         # update history
