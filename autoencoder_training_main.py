@@ -44,6 +44,7 @@ def main():
         'hidden_dim': default_args['hidden_dim'],
         'num_heads': default_args['num_heads'],
         'num_layers': default_args['num_layers'],
+        'activation': default_args['activation'],
         'ddp': default_args['ddp'],
         'ddp_backend': default_args['ddp_backend'],
         # 'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,

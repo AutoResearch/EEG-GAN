@@ -258,6 +258,7 @@ def default_inputs_training_autoencoder():
         'hidden_dim': [int, 'Hidden dimension of the transformer', 256, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the transformer', 2, 'Number of layers: '],
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
+        'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
     }
