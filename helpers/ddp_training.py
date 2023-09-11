@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta
+import numpy as np
 
 import torch
 
@@ -41,10 +42,10 @@ class GANDDPTrainer(trainer.GANTrainer):
 
         super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module, samples=samples)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()
@@ -102,10 +103,10 @@ class AEDDPTrainer(trainer.AETrainer):
 
         super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False, samples=None):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module, update_history=update_history)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module, update_history=update_history, samples=samples)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()
@@ -196,7 +197,12 @@ def _ddp_training(trainer_ddp, opt):
         if isinstance(trainer_ddp, GANDDPTrainer):
             trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
         elif isinstance(trainer_ddp, AEDDPTrainer):
-            trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename))
+            samples = []
+            for batch in test_data:
+                inputs = batch.float().to(trainer_ddp.model.device)
+                outputs = trainer_ddp.model(inputs)
+                samples.append(np.concatenate([inputs.unsqueeze(1).detach().cpu().numpy(), outputs.unsqueeze(1).detach().cpu().numpy()], axis=1))
+            trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=samples)
 
         print("GAN training finished.")
         print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
