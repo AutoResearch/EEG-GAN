@@ -1,7 +1,6 @@
 import math
 import os
 import random
-import warnings
 from typing import Optional
 
 import pandas as pd
@@ -13,25 +12,14 @@ from torch import Tensor
 # from utils.get_filter import moving_average as filter
 
 class Autoencoder(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim, num_layers=3, dropout=0.1, activation='linear', **kwargs):
+    def __init__(self, input_dim, output_dim, hidden_dim, num_layers=3, dropout=0.1, **kwargs):
         super(Autoencoder, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.dropout = dropout
-        if activation == 'relu':
-            self.activation = nn.ReLU()
-        elif activation == 'sigmoid':
-            self.activation = nn.Sigmoid()
-        elif activation == 'tanh':
-            self.activation = nn.Tanh()
-        elif activation == 'leakyrelu':
-            self.activation = nn.LeakyReLU()
-        elif activation == 'linear':
-            self.activation = nn.Identity()
-        else:
-            raise ValueError(f"Activation function of type '{activation}' was not recognized.")
+        self.activation = nn.Sigmoid()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # encoder block of linear layers constructed in a loop and passed to a sequential container
@@ -73,14 +61,9 @@ class Autoencoder(nn.Module):
 
 
 class TransformerAutoencoder(Autoencoder):
+    def __init__(self, input_dim, output_dim, hidden_dim=256, num_layers=3, num_heads=4, dropout=0.1, **kwargs):
+        super(TransformerAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout)
 
-    TARGET_CHANNELS = 0
-    TARGET_TIMESERIES = 1
-
-    def __init__(self, input_dim: int, output_dim: int, target: int, hidden_dim=256, num_layers=3, num_heads=4, dropout=0.1, activation='linear', **kwargs):
-        super(TransformerAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout, activation)
-
-        self.target = target
         self.num_heads = num_heads
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -96,6 +79,8 @@ class TransformerAutoencoder(Autoencoder):
         self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
         self.linear_dec_out = nn.Linear(hidden_dim, input_dim)
 
+        self.tanh = nn.Sigmoid()
+
     def forward(self, data):
         x = self.encode(data.to(self.device))
         x = self.decode(x)
@@ -103,12 +88,10 @@ class TransformerAutoencoder(Autoencoder):
 
     def encode(self, data):
         # x = self.pe_enc(data)
-        if self.target == self.TARGET_TIMESERIES:
-            data = data.permute(0, 2, 1)
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
-        x = self.activation(x)
+        x = self.tanh(x)
         return x
 
     def decode(self, encoded):
@@ -116,9 +99,7 @@ class TransformerAutoencoder(Autoencoder):
         x = self.linear_dec_in(encoded)
         x = self.decoder(x)
         x = self.linear_dec_out(x)
-        x = self.activation(x)
-        if self.target == self.TARGET_TIMESERIES:
-            x = x.permute(0, 2, 1)
+        x = self.tanh(x)
         return x
 
     def save(self, path):
@@ -128,8 +109,8 @@ class TransformerAutoencoder(Autoencoder):
 
 
 class TransformerDoubleAutoencoder(Autoencoder):
-    def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', **kwargs):
-        super(TransformerDoubleAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout, activation)
+    def __init__(self, input_dim, output_dim, sequence_length, output_dim_2, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, **kwargs):
+        super(TransformerDoubleAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout)
 
         self.output_dim_2 = output_dim_2
         self.sequence_length = sequence_length
@@ -165,6 +146,8 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
         self.linear_dec_out = nn.Linear(hidden_dim, input_dim)
 
+        self.tanh = nn.Tanh()
+
     def forward(self, data):
         x = self.encode(data.to(self.device))
         x = self.decode(x)
@@ -176,14 +159,14 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
-        x = self.activation(x)
+        x = self.tanh(x)
 
         # encoder sequence
         # x = self.pe_enc_seq(x.permute(0, 2, 1))
         x = self.linear_enc_in_seq(x.permute(0, 2, 1))
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
-        x = self.activation(x)
+        x = self.tanh(x)
         return x.permute(0, 2, 1)
 
     def decode(self, encoded):
@@ -192,14 +175,14 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
         x = self.decoder_seq(x)
         x = self.linear_dec_out_seq(x)
-        x = self.activation(x)
+        x = self.tanh(x)
 
         # decoder features
         # x = self.pe_dec(x.permute(0, 2, 1))
         x = self.linear_dec_in(x.permute(0, 2, 1))
         x = self.decoder(x)
         x = self.linear_dec_out(x)
-        x = self.activation(x)
+        x = self.tanh(x)
         return x
 
     def save(self, path):
@@ -209,8 +192,8 @@ class TransformerDoubleAutoencoder(Autoencoder):
 
 
 class TransformerFlattenAutoencoder(Autoencoder):
-    def __init__(self, input_dim, output_dim, sequence_length, hidden_dim=1024, num_layers=3, dropout=0.1, activation='linear', **kwargs):
-        super(TransformerFlattenAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout, activation)
+    def __init__(self, input_dim, output_dim, sequence_length, hidden_dim=1024, num_layers=3, dropout=0.1, **kwargs):
+        super(TransformerFlattenAutoencoder, self).__init__(input_dim, output_dim, hidden_dim, num_layers, dropout)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.sequence_length = sequence_length

@@ -44,7 +44,6 @@ def main():
         'hidden_dim': default_args['hidden_dim'],
         'num_heads': default_args['num_heads'],
         'num_layers': default_args['num_layers'],
-        'activation': default_args['activation'],
         'ddp': default_args['ddp'],
         'ddp_backend': default_args['ddp_backend'],
         # 'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
@@ -138,17 +137,12 @@ def main():
     if opt['target'] == 'channels':
         model = TransformerAutoencoder(input_dim=opt['input_dim'],
                                        output_dim=opt['output_dim'],
-                                       target=TransformerAutoencoder.TARGET_CHANNELS,
+                                       output_dim_2=opt['output_dim_2'],
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],).to(opt['device'])
-    elif opt['target'] == 'time':
-        model = TransformerAutoencoder(input_dim=seq_length,
-                                       output_dim=opt['timeseries_out'],
-                                       target=TransformerAutoencoder.TARGET_TIMESERIES,
-                                       hidden_dim=opt['hidden_dim'],
-                                       num_layers=opt['num_layers'],
-                                       num_heads=opt['num_heads'], ).to(opt['device'])
+    elif opt['target'] == 'timeseries':
+        raise NotImplementedError("Timeseries encoding target is not yet implemented.")
     elif opt['target'] == 'full':
         model = TransformerDoubleAutoencoder(input_dim=opt['input_dim'],
                                              output_dim=opt['output_dim'],
@@ -158,7 +152,7 @@ def main():
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],).to(opt['device'])
     else:
-        raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
+        raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'timeseries', or 'full'.")
 
     # Populate model configuration
     history = {

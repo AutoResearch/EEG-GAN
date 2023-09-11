@@ -246,7 +246,7 @@ def default_inputs_training_autoencoder():
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
         'save_name': [str, 'Name to save model', None, 'Model save name: '],
-        'target': [str, 'Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;', 'full', 'Target: '],
+        'target': [str, 'Target dimension (channel, timeseries, full) to encode; full is recommended;', 'full', 'Target: '],
         # 'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
@@ -258,7 +258,6 @@ def default_inputs_training_autoencoder():
         'hidden_dim': [int, 'Hidden dimension of the transformer', 256, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the transformer', 2, 'Number of layers: '],
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
-        'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
     }
@@ -344,7 +343,7 @@ def default_inputs_generate_samples():
 
 def default_inputs_get_gan_config():
     kw_dict = {
-        'path_file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
     }
 
     return kw_dict
