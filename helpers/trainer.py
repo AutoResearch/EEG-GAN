@@ -172,7 +172,7 @@ class GANTrainer(Trainer):
             self.trained_epochs += 1
             self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
 
-        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file])
+        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
 
         if isinstance(self.discriminator, AutoencoderDiscriminator):
             self.discriminator.encode_input()
@@ -270,8 +270,16 @@ class GANTrainer(Trainer):
 
             if self.trained_epochs % self.sample_interval == 0:
                 # decode gen_imgs if necessary - decoding only necessary if not prediction case or seq2seq case
-                if isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode:
-                    gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim//self.generator.output_dim_2))
+                if not hasattr(self.generator, 'module'):
+                    decode_imgs = isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode
+                else:
+                    decode_imgs = isinstance(self.generator.module, AutoencoderGenerator) and not self.generator.module.decode
+
+                if decode_imgs:
+                    if not hasattr(self.generator, 'module'):
+                        gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim//self.generator.output_dim_2))
+                    else:
+                        gen_samples = self.generator.module.autoencoder.decode(fake_data[:, :, :self.generator.module.output_dim].reshape(-1, self.generator.module.output_dim_2, self.generator.module.output_dim//self.generator.module.output_dim_2))
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
                     if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
@@ -345,14 +353,14 @@ class GANTrainer(Trainer):
         else:
             Warning("No checkpoint-file found. Using random initialization.")
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None):
         """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
         but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
         Therefore, there's no need for the saved samples."""
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator, samples=samples)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):
@@ -492,7 +500,7 @@ class AETrainer(Trainer):
                 self.trained_epochs += 1
                 self.print_log(epoch + 1, train_loss, test_loss)
 
-            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True)
+            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
             return samples
 
         except KeyboardInterrupt:
@@ -538,7 +546,7 @@ class AETrainer(Trainer):
 
     def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False, samples=None):
         if path_checkpoint is None:
-            default_path = os.path.join('..', 'trained_ae')
+            default_path = 'trained_ae'
             if not os.path.exists(default_path):
                 os.makedirs(default_path)
             path_checkpoint = os.path.join(default_path, 'checkpoint.pt')
