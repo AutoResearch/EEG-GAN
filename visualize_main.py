@@ -50,7 +50,7 @@ def main():
         state_dict = torch.load(default_args['path_dataset'], map_location='cpu')
         n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
         if (n_conditions == 0) & (default_args['conditions'][0] != ''):
-            dataloader = Dataloader(path=default_args['path_dataset'],
+            dataloader = Dataloader(path=default_args['path_comp_dataset'],
                                 norm_data=True,
                                 kw_timestep=default_args['kw_timestep'],
                                 col_label=default_args['conditions'],
