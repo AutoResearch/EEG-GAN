@@ -295,9 +295,11 @@ class GANTrainer(Trainer):
                 gen_samples = None
 
             if not hasattr(self.generator, 'module'):
-                real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+                #real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+                real_data = self.generator.autoencoder.encode(data) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
             else:
-                real_data = self.generator.module.autoencoder.encode(data).reshape(-1, 1, self.discriminator.module.output_dim*self.discriminator.module.output_dim_2) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
+                #real_data = self.generator.module.autoencoder.encode(data).reshape(-1, 1, self.discriminator.module.output_dim*self.discriminator.module.output_dim_2) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
+                real_data = self.generator.module.autoencoder.encode(data) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
 
             real_data = torch.cat((real_data, disc_labels.repeat(1, real_data.shape[1], 1)), dim=-1).to(self.device)
 

@@ -141,7 +141,7 @@ class AutoencoderDiscriminator(Discriminator):
         """
         self.output_dim = autoencoder.output_dim
         self.output_dim_2 = 1 if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim_2
-        input_dim = autoencoder.input_dim
+        input_dim = input_dim - autoencoder.input_dim + self.output_dim*self.output_dim_2
         super(AutoencoderDiscriminator, self).__init__(input_dim, **kwargs)
         self.autoencoder = autoencoder
         self.encode = True
