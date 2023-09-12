@@ -211,13 +211,4 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.argv = [
-        "path_dataset=data/ganTrialElectrodeERP_p50_e8_len100.csv",
-        "path_autoencoder=trained_ae/ae_ganTrialElectrodeERP_p50_e8_len100.pt",
-        "load_checkpoint",
-        "path_checkpoint=trained_models\gan_ddp_8000ep_tanh.pt",
-        "n_epochs=1",
-        "conditions=Condition",
-        "channel_label=Electrode",
-    ]
     main()
