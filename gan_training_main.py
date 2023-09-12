@@ -132,7 +132,7 @@ def main():
                                                  hidden_dim=opt['hidden_dim'])
     else:
         # initialize the autoencoder
-        seq_length=dataset.shape[1]
+        seq_length=dataset.shape[1]-opt['n_channels']
         ae_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))
         if ae_dict['configuration']['target'] == 'channels':
             autoencoder = TransformerAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
