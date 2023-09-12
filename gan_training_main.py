@@ -135,27 +135,17 @@ def main():
         seq_length=dataset.shape[1]-len(opt['conditions'])
         ae_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))
         if ae_dict['configuration']['target'] == 'channels':
-            autoencoder = TransformerAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
-                                        output_dim=ae_dict['configuration']['output_dim'],
-                                        target=TransformerAutoencoder.TARGET_CHANNELS,
-                                        hidden_dim=ae_dict['configuration']['hidden_dim'],
-                                        num_layers=ae_dict['configuration']['num_layers'],
-                                        num_heads=ae_dict['configuration']['num_heads'],).to(device)
+            ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
+            autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'time':
-            autoencoder = TransformerAutoencoder(input_dim=seq_length,
-                                        output_dim=ae_dict['configuration']['timeseries_out'],
-                                        target=TransformerAutoencoder.TARGET_TIMESERIES,
-                                        hidden_dim=ae_dict['configuration']['hidden_dim'],
-                                        num_layers=ae_dict['configuration']['num_layers'],
-                                        num_heads=ae_dict['configuration']['num_heads'], ).to(device)
+            ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
+            # switch values for output_dim and output_dim_2
+            ae_output_dim = ae_dict['configuration']['output_dim']
+            ae_dict['configuration']['output_dim'] = ae_dict['configuration']['output_dim_2']
+            ae_dict['configuration']['output_dim_2'] = ae_output_dim
+            autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'full':
-            autoencoder = TransformerDoubleAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
-                                                output_dim=ae_dict['configuration']['output_dim'],
-                                                sequence_length=seq_length,
-                                                output_dim_2=ae_dict['configuration']['output_dim_2'],
-                                                hidden_dim=ae_dict['configuration']['hidden_dim'],
-                                                num_layers=ae_dict['configuration']['num_layers'],
-                                                num_heads=ae_dict['configuration']['num_heads'],).to(device)
+            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=seq_length).to(device)
         else:
             raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
         consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
@@ -180,11 +170,11 @@ def main():
                                                  hidden_dim=opt['hidden_dim'],
                                                  activation=opt['activation'],)
 
-        if isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
+        if isinstance(generator, AutoencoderGenerator) and isinstance(discriminator, AutoencoderDiscriminator) and opt['input_sequence_length'] == 0:
             # if input_sequence_length is 0, do not decode the generator output during training
             generator.decode_output(False)
 
-        if isinstance(discriminator, AutoencoderDiscriminator) and opt['input_sequence_length'] == 0:
+        if isinstance(discriminator, AutoencoderDiscriminator) and isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
             # if input_sequence_length is 0, do not encode the discriminator input during training
             discriminator.encode_input(False)
 

@@ -277,9 +277,9 @@ class GANTrainer(Trainer):
 
                 if decode_imgs:
                     if not hasattr(self.generator, 'module'):
-                        gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim//self.generator.output_dim_2))
+                        gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim_1))
                     else:
-                        gen_samples = self.generator.module.autoencoder.decode(fake_data[:, :, :self.generator.module.output_dim].reshape(-1, self.generator.module.output_dim_2, self.generator.module.output_dim//self.generator.module.output_dim_2))
+                        gen_samples = self.generator.module.autoencoder.decode(fake_data[:, :, :self.generator.module.output_dim].reshape(-1, self.generator.module.output_dim_2, self.generator.module.output_dim_1))
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
                     if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
@@ -296,12 +296,12 @@ class GANTrainer(Trainer):
 
             if not hasattr(self.generator, 'module'):
                 #real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
-                real_data = self.generator.autoencoder.encode(data) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+                real_data = self.generator.autoencoder.encode(data).reshape(data.shape[0], 1, -1) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
             else:
                 #real_data = self.generator.module.autoencoder.encode(data).reshape(-1, 1, self.discriminator.module.output_dim*self.discriminator.module.output_dim_2) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
-                real_data = self.generator.module.autoencoder.encode(data) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
+                real_data = self.generator.module.autoencoder.encode(data).reshape(data.shape[0], 1, -1) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
 
-            real_data = torch.cat((real_data, disc_labels.repeat(1, real_data.shape[1], 1)), dim=-1).to(self.device)
+            real_data = self.make_fake_data(real_data, disc_labels)
 
         # Loss for real and generated samples
         validity_fake = self.discriminator(fake_data)

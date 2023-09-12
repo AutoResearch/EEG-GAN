@@ -89,10 +89,10 @@ def main():
 
         return test, train
 
-    # Determine input_dim, output_dim, and seq_length
-    input_dim = dataset.shape[-1]
-    seq_length = dataset.shape[1]
-    
+    # Determine n_channels, output_dim, and seq_length
+    opt['n_channels'] = dataset.shape[-1]
+    opt['sequence_length'] = dataset.shape[1]
+
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
     test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True)
@@ -133,30 +133,32 @@ def main():
     elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
         raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
     
-    #Add parameters to tracking
-    opt['input_dim'] = input_dim
-    opt["output_dim"] = opt['channels_out']
-    opt["output_dim_2"] = opt['timeseries_out']
+    # Add parameters for tracking
+    opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
+    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
+    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
     
     if opt['target'] == 'channels':
-        model = TransformerAutoencoder(input_dim=opt['input_dim'],
-                                       output_dim=opt['output_dim'],
+        model = TransformerAutoencoder(input_dim=opt['n_channels'],
+                                       output_dim=opt['channels_out'],
+                                       output_dim_2=opt['sequence_length'],
                                        target=TransformerAutoencoder.TARGET_CHANNELS,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],).to(opt['device'])
     elif opt['target'] == 'time':
-        model = TransformerAutoencoder(input_dim=seq_length,
+        model = TransformerAutoencoder(input_dim=opt['sequence_length'],
                                        output_dim=opt['timeseries_out'],
+                                       output_dim_2=opt['n_channels'],
                                        target=TransformerAutoencoder.TARGET_TIMESERIES,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
-                                       num_heads=opt['num_heads'], ).to(opt['device'])
+                                       num_heads=opt['num_heads'],).to(opt['device'])
     elif opt['target'] == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=opt['input_dim'],
+        model = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
                                              output_dim=opt['output_dim'],
-                                             sequence_length=seq_length ,
                                              output_dim_2=opt['output_dim_2'],
+                                             sequence_length=opt['sequence_length'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],).to(opt['device'])
