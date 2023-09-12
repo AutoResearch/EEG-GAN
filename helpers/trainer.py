@@ -445,6 +445,7 @@ class AETrainer(Trainer):
             'n_epochs': self.epochs,
             'sample_interval': self.sample_interval,
             'learning_rate': self.learning_rate,
+            'hidden_dim': opt['hidden_dim'],
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
             'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
             'timeseries_out': opt['timeseries_out'] if 'timeseries_out' in opt else None,

@@ -46,7 +46,6 @@ def main():
         'num_layers': default_args['num_layers'],
         'activation': default_args['activation'],
         'learning_rate': default_args['learning_rate'],
-        'hidden_dim': default_args['hidden_dim'],
         'num_heads': default_args['num_heads'],
         'num_layers': default_args['num_layers'],
         'ddp': default_args['ddp'],
