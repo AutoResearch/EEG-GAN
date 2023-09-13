@@ -93,8 +93,9 @@ def main():
         generator.eval()
     else:
         # load autoencoder
-        seq_length=dataset.shape[1]-len(condition)
         ae_dict = torch.load(state_dict['configuration']['path_autoencoder'], map_location=torch.device('cpu'))
+        seq_length=sequence_length
+
         # initialize the autoencoder
         if ae_dict['configuration']['target'] == 'channels':
             ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
