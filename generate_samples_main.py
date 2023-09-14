@@ -94,26 +94,42 @@ def main():
     else:
         # load autoencoder
         ae_dict = torch.load(state_dict['configuration']['path_autoencoder'], map_location=torch.device('cpu'))
-        seq_length=sequence_length
-
-        # initialize the autoencoder
+        # if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
+        #     autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
+        # elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
+        #     autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'],
+        #                                                sequence_length=sequence_length)
+        # elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
+        #     autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'],
+        #                                                 sequence_length=sequence_length)
+        # else:
+        #     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
         if ae_dict['configuration']['target'] == 'channels':
-            ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
-            autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
+            autoencoder = TransformerAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
+                                           output_dim=ae_dict['configuration']['channels_out'],
+                                           output_dim_2=sequence_length,
+                                           target=TransformerAutoencoder.TARGET_CHANNELS,
+                                           hidden_dim=ae_dict['configuration']['hidden_dim'],
+                                           num_layers=ae_dict['configuration']['num_layers'],
+                                           num_heads=ae_dict['configuration']['num_heads'],).to(device)
         elif ae_dict['configuration']['target'] == 'time':
-            ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
-            # switch values for output_dim and output_dim_2
-            ae_output_dim = ae_dict['configuration']['output_dim']
-            ae_dict['configuration']['output_dim'] = ae_dict['configuration']['output_dim_2']
-            ae_dict['configuration']['output_dim_2'] = ae_output_dim
-            autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
+            autoencoder = TransformerAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
+                                           output_dim=ae_dict['configuration']['timeseries_out'],
+                                           output_dim_2=n_channels,
+                                           target=TransformerAutoencoder.TARGET_TIMESERIES,
+                                           hidden_dim=ae_dict['configuration']['hidden_dim'],
+                                           num_layers=ae_dict['configuration']['num_layers'],
+                                           num_heads=ae_dict['configuration']['num_heads'],).to(device)
         elif ae_dict['configuration']['target'] == 'full':
-            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=seq_length).to(device)
-        else:
-            raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+            autoencoder = TransformerDoubleAutoencoder(input_dim=n_channels,
+                                                 output_dim=ae_dict['configuration']['output_dim'],
+                                                 output_dim_2=ae_dict['configuration']['output_dim_2'],
+                                                 sequence_length=sequence_length,
+                                                 hidden_dim=ae_dict['configuration']['hidden_dim'],
+                                                 num_layers=ae_dict['configuration']['num_layers'],
+                                                 num_heads=ae_dict['configuration']['num_heads'],).to(device)
         consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
         autoencoder.load_state_dict(ae_dict['model'])
-        
         # freeze the autoencoder
         for param in autoencoder.parameters():
             param.requires_grad = False
