@@ -45,24 +45,29 @@ class Autoencoder(nn.Module):
         encoder_block = []
         encoder_block.append(nn.Linear(input_dim, hidden_dim))
         encoder_block.append(nn.Dropout(dropout))
-        encoder_block.append(self.activation)
+        # encoder_block.append(self.activation)
+        encoder_block.append(nn.Tanh())
         for i in range(num_layers):
             encoder_block.append(nn.Linear(hidden_dim, hidden_dim))
             encoder_block.append(nn.Dropout(dropout))
-            encoder_block.append(self.activation)
+            # encoder_block.append(self.activation)
+            encoder_block.append(nn.Tanh())
         encoder_block.append(nn.Linear(hidden_dim, output_dim))
-        encoder_block.append(self.activation)
+        # encoder_block.append(self.activation)
+        encoder_block.append(nn.Tanh())
         self.encoder = nn.Sequential(*encoder_block)
 
         # decoder block of linear layers constructed in a loop and passed to a sequential container
         decoder_block = []
         decoder_block.append(nn.Linear(output_dim, hidden_dim))
         decoder_block.append(nn.Dropout(dropout))
-        decoder_block.append(self.activation)
+        # decoder_block.append(self.activation)
+        decoder_block.append(nn.Tanh())
         for i in range(num_layers):
             decoder_block.append(nn.Linear(hidden_dim, hidden_dim))
             decoder_block.append(nn.Dropout(dropout))
-            decoder_block.append(self.activation)
+            # decoder_block.append(self.activation)
+            decoder_block.append(nn.Tanh())
         decoder_block.append(nn.Linear(hidden_dim, input_dim))
         decoder_block.append(self.activation)
         self.decoder = nn.Sequential(*decoder_block)
@@ -96,6 +101,7 @@ class TransformerAutoencoder(Autoencoder):
 
         self.num_heads = num_heads
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tanh = nn.Tanh()
 
         # self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
         self.linear_enc_in = nn.Linear(input_dim, hidden_dim)
@@ -121,7 +127,8 @@ class TransformerAutoencoder(Autoencoder):
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
-        x = self.activation(x)
+        # x = self.activation(x)
+        x = self.tanh(x)
         if self.target == self.TARGET_TIMESERIES:
             x = x.permute(0, 2, 1)
         return x
@@ -151,6 +158,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
 
         self.sequence_length = sequence_length
         self.num_heads = num_heads
+        self.tanh = nn.Tanh()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -193,14 +201,14 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
-        x = self.activation(x)
+        x = self.tanh(x)
 
         # encoder sequence
         # x = self.pe_enc_seq(x.permute(0, 2, 1))
         x = self.linear_enc_in_seq(x.permute(0, 2, 1))
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
-        x = self.activation(x)
+        x = self.tanh(x)
         return x.permute(0, 2, 1)
 
     def decode(self, encoded):
