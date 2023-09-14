@@ -40,11 +40,13 @@ class Generator(nn.Module):
 
         modulelist = nn.ModuleList()
         modulelist.append(nn.Linear(latent_dim, hidden_dim))
-        modulelist.append(self.act_out)
+        #modulelist.append(self.act_out)
+        modulelist.append(nn.Tanh())
         modulelist.append(nn.Dropout(dropout))
         for _ in range(num_layers):
             modulelist.append(nn.Linear(hidden_dim, hidden_dim))
-            modulelist.append(self.act_out)
+            #modulelist.append(self.act_out)
+            modulelist.append(nn.Tanh())
             modulelist.append(nn.Dropout(dropout))
         modulelist.append(nn.Linear(hidden_dim, output_dim))
         modulelist.append(self.act_out)
@@ -73,7 +75,7 @@ class Discriminator(nn.Module):
 
         self.linear_in = nn.Linear(input_dim, hidden_dim)
         self.linear_out = nn.Linear(hidden_dim, 1)
-        if activation == 'relu':
+        """if activation == 'relu':
             self.act_out = nn.ReLU()
         elif activation == 'sigmoid':
             self.act_out = nn.Sigmoid()
@@ -84,14 +86,16 @@ class Discriminator(nn.Module):
         else:
             self.act_out = nn.Identity()
             warnings.warn(f"Activation function of type '{activation}' was recognized. Setting activation function to 'linear'.")
-
+        """
         modulelist = nn.ModuleList()
         modulelist.append(nn.Linear(input_dim, hidden_dim))
-        modulelist.append(self.act_out)
+        #modulelist.append(self.act_out)
+        modulelist.append(nn.Tanh())
         modulelist.append(nn.Dropout(dropout))
         for _ in range(num_layers):
             modulelist.append(nn.Linear(hidden_dim, hidden_dim))
-            modulelist.append(self.act_out)
+            #modulelist.append(self.act_out)
+            modulelist.append(nn.Tanh())
             modulelist.append(nn.Dropout(dropout))
         modulelist.append(nn.Linear(hidden_dim, 1))
 
@@ -108,33 +112,12 @@ class AutoencoderGenerator(Generator):
         """
         :param autoencoder: Autoencoder model; Decoder takes in array and decodes into multidimensional array of shape (batch, sequence_length, channels)
         """
-        # check if output_dim_2 is attribute of autoencoder
-        # if hasattr(autoencoder, 'TARGET_CHANNELS') and autoencoder.target == autoencoder.TARGET_CHANNELS:
-        #     # if autoencoder is a channel autoencoder,
-        #     # output_dim is the number of encoded channels
-        #     # output_dim_2 is 1
-        #     self.output_dim = autoencoder.output_dim
-        #     self.output_dim_2 = 1
-        # elif hasattr(autoencoder, 'TARGET_TIMESERIES') and autoencoder.target == autoencoder.TARGET_TIMESERIES:
-        #     # if autoencoder is a time autoencoder,
-        #     # output_dim is the number of channels of the input
-        #     # output_dim_2 is the number of encoded timesteps
-        #     self.output_dim = 1
-        #     self.output_dim_2 = autoencoder.output_dim
-        # elif hasattr(autoencoder, 'output_dim_2'):
-        #     # autoencoder encodes both dimensions
-        #     self.output_dim = autoencoder.output_dim
-        #     self.output_dim_2 = autoencoder.output_dim_2
-        # else:
-        #     raise ValueError(
-        #         "Autoencoder must have attribute 'output_dim_2' or 'TARGET_CHANNELS' or 'TARGET_TIMESERIES'\n('autoencoder_training_main.py .. target={full,channels,time}', respectively)")
-        # super(AutoencoderGenerator, self).__init__(latent_dim, self.output_dim*self.output_dim_2, **kwargs)
-        super(AutoencoderGenerator, self).__init__(latent_dim, autoencoder.output_dim*autoencoder.output_dim_2, **kwargs)
-        self.autoencoder = autoencoder
-        self.decode = True
         self.output_dim_1 = autoencoder.output_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
         self.output_dim_2 = autoencoder.output_dim_2 if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
-
+        self.autoencoder = autoencoder
+        super(AutoencoderGenerator, self).__init__(latent_dim, self.output_dim_1*self.output_dim_2, **kwargs)
+        self.decode = True
+        
     def forward(self, z):
         """
         :param z: input array of shape (batch, latent_dim)
@@ -156,26 +139,6 @@ class AutoencoderDiscriminator(Discriminator):
         """
         :param autoencoder: Autoencoder model; Encoder takes in multidimensional array of shape (batch, sequence_length, channels) and encodes into array
         """
-        # if hasattr(autoencoder, 'TARGET_CHANNELS') and autoencoder.target == autoencoder.TARGET_CHANNELS:
-        #     # if autoencoder is a channel autoencoder,
-        #     # output_dim is the number of encoded channels
-        #     # output_dim_2 is 1
-        #     self.output_dim = autoencoder.output_dim
-        #     self.output_dim_2 = 1
-        #     input_dim = input_dim - autoencoder.input_dim + self.output_dim*self.output_dim_2
-        # elif hasattr(autoencoder, 'TARGET_TIMESERIES') and autoencoder.target == autoencoder.TARGET_TIMESERIES:
-        #     # if autoencoder is a time autoencoder,
-        #     # output_dim is the number of channels of the input
-        #     # output_dim_2 is the number of encoded timesteps
-        #     self.output_dim_2 = autoencoder.output_dim
-        #     input_dim += self.output_dim_2
-        # elif hasattr(autoencoder, 'output_dim_2'):
-        #     # autoencoder encodes both dimensions
-        #     self.output_dim = autoencoder.output_dim
-        #     self.output_dim_2 = autoencoder.output_dim_2
-        #     input_dim = input_dim - autoencoder.input_dim + self.output_dim * self.output_dim_2
-        # else:
-        #     raise ValueError("Autoencoder must have attribute 'output_dim_2' or 'TARGET_CHANNELS' or 'TARGET_TIMESERIES'\n('autoencoder_training_main.py .. target={full,channels,time}', respectively)")
         n_channels = autoencoder.input_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
         input_dim = input_dim - n_channels + autoencoder.output_dim*autoencoder.output_dim_2
         super(AutoencoderDiscriminator, self).__init__(input_dim, **kwargs)
