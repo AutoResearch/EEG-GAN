@@ -61,8 +61,6 @@ def main():
     sequence_length = state_dict['configuration']['sequence_length']
     input_sequence_length = state_dict['configuration']['input_sequence_length']
 
-    assert n_conditions == len(condition), f"Number of conditions in model ({n_conditions}) does not match number of conditions given ({len(condition)})."
-
     if input_sequence_length != 0 and input_sequence_length != sequence_length:
         raise NotImplementedError(f"Prediction case detected.\nInput sequence length ({input_sequence_length}) > 0 and != sequence length ({sequence_length}).\nPrediction is not implemented yet.")
 
@@ -142,28 +140,14 @@ def main():
             except ValueError:
                 raise ValueError(f"Condition {x} is not numeric.")
 
-    # create condition labels if conditions are given but differ from number of conditions in model
-    if n_conditions != len(condition):
-        if n_conditions > len(condition) and len(condition) == 1 and condition[0] == -1:
-            # if only one condition is given and it is -1, then all conditions are set to -1
-            condition = condition * n_conditions
-        else:
-            raise ValueError(
-                f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
-
+    #If -1 is used, determine labels from data via samples
+    if len(condition) == 1 and condition[0] == -1:
+        condition = list(np.unique(np.array([sample[:n_conditions] for sample in state_dict['samples']])))
+            
+    assert num_samples_parallel%len(condition)==0, f"parameter num_samples_parallel ({num_samples_parallel}) must be divisible by number of conditions provided ({condition})"
+            
     seq_len = max(1, input_sequence_length)
-    cond_labels = torch.zeros((num_samples_parallel, seq_len, n_conditions)).to(device) + torch.tensor(condition).to(device)
-    cond_labels = cond_labels.to(device)
-
-    # JOSHUA
-    '''
-    for n in range(num_samples_parallel):
-        for i, x in enumerate(condition):
-            if x == -1:
-                # random condition (works currently only for binary conditions)
-                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
-                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
-     '''
+    cond_labels = torch.tensor(condition*(int(num_samples_parallel/2))).reshape(-1,seq_len,n_conditions).to(device)
 
     # generate samples
     num_sequences = num_samples_total // num_samples_parallel
