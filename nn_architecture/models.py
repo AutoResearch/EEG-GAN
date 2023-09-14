@@ -114,8 +114,8 @@ class AutoencoderGenerator(Generator):
         """
         self.output_dim_1 = autoencoder.output_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
         self.output_dim_2 = autoencoder.output_dim_2 if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
-        self.autoencoder = autoencoder
         super(AutoencoderGenerator, self).__init__(latent_dim, self.output_dim_1*self.output_dim_2, **kwargs)
+        self.autoencoder = autoencoder
         self.decode = True
         
     def forward(self, z):
