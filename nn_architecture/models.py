@@ -8,7 +8,7 @@ from nn_architecture.ae_networks import Autoencoder
 
 # insert here all different kinds of generators and discriminators
 class Generator(nn.Module):
-    def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=4, dropout=.1, activation='relu', **kwargs):
+    def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=4, dropout=.1, activation='tanh', **kwargs):
         """
         :param latent_dim: latent dimension
         :param output_dim: output dimension
@@ -25,6 +25,7 @@ class Generator(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
         self.num_layers = num_layers
+        self.dropout = dropout
         if activation == 'relu':
             self.act_out = nn.ReLU()
         elif activation == 'sigmoid':
@@ -33,20 +34,20 @@ class Generator(nn.Module):
             self.act_out = nn.Tanh()
         elif activation == 'leakyrelu':
             self.act_out = nn.LeakyReLU()
+        elif activation == 'linear':
+            self.act_out = nn.Identity()
         else:
             self.act_out = nn.Identity()
             warnings.warn(
-                f"Activation function of type '{activation}' was recognized. Setting activation function to 'linear'.")
+                f"Activation function of type '{activation}' was not recognized. Activation function was set to 'linear'.")
 
         modulelist = nn.ModuleList()
         modulelist.append(nn.Linear(latent_dim, hidden_dim))
-        #modulelist.append(self.act_out)
-        modulelist.append(nn.Tanh())
+        modulelist.append(nn.LeakyReLU(0.1))
         modulelist.append(nn.Dropout(dropout))
         for _ in range(num_layers):
             modulelist.append(nn.Linear(hidden_dim, hidden_dim))
-            #modulelist.append(self.act_out)
-            modulelist.append(nn.Tanh())
+            modulelist.append(nn.LeakyReLU(0.1))
             modulelist.append(nn.Dropout(dropout))
         modulelist.append(nn.Linear(hidden_dim, output_dim))
         modulelist.append(self.act_out)
@@ -70,32 +71,19 @@ class Discriminator(nn.Module):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
+        self.dropout = dropout
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.linear_in = nn.Linear(input_dim, hidden_dim)
         self.linear_out = nn.Linear(hidden_dim, 1)
-        """if activation == 'relu':
-            self.act_out = nn.ReLU()
-        elif activation == 'sigmoid':
-            self.act_out = nn.Sigmoid()
-        elif activation == 'tanh':
-            self.act_out = nn.Tanh()
-        elif activation == 'leakyrelu':
-            self.act_out = nn.LeakyReLU()
-        else:
-            self.act_out = nn.Identity()
-            warnings.warn(f"Activation function of type '{activation}' was recognized. Setting activation function to 'linear'.")
-        """
         modulelist = nn.ModuleList()
         modulelist.append(nn.Linear(input_dim, hidden_dim))
-        #modulelist.append(self.act_out)
-        modulelist.append(nn.Tanh())
+        modulelist.append(nn.LeakyReLU(0.1))
         modulelist.append(nn.Dropout(dropout))
         for _ in range(num_layers):
             modulelist.append(nn.Linear(hidden_dim, hidden_dim))
-            #modulelist.append(self.act_out)
-            modulelist.append(nn.Tanh())
+            modulelist.append(nn.LeakyReLU(0.1))
             modulelist.append(nn.Dropout(dropout))
         modulelist.append(nn.Linear(hidden_dim, 1))
 
