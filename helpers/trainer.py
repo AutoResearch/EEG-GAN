@@ -253,8 +253,6 @@ class GANTrainer(Trainer):
 
         # Create a batch of generated samples
         with torch.no_grad():
-            self.discriminator_optimizer.zero_grad()
-
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
             z = torch.cat((gen_labels, z), dim=-1).to(self.device)
@@ -311,6 +309,7 @@ class GANTrainer(Trainer):
             d_loss = self.loss.discriminator(validity_real, validity_fake, self.discriminator, real_data, fake_data)
         else:
             d_loss = self.loss.discriminator(validity_real, validity_fake)
+        self.discriminator_optimizer.zero_grad()
         d_loss.backward()
         self.discriminator_optimizer.step()
 
