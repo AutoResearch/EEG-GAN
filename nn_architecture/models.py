@@ -154,167 +154,22 @@ class AutoencoderDiscriminator(Discriminator):
         self.encode = mode
 
 
-class CondLstmDiscriminator(nn.Module):
-    """Conditional LSTM Discriminator"""
+class AutoencoderTransformerGenerator(AutoencoderGenerator):
 
-    def __init__(self, hidden_size=128, num_layers=1):
-        super(CondLstmDiscriminator, self).__init__()
-
-        self.lstm1 = nn.LSTM(2, hidden_size, num_layers=num_layers, batch_first=True, dropout=0.3)
-        self.linear = nn.Linear(hidden_size, 1)
-
-    def forward(self, data, labels):
+    def __init__(self, latent_dim, autoencoder: Autoencoder, **kwargs):
         """
-            Dimensions before processing:
-            data: (batch_size, sequence_length)
-            labels: (?batch_size?, sequence_length, 1)
-
-            Dimensions after processing:
-            data: (batch_size, sequence_length, 1 (channels))
-            labels: (batch_size, sequence_length, 1)
+        Autoencoder transformer generator
         """
+        super(AutoencoderTransformerGenerator, self).__init__(latent_dim, autoencoder, **kwargs)
 
-        if labels is not None:
-            # Concatenate label and image to produce input
-            d_in = data.view(data.shape[0], data.shape[1], 1)
-            labels = labels.repeat(1, d_in.shape[1]).unsqueeze(-1)
-            y = torch.concat((d_in, labels), 2)
-        else:
-            # check for correct dimensions of data
-            if len(data.shape) < 3:
-                raise ValueError("Data must have 3 dimensions (Batch, Sequence, Channels)"
-                                 "Got {} dimensions.".format(len(data.shape)))
-            if data.shape[2] != 2:
-                raise ValueError("Data must have 2 channels. "
-                                 "The first channel is the data, the second channel is the label")
-            y = data
-
-        y = self.lstm1(y)[0][:, -1]
-        y = self.linear(y)
-
-        return y
-
-
-class CondLstmGenerator(nn.Module):
-    """Conditional LSTM generator"""
-
-    def __init__(self, hidden_size=128, latent_dim=10, num_layers=1):
-        super(CondLstmGenerator, self).__init__()
-
-        self.latent_dim = latent_dim
-        self.lstm1 = nn.LSTM(latent_dim + 1, hidden_size, num_layers=num_layers, batch_first=True, dropout=0.3)
-        self.linear = nn.Linear(hidden_size, 1)
-        self.act_function = nn.Tanh()
-
-    def forward(self, latent_var, labels):
-        """
-        Dimensions before processing:
-        latent_var: (batch_size, latent_dim)
-        labels: (batch_size, channels)
-
-        Dimensions after processing:
-        latent_var: (batch_size, 1 (channels), latent_dim + len(labels) (sequence length))
-        """
-
-        # Data processing: Concatenate latent variable and labels
-        # Concatenate latent_var and labels_encoded to a tensor T with a channel-depth of 2
-        labels = labels.unsqueeze(-1).repeat(1, latent_var.shape[1], 1)
-        y = torch.concat((labels, latent_var), dim=-1)
-
-        y = self.lstm1(y)[0]
-        y = self.linear(y).squeeze(-1)
-        y = self.act_function(y)
-
-        return y
-
-
-class CnnGenerator(nn.Module):
-    """Convolutional generator"""
-
-    def __init__(self, hidden_size=128, latent_dim=16, variables_out=7):
-        super(CnnGenerator, self).__init__()
-
-        self.conv1 = nn.Conv1d(1, hidden_size, kernel_size=(4,), bias=False)
-        self.conv2 = nn.Conv1d(hidden_size, int(hidden_size / 2), kernel_size=(4,), bias=False)
-        self.conv3 = nn.Conv1d(int(hidden_size / 2), variables_out, kernel_size=(4,), bias=False)
-        self.conv_out = nn.Conv1d(variables_out, variables_out, kernel_size=(1,), bias=True)
-        # self.linear = nn.Linear(int(hidden_size/2), 1)
-        self.sigmoid = nn.Sigmoid()
-        self.batchnorm1 = nn.BatchNorm1d(hidden_size)
-        self.batchnorm2 = nn.BatchNorm1d(hidden_size)
-        self.batchnorm3 = nn.BatchNorm1d(int(hidden_size / 2))
-        self.batchnorm4 = nn.BatchNorm1d(variables_out)
-        self.relu = nn.LeakyReLU()
-        self.maxpool = nn.MaxPool1d(kernel_size=(variables_out,))
-
-    def forward(self, latent_var, labels=None):
-        """
-            Dimensions before processing:
-            data: (batch_size, sequence_length)
-            labels: (?batch_size?, sequence_length, 1)
-
-            Dimensions after processing:
-            data: (batch_size, sequence_length, 1 (channels))
-            labels: (batch_size, sequence_length, 1)
-        """
-
-        # Data processing: Concatenate latent variable and labels
-        latent_var = latent_var.unsqueeze(1)
-
-        y = self.relu(self.batchnorm2(self.conv1(latent_var)))
-        y = self.relu(self.batchnorm3(self.conv2(y)))
-        y = self.relu(self.batchnorm4(self.conv3(y)))
-        y = self.maxpool(self.conv_out(y)).squeeze(-1)
-        y = self.sigmoid(y) * 2
-        return y
-
-
-class RCDiscriminator(nn.Module):
-    """Recurrent convolutional discriminator for conditional GAN"""
-
-    def __init__(self, hidden_size=128, latent_dim=16):
-        super(RCDiscriminator, self).__init__()
-
-        self.lstm_in = nn.LSTM(1, latent_dim, num_layers=3)
-
-        self.conv1 = nn.Conv1d(1, hidden_size, kernel_size=(4,))
-        self.conv2 = nn.Conv1d(hidden_size, hidden_size, kernel_size=(4,))
-        self.conv3 = nn.Conv1d(hidden_size, int(hidden_size / 2), kernel_size=(4,))
-        self.conv_out = nn.Conv1d(int(hidden_size / 2), 1, kernel_size=(4,))
-
-        self.batchnorm1 = nn.BatchNorm1d(hidden_size)
-        self.batchnorm2 = nn.BatchNorm1d(hidden_size)
-        self.batchnorm3 = nn.BatchNorm1d(int(hidden_size / 2))
-        self.relu = nn.LeakyReLU()
-        self.maxpool = nn.MaxPool1d(kernel_size=(5,))
-
-    def forward(self, data, labels):
-        """
-            Dimensions before processing:
-            data: (batch_size, sequence_length)
-            labels: (?batch_size?, sequence_length, 1)
-
-            Dimensions after processing:
-            data: (batch_size, sequence_length, 1 (channels))
-            labels: (batch_size, sequence_length, 1)
-        """
-
-        # Concatenate label and image to produce input
-        # d_in = torch.concat((data, labels), 1)
-        # d_in = d_in.unsqueeze(-1)
-        d_in = data.unsqueeze(-1)
-        y = self.relu(self.lstm_in(d_in)[0][:, -1, :])
-
-        # Concatenate label and extracted features
-        y = torch.concat((y, labels), dim=1)
-        y = y.unsqueeze(1)
-
-        y = self.relu(self.batchnorm1(self.conv1(y)))
-        y = self.relu(self.batchnorm2(self.conv2(y)))
-        y = self.relu(self.batchnorm3(self.conv3(y)))
-        y = self.maxpool(self.conv_out(y)).squeeze(-1).squeeze(-1)
-
-        return y
+        # create block of linear encoding, transformer encoder and linear decoding
+        self.linear_enc_in = nn.Linear(latent_dim, self.output_dim_1*self.output_dim_2)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.output_dim_2,
+                                                        nhead=num_heads,
+                                                        dim_feedforward=2048,
+                                                        dropout=dropout,
+                                                        batch_first=True)
+        self.linear_dec_out = nn.Linear(self.output_dim_2, self.output_dim_2)
 
 
 class PositionalEncoder(nn.Module):
@@ -439,6 +294,7 @@ class TransformerGenerator(nn.Module):
         mask_index = (data_ref.sum(dim=1) == mask).unsqueeze(1).repeat(1, data.shape[1], 1)
         data[mask_index] = mask
         return data
+
 
 class TransformerDiscriminator(nn.Module):
     def __init__(self, channels, n_classes=1, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):

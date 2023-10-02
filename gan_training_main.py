@@ -79,7 +79,7 @@ def main():
         'hidden_dim': default_args['hidden_dim'],  # Dimension of hidden layers in discriminator and generator
         'num_layers': default_args['num_layers'],
         'activation': default_args['activation'],
-        'latent_dim': 16,  # Dimension of the latent space
+        'latent_dim': 128,  # Dimension of the latent space
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
         'world_size': world_size,  # number of processes for distributed training
