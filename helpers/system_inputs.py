@@ -221,7 +221,7 @@ def default_inputs_training_gan():
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence (not implemented yet)', 0, 'Input sequence length: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
-        'hidden_dim': [int, 'Hidden dimension of the GAN components', 256, 'Hidden dimension: '],
+        'hidden_dim': [int, 'Hidden dimension of the GAN components', 16, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
         'patch_size': [int, 'Patch size of the divided sequence (only for TTS-GAN)', 20, 'Patch size: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],

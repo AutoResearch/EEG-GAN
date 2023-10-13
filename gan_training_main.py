@@ -99,11 +99,11 @@ def main():
     
     gan_architectures = {
         'FFGenerator': lambda latent_dim, channels, seq_len, hidden_dim, num_layers, dropout, activation, **kwargs: FFGenerator(latent_dim, channels, seq_len, hidden_dim, num_layers, dropout, activation),
-        'FFDiscriminator': lambda channels, hidden_dim, num_layers, dropout, **kwargs: FFDiscriminator(channels, hidden_dim, num_layers, dropout),
+        'FFDiscriminator': lambda channels, seq_len, hidden_dim, num_layers, dropout, **kwargs: FFDiscriminator(channels, seq_len, hidden_dim, num_layers, dropout),
         'TransformerGenerator': lambda latent_dim, channels, seq_len, hidden_dim, num_layers, num_heads, dropout, **kwargs: TransformerGenerator(latent_dim, channels, seq_len, hidden_dim, num_layers, num_heads, dropout),
-        'TransformerDiscriminator': lambda channels, hidden_dim, num_layers, num_heads, dropout, **kwargs: TransformerDiscriminator(channels, 1, hidden_dim, num_layers, num_heads, dropout),
-        'TTSGenerator': lambda seq_len, patch_size, channels, latent_dim, num_layers, num_heads, **kwargs: TTSGenerator(seq_len, patch_size, channels, 1, latent_dim, 10, num_layers, num_heads, 0.5, 0.5),
-        'TTSDiscriminator': lambda channels, patch_size, seq_len, num_layers, **kwargs: TTSDiscriminator(channels, patch_size, 50, seq_len, num_layers, 1),
+        'TransformerDiscriminator': lambda channels, seq_len, hidden_dim, num_layers, num_heads, dropout, **kwargs: TransformerDiscriminator(channels, seq_len, 1, hidden_dim, num_layers, num_heads, dropout),
+        'TTSGenerator': lambda seq_len, hidden_dim, patch_size, channels, latent_dim, num_layers, num_heads, **kwargs: TTSGenerator(seq_len, patch_size, channels, 1, latent_dim, 10, num_layers, num_heads, 0.5, 0.5),
+        'TTSDiscriminator': lambda channels, hidden_dim, patch_size, seq_len, num_layers, **kwargs: TTSDiscriminator(channels, patch_size, 50, seq_len, num_layers, 1),
     }
 
     dataloader = Dataloader(default_args['path_dataset'],
@@ -154,7 +154,7 @@ def main():
             activation=opt['activation'],
 
             # additional TransformerGenerator inputs: num_heads
-            num_heads=8,
+            num_heads=4,
 
             # additional TTSGenerator inputs: patch_size
             patch_size=opt['patch_size'],
@@ -166,13 +166,13 @@ def main():
             hidden_dim=opt['hidden_dim'],
             num_layers=opt['num_layers'],
             dropout=0.1,
+            seq_len=sequence_length_generated,
 
             # TransformerDiscriminator inputs: channels, n_classes, hidden_dim, num_layers, num_heads, dropout
-            num_heads=8,
+            num_heads=4,
 
             # additional TTSDiscriminator inputs: patch_size
             patch_size=opt['patch_size'],
-            seq_len=sequence_length_generated,
         )
     else:
         # initialize an autoencoder-GAN
@@ -225,7 +225,7 @@ def main():
                 activation=opt['activation'],
 
                 # TransformerGenerator inputs: latent_dim, channels, seq_len, hidden_dim, num_layers, num_heads, dropout
-                num_heads=8,
+                num_heads=4,
 
                 # additional TTSGenerator inputs: patch_size
                 patch_size=opt['patch_size'],
@@ -240,13 +240,13 @@ def main():
                 hidden_dim=opt['hidden_dim'],
                 num_layers=opt['num_layers'],
                 dropout=0.1,
+                seq_len=sequence_length_generated,
 
                 # additional TransformerDiscriminator inputs: num_heads
-                num_heads=8,
+                num_heads=4,
 
                 # additional TTSDiscriminator inputs: patch_size
                 patch_size=opt['patch_size'],
-                seq_len=sequence_length_generated,
             ),
             encoder=autoencoder
         )

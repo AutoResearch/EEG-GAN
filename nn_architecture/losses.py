@@ -45,9 +45,15 @@ class WassersteinLoss(Loss):
                           "Please use WassersteinGradientPenaltyLoss if possible.")
 
     def discriminator(self, real, fake):
+        # real and fake are the discriminator scores for real and fake samples;
+        # the higher the score, the more realistic the sample looks to the discriminator
+        # since the discriminator has to maximize its score for real samples and minimize it for fake samples,
+        # the discriminator loss is the negative mean of the real and positive mean of the fake scores
         return -torch.mean(real) + torch.mean(fake)
 
     def generator(self, fake):
+        # the generator has to maximize the discriminator score for fake samples,
+        # so the generator loss is the negative mean of the fake scores
         return -torch.mean(fake)
 
 

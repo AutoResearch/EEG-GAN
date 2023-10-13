@@ -77,7 +77,7 @@ class FFGenerator(Generator):
 
 
 class FFDiscriminator(Discriminator):
-    def __init__(self, channels, hidden_dim=256, num_layers=4, dropout=.1, **kwargs):
+    def __init__(self, channels, seq_len, hidden_dim=256, num_layers=4, dropout=.1, **kwargs):
         """
         :param channels: input dimension
         :param hidden_dim: hidden dimension
@@ -90,13 +90,12 @@ class FFDiscriminator(Discriminator):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.dropout = dropout
+        self.seq_len = seq_len
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.linear_in = nn.Linear(channels, hidden_dim)
-        self.linear_out = nn.Linear(hidden_dim, 1)
         modulelist = nn.ModuleList()
-        modulelist.append(nn.Linear(channels, hidden_dim))
+        modulelist.append(nn.Linear(channels * seq_len, hidden_dim))
         modulelist.append(nn.LeakyReLU(0.1))
         modulelist.append(nn.Dropout(dropout))
         for _ in range(num_layers):
@@ -108,7 +107,7 @@ class FFDiscriminator(Discriminator):
         self.block = nn.Sequential(*modulelist)
 
     def forward(self, x):
-        return self.block(x)
+        return self.block(x.reshape(-1, 1, self.seq_len * self.channels))
 
 
 class AutoencoderGenerator(FFGenerator):
@@ -237,7 +236,7 @@ class PositionalEncoder(nn.Module):
 
 
 class TransformerGenerator(Generator):
-    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):
+    def __init__(self, latent_dim, channels, seq_len, hidden_dim=8, num_layers=2, num_heads=4, dropout=.1, **kwargs):
         super(TransformerGenerator, self).__init__()
 
         self.latent_dim = latent_dim
@@ -250,16 +249,16 @@ class TransformerGenerator(Generator):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
-        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
+        self.linear_enc_in = nn.Linear(latent_dim, hidden_dim*seq_len)
         # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim,
                                                         nhead=num_heads,
-                                                        dim_feedforward=hidden_dim*4,
+                                                        dim_feedforward=hidden_dim,
                                                         dropout=dropout,
                                                         batch_first=True,
                                                         )
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
+        self.linear_enc_out = nn.Linear(hidden_dim, channels)
         self.act_out = nn.Tanh()
 
         # self.deconv = nn.Sequential(
@@ -280,9 +279,9 @@ class TransformerGenerator(Generator):
 
     def forward(self, data):
         # x = self.pe(data)
-        x = self.linear_enc_in(data)  # [0] --> only for lstm
+        x = self.linear_enc_in(data).reshape(-1, self.seq_len, self.hidden_dim)  # [0] --> only for lstm
         x = self.encoder(x)
-        x = self.act_out(self.linear_enc_out(x)[:, -1]).reshape(-1, self.seq_len, self.channels)
+        x = self.act_out(self.linear_enc_out(x))
         # x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
         # output = self.deconv(x.permute(0, 3, 1, 2))
         # output = output.view(-1, self.channels, H, W)
@@ -300,15 +299,15 @@ class TransformerGenerator(Generator):
 
 
 class TransformerDiscriminator(Discriminator):
-    def __init__(self, channels, n_classes=1, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):
+    def __init__(self, channels, seq_len, n_classes=1, hidden_dim=8, num_layers=2, num_heads=4, dropout=.1, **kwargs):
         super(TransformerDiscriminator, self).__init__()
 
         self.hidden_dim = hidden_dim
         self.channels = channels
         self.n_classes = n_classes
-        self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.num_layers = num_layers
+        self.seq_len = seq_len
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -316,12 +315,12 @@ class TransformerDiscriminator(Discriminator):
         self.linear_enc_in = nn.Linear(channels, hidden_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim,
                                                         nhead=num_heads,
-                                                        dim_feedforward=hidden_dim*4,
+                                                        dim_feedforward=hidden_dim,
                                                         dropout=dropout,
                                                         batch_first=True,
                                                         )
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.linear_enc_out = nn.Linear(hidden_dim, n_classes)
+        self.linear_enc_out = nn.Linear(hidden_dim*seq_len, n_classes)
         self.tanh = nn.Tanh()
 
         # self.decoder = decoder if decoder is not None else nn.Identity()
@@ -331,8 +330,8 @@ class TransformerDiscriminator(Discriminator):
     def forward(self, data):
         # x = self.pe(data)
         x = self.linear_enc_in(data)
-        x = self.encoder(x)
-        x = self.linear_enc_out(x)[:, -1]  # .reshape(-1, self.channels)
+        x = self.encoder(x).reshape(-1, 1, self.seq_len*self.hidden_dim)
+        x = self.linear_enc_out(x)  # .reshape(-1, self.channels)
         # x = self.mask(x, data[:,:,self.latent_dim-self.channels:].diff(dim=1))
         # x = self.tanh(x)
         # x = self.decoder(x)
