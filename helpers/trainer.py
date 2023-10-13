@@ -7,7 +7,7 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 from nn_architecture import losses
 from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
-from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator
+from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator, DecoderGenerator, EncoderDiscriminator
 
 
 class Trainer:
@@ -173,10 +173,10 @@ class GANTrainer(Trainer):
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
 
-        if isinstance(self.discriminator, AutoencoderDiscriminator):
+        if isinstance(self.discriminator, EncoderDiscriminator):
             self.discriminator.encode_input()
 
-        if isinstance(self.generator, AutoencoderGenerator):
+        if isinstance(self.generator, DecoderGenerator):
             self.generator.decode_output()
 
         return gen_samples
@@ -197,13 +197,12 @@ class GANTrainer(Trainer):
             zero_index = np.random.randint(0, self.n_channels, np.max((1, int(self.n_channels*recovery))))
             gen_cond_data[:, :, zero_index] = 0
 
-        # if self.generator is instance of AutoencoderGenerator encode gen_cond_data to speed up training
-        if isinstance(self.generator, AutoencoderGenerator) and self.input_sequence_length != 0:
-            # pad gen_cond_data to match input sequence length of autoencoder
+        # if self.generator is instance of EncoderGenerator encode gen_cond_data to speed up training
+        if isinstance(self.generator, DecoderGenerator) and self.input_sequence_length != 0:
+            # pad gen_cond_data to match input sequence length of Encoder
             gen_cond_data_orig = gen_cond_data
             gen_cond_data = torch.cat((torch.zeros((batch_size, self.sequence_length - self.input_sequence_length, self.n_channels)).to(self.device), gen_cond_data), dim=1)
-            gen_cond_data = self.generator.autoencoder.encode(gen_cond_data)
-            gen_cond_data = gen_cond_data.reshape(-1, 1, gen_cond_data.shape[-1]*gen_cond_data.shape[-2])
+            gen_cond_data = self.generator.decoder.decode(gen_cond_data)
 
         seq_length = max(1, gen_cond_data.shape[1])
         gen_labels = torch.cat((gen_cond_data, data_labels.repeat(1, seq_length, 1).to(self.device)), dim=-1).to(self.device) if self.input_sequence_length != 0 else data_labels
@@ -268,15 +267,15 @@ class GANTrainer(Trainer):
             if self.trained_epochs % self.sample_interval == 0:
                 # decode gen_imgs if necessary - decoding only necessary if not prediction case or seq2seq case
                 if not hasattr(self.generator, 'module'):
-                    decode_imgs = isinstance(self.generator, AutoencoderGenerator) and not self.generator.decode
+                    decode_imgs = isinstance(self.generator, DecoderGenerator) and not self.generator.decode
                 else:
-                    decode_imgs = isinstance(self.generator.module, AutoencoderGenerator) and not self.generator.module.decode
+                    decode_imgs = isinstance(self.generator.module, DecoderGenerator) and not self.generator.module.decode
 
                 if decode_imgs:
                     if not hasattr(self.generator, 'module'):
-                        gen_samples = self.generator.autoencoder.decode(fake_data[:, :, :self.generator.output_dim].reshape(-1, self.generator.output_dim_2, self.generator.output_dim_1))
+                        gen_samples = self.generator.decoder.decode(fake_data[:, :, :self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels))
                     else:
-                        gen_samples = self.generator.module.autoencoder.decode(fake_data[:, :, :self.generator.module.output_dim].reshape(-1, self.generator.module.output_dim_2, self.generator.module.output_dim_1))
+                        gen_samples = self.generator.module.decoder.decode(fake_data[:, :, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels))
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
                     if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
@@ -292,11 +291,9 @@ class GANTrainer(Trainer):
                 gen_samples = None
 
             if not hasattr(self.generator, 'module'):
-                #real_data = self.generator.autoencoder.encode(data).reshape(-1, 1, self.discriminator.output_dim*self.discriminator.output_dim_2) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
-                real_data = self.generator.autoencoder.encode(data).reshape(data.shape[0], 1, -1) if isinstance(self.discriminator, AutoencoderDiscriminator) and not self.discriminator.encode else data
+                real_data = self.discriminator.encoder.encode(data) if isinstance(self.discriminator, EncoderDiscriminator) and not self.discriminator.encode else data
             else:
-                #real_data = self.generator.module.autoencoder.encode(data).reshape(-1, 1, self.discriminator.module.output_dim*self.discriminator.module.output_dim_2) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
-                real_data = self.generator.module.autoencoder.encode(data).reshape(data.shape[0], 1, -1) if isinstance(self.discriminator.module, AutoencoderDiscriminator) and not self.discriminator.module.encode else data
+                real_data = self.discriminator.module.encoder.encode(data)(data) if isinstance(self.discriminator.module, EncoderDiscriminator) and not self.discriminator.module.encode else data
 
             real_data = self.make_fake_data(real_data, disc_labels)
 
@@ -395,7 +392,7 @@ class GANTrainer(Trainer):
         :param data_labels: scalar labels/conditions for generated data of shape (batch_size, 1, n_conditions)
         :param condition_data: additional data for conditioning the generator of shape (batch_size, input_sequence_length, n_channels)
         """
-        # if input_sequence_length is available and self.generator is instance of AutoencoderGenerator
+        # if input_sequence_length is available and self.generator is instance of DecoderGenerator
         # decode gen_imgs, concatenate with gen_cond_data_orig and encode again to speed up training
         if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
             # prediction case

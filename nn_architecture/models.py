@@ -5,13 +5,30 @@ import torch
 from torch import nn, Tensor
 
 from nn_architecture.ae_networks import Autoencoder
+from nn_architecture.tts_gan_components import Generator as TTSGenerator_Org, Discriminator as TTSDiscriminator_Org
 
 # insert here all different kinds of generators and discriminators
 class Generator(nn.Module):
-    def __init__(self, latent_dim, output_dim, hidden_dim=256, num_layers=4, dropout=.1, activation='tanh', **kwargs):
+    def __init__(self):
+        super(Generator, self).__init__()
+
+    def forward(self, z):
+        raise NotImplementedError
+
+
+class Discriminator(nn.Module):
+    def __init__(self):
+        super(Discriminator, self).__init__()
+
+    def forward(self, z):
+        raise NotImplementedError
+
+
+class FFGenerator(Generator):
+    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=4, dropout=.1, activation='tanh', **kwargs):
         """
         :param latent_dim: latent dimension
-        :param output_dim: output dimension
+        :param channels: output dimension
         :param hidden_dim: hidden dimension
         :param num_layers: number of layers
         :param dropout: dropout rate
@@ -23,7 +40,8 @@ class Generator(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.latent_dim = latent_dim
         self.hidden_dim = hidden_dim
-        self.output_dim = output_dim
+        self.channels = channels
+        self.seq_len = seq_len
         self.num_layers = num_layers
         self.dropout = dropout
         if activation == 'relu':
@@ -49,36 +67,36 @@ class Generator(nn.Module):
             modulelist.append(nn.Linear(hidden_dim, hidden_dim))
             modulelist.append(nn.LeakyReLU(0.1))
             modulelist.append(nn.Dropout(dropout))
-        modulelist.append(nn.Linear(hidden_dim, output_dim))
+        modulelist.append(nn.Linear(hidden_dim, channels * seq_len))
         modulelist.append(self.act_out)
 
         self.block = nn.Sequential(*modulelist)
 
     def forward(self, z):
-        return self.block(z)
+        return self.block(z).reshape(-1, self.seq_len, self.channels)
 
 
-class Discriminator(nn.Module):
-    def __init__(self, input_dim, hidden_dim=256, num_layers=4, dropout=.1, activation='relu', **kwargs):
+class FFDiscriminator(Discriminator):
+    def __init__(self, channels, hidden_dim=256, num_layers=4, dropout=.1, **kwargs):
         """
-        :param input_dim: input dimension
+        :param channels: input dimension
         :param hidden_dim: hidden dimension
         :param num_layers: number of layers
         :param dropout: dropout rate
         """
         super(Discriminator, self).__init__()
 
-        self.input_dim = input_dim
+        self.channels = channels
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.dropout = dropout
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.linear_in = nn.Linear(input_dim, hidden_dim)
+        self.linear_in = nn.Linear(channels, hidden_dim)
         self.linear_out = nn.Linear(hidden_dim, 1)
         modulelist = nn.ModuleList()
-        modulelist.append(nn.Linear(input_dim, hidden_dim))
+        modulelist.append(nn.Linear(channels, hidden_dim))
         modulelist.append(nn.LeakyReLU(0.1))
         modulelist.append(nn.Dropout(dropout))
         for _ in range(num_layers):
@@ -93,7 +111,7 @@ class Discriminator(nn.Module):
         return self.block(x)
 
 
-class AutoencoderGenerator(Generator):
+class AutoencoderGenerator(FFGenerator):
     """Autoencoder generator"""
 
     def __init__(self, latent_dim, autoencoder: Autoencoder, **kwargs):
@@ -113,23 +131,23 @@ class AutoencoderGenerator(Generator):
         """
         x = super(AutoencoderGenerator, self).forward(z)
         if self.decode:
-            x = self.autoencoder.decode(x.reshape(-1, self.output_dim_2, self.output_dim//self.output_dim_2))
+            x = self.autoencoder.decode(x.reshape(-1, self.output_dim_2, self.channels // self.output_dim_2))
         return x
 
     def decode_output(self, mode=True):
         self.decode = mode
 
 
-class AutoencoderDiscriminator(Discriminator):
+class AutoencoderDiscriminator(FFDiscriminator):
     """Autoencoder discriminator"""
 
-    def __init__(self, input_dim, autoencoder: Autoencoder, **kwargs):
+    def __init__(self, channels, autoencoder: Autoencoder, **kwargs):
         """
         :param autoencoder: Autoencoder model; Encoder takes in multidimensional array of shape (batch, sequence_length, channels) and encodes into array
         """
         n_channels = autoencoder.input_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
-        input_dim = input_dim - n_channels + autoencoder.output_dim*autoencoder.output_dim_2
-        super(AutoencoderDiscriminator, self).__init__(input_dim, **kwargs)
+        channels = channels - n_channels + autoencoder.output_dim * autoencoder.output_dim_2
+        super(AutoencoderDiscriminator, self).__init__(channels, **kwargs)
         self.autoencoder = autoencoder
         self.encode = True
 
@@ -154,24 +172,6 @@ class AutoencoderDiscriminator(Discriminator):
         self.encode = mode
 
 
-class AutoencoderTransformerGenerator(AutoencoderGenerator):
-
-    def __init__(self, latent_dim, autoencoder: Autoencoder, **kwargs):
-        """
-        Autoencoder transformer generator
-        """
-        super(AutoencoderTransformerGenerator, self).__init__(latent_dim, autoencoder, **kwargs)
-
-        # create block of linear encoding, transformer encoder and linear decoding
-        self.linear_enc_in = nn.Linear(latent_dim, self.output_dim_1*self.output_dim_2)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.output_dim_2,
-                                                        nhead=num_heads,
-                                                        dim_feedforward=2048,
-                                                        dropout=dropout,
-                                                        batch_first=True)
-        self.linear_dec_out = nn.Linear(self.output_dim_2, self.output_dim_2)
-
-
 class PositionalEncoder(nn.Module):
     """
     The authors of the original transformer paper describe very succinctly what
@@ -188,7 +188,7 @@ class PositionalEncoder(nn.Module):
     def __init__(
             self,
             dropout: float = 0.1,
-            max_seq_len: int = 5000,
+            max_seq_len: int = 100,
             d_model: int = 512,
             batch_first: bool = True
     ):
@@ -236,15 +236,14 @@ class PositionalEncoder(nn.Module):
         return self.dropout(x)
 
 
-class TransformerGenerator(nn.Module):
-    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1,
-                 encoder=None, decoder=None, **kwargs):
+class TransformerGenerator(Generator):
+    def __init__(self, latent_dim, channels, seq_len, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):
         super(TransformerGenerator, self).__init__()
 
         self.latent_dim = latent_dim
-        self.hidden_dim = hidden_dim
         self.channels = channels
         self.seq_len = seq_len
+        self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         self.num_layers = num_layers
 
@@ -253,11 +252,15 @@ class TransformerGenerator(nn.Module):
         # self.pe = PositionalEncoder(batch_first=True, d_model=latent_dim)
         self.linear_enc_in = nn.Linear(latent_dim, hidden_dim)
         # self.linear_enc_in = nn.LSTM(latent_dim, hidden_dim, batch_first=True, dropout=dropout, num_layers=2)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
-                                                        dropout=dropout, batch_first=True)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim,
+                                                        nhead=num_heads,
+                                                        dim_feedforward=hidden_dim*4,
+                                                        dropout=dropout,
+                                                        batch_first=True,
+                                                        )
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(hidden_dim, channels * seq_len)
-        self.act_out = nn.Sigmoid()
+        self.act_out = nn.Tanh()
 
         # self.deconv = nn.Sequential(
         #     nn.Conv2d(self.embed_dim, self.channels, 1, 1, 0)
@@ -296,7 +299,7 @@ class TransformerGenerator(nn.Module):
         return data
 
 
-class TransformerDiscriminator(nn.Module):
+class TransformerDiscriminator(Discriminator):
     def __init__(self, channels, n_classes=1, hidden_dim=256, num_layers=2, num_heads=8, dropout=.1, **kwargs):
         super(TransformerDiscriminator, self).__init__()
 
@@ -311,8 +314,12 @@ class TransformerDiscriminator(nn.Module):
 
         # self.pe = PositionalEncoder(batch_first=True, d_model=channels)
         self.linear_enc_in = nn.Linear(channels, hidden_dim)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim,
-                                                        dropout=dropout, batch_first=True)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim,
+                                                        nhead=num_heads,
+                                                        dim_feedforward=hidden_dim*4,
+                                                        dropout=dropout,
+                                                        batch_first=True,
+                                                        )
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(hidden_dim, n_classes)
         self.tanh = nn.Tanh()
@@ -330,7 +337,83 @@ class TransformerDiscriminator(nn.Module):
         # x = self.tanh(x)
         # x = self.decoder(x)
         return x
-  
+
+
+class TTSGenerator(TTSGenerator_Org):
+    def __init__(self, seq_len=150, patch_size=15, channels=3, num_classes=9, latent_dim=100, embed_dim=10, depth=3,
+                 num_heads=5, forward_drop_rate=0.5, attn_drop_rate=0.5):
+        super(TTSGenerator, self).__init__(seq_len, patch_size, channels, num_classes, latent_dim, embed_dim, depth,
+                 num_heads, forward_drop_rate, attn_drop_rate)
+
+
+class TTSDiscriminator(TTSDiscriminator_Org):
+    def __init__(self, in_channels=3, patch_size=15, emb_size=50, seq_length=150, depth=3, n_classes=1, **kwargs):
+        super(TTSDiscriminator, self).__init__(in_channels, patch_size, emb_size, seq_length, depth, n_classes, **kwargs)
+
+class DecoderGenerator(Generator):
+    """
+    DecoderGenerator serves as a wrapper for a generator.
+    It takes the output of the generator and passes it to a given decoder if the corresponding flag was set.
+    Otherwise, it returns the output of the generator.
+    """
+
+    def __init__(self, generator: Generator, decoder: Autoencoder):
+        """
+        :param generator: generator model
+        :param decoder: autoencoder model that has a decode method
+        """
+        super(DecoderGenerator, self).__init__()
+        self.generator = generator
+        self.decoder = decoder
+        self.decode = True
+
+        # add attributes from generator
+        self.latent_dim = generator.latent_dim if hasattr(generator, 'latent_dim') else None
+        self.channels = generator.channels if hasattr(generator, 'channels') else None
+        self.seq_len = generator.seq_len if hasattr(generator, 'seq_len') else None
+
+
+    def forward(self, data):
+        if self.decode:
+            return self.decoder.decode(self.generator(data))
+        else:
+            return self.generator(data)
+
+    def decode_output(self, mode=True):
+        self.decode = mode
+
+
+class EncoderDiscriminator(Discriminator):
+    """
+    EncoderDiscriminator serves as a wrapper for a discriminator.
+    It takes the input of the discriminator and passes it to a given encoder if the corresponding flag was set.
+    Otherwise, it returns the output of the discriminator.
+    """
+
+    def __init__(self, discriminator: Discriminator, encoder: Autoencoder):
+        """
+        :param discriminator: discriminator model
+        :param encoder: autoencoder model that has an encode method
+        """
+        super(EncoderDiscriminator, self).__init__()
+        self.discriminator = discriminator
+        self.encoder = encoder
+        self.encode = True
+
+        # add attributes from discriminator
+        self.channels = discriminator.channels if hasattr(discriminator, 'channels') else None
+        self.n_classes = discriminator.n_classes if hasattr(discriminator, 'n_classes') else None
+
+    def forward(self, data):
+        if self.encode:
+            return self.encoder.encode(self.discriminator(data))
+        else:
+            return self.discriminator(data)
+
+    def encode_input(self, mode=True):
+        self.encode = mode
+
+
 '''
 # ----------------------------------------------------------------------------------------------------------------------
 # Autoencoders

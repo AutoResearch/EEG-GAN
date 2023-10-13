@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from helpers.trainer import GANTrainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, GANDDPTrainer
-from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator, TransformerGenerator, TransformerDiscriminator
+from nn_architecture.models import TransformerGenerator, TransformerDiscriminator, FFGenerator, FFDiscriminator, TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
@@ -61,6 +61,7 @@ def main():
 
     # Load dataset as tensor
     opt = {
+        'gan_type': default_args['type'],
         'n_epochs': default_args['n_epochs'],
         'input_sequence_length': default_args['input_sequence_length'],
         # 'seq_len_generated': default_args['seq_len_generated'],
@@ -72,7 +73,7 @@ def main():
         'learning_rate': default_args['learning_rate'],
         'sample_interval': default_args['sample_interval'],
         'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
-        # 'patch_size': default_args['patch_size'],
+        'patch_size': default_args['patch_size'],
         'kw_timestep': default_args['kw_timestep'],
         'conditions': default_args['conditions'],
         'sequence_length': -1,
@@ -88,6 +89,21 @@ def main():
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
+    }
+    
+    gan_types = {
+        'ff': ['FFGenerator', 'FFDiscriminator'],
+        'tr': ['TransformerGenerator', 'TransformerDiscriminator'],
+        'tts': ['TTSGenerator', 'TTSDiscriminator'],
+    }
+    
+    gan_architectures = {
+        'FFGenerator': lambda latent_dim, channels, seq_len, hidden_dim, num_layers, dropout, activation, **kwargs: FFGenerator(latent_dim, channels, seq_len, hidden_dim, num_layers, dropout, activation),
+        'FFDiscriminator': lambda channels, hidden_dim, num_layers, dropout, **kwargs: FFDiscriminator(channels, hidden_dim, num_layers, dropout),
+        'TransformerGenerator': lambda latent_dim, channels, seq_len, hidden_dim, num_layers, num_heads, dropout, **kwargs: TransformerGenerator(latent_dim, channels, seq_len, hidden_dim, num_layers, num_heads, dropout),
+        'TransformerDiscriminator': lambda channels, hidden_dim, num_layers, num_heads, dropout, **kwargs: TransformerDiscriminator(channels, 1, hidden_dim, num_layers, num_heads, dropout),
+        'TTSGenerator': lambda seq_len, patch_size, channels, latent_dim, num_layers, num_heads, **kwargs: TTSGenerator(seq_len, patch_size, channels, 1, latent_dim, 10, num_layers, num_heads, 0.5, 0.5),
+        'TTSDiscriminator': lambda channels, patch_size, seq_len, num_layers, **kwargs: TTSDiscriminator(channels, patch_size, 50, seq_len, num_layers, 1),
     }
 
     dataloader = Dataloader(default_args['path_dataset'],
@@ -106,31 +122,61 @@ def main():
         opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
-    # if opt['sequence_length'] % opt['patch_size'] != 0:
-    #     warnings.warn(
-    #         f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
-    #         f"The sequence length is padded with zeros to fit the condition.")
-    #     padding = 0
-    #     while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
-    #         padding += 1
-    #     padding = torch.zeros((dataset.shape[0], padding))
-    #     dataset = torch.cat((dataset, padding), dim=1)
-    #     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    if opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
+        warnings.warn(
+            f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
+            f"The sequence length is padded with zeros to fit the condition.")
+        padding = 0
+        while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
+            padding += 1
+        padding = torch.zeros((dataset.shape[0], padding))
+        dataset = torch.cat((dataset, padding), dim=1)
+        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
-    latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else \
-    opt['latent_dim'] + opt['n_conditions']
+    latent_dim_in = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     channel_in_disc = opt['n_channels'] + opt['n_conditions']
     sequence_length_generated = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
 
+    # --------------------------------------------------------------------------------
     # Initialize generator, discriminator and trainer
+    # --------------------------------------------------------------------------------
+
     if opt['path_autoencoder'] == '':
         # no autoencoder defined -> use transformer GAN
-        generator = TransformerGenerator(latent_dim=latent_dim_in,
-                                         channels=opt['n_channels'],
-                                         seq_len=sequence_length_generated)
-        discriminator = TransformerDiscriminator(channels=channel_in_disc,
-                                                 hidden_dim=opt['hidden_dim'])
+        generator = gan_architectures[gan_types[opt['gan_type']][0]](
+            # FFGenerator inputs: latent_dim, channels, hidden_dim, num_layers, dropout, activation
+            latent_dim=latent_dim_in,
+            channels=opt['n_channels'],
+            seq_len=sequence_length_generated,
+            hidden_dim=opt['hidden_dim'],
+            num_layers=opt['num_layers'],
+            dropout=0.1,
+            activation=opt['activation'],
+
+            # additional TransformerGenerator inputs: num_heads
+            num_heads=8,
+
+            # additional TTSGenerator inputs: patch_size
+            patch_size=opt['patch_size'],
+        )
+
+        discriminator = gan_architectures[gan_types[opt['gan_type']][1]](
+            # FFDiscriminator inputs: input_dim, hidden_dim, num_layers, dropout
+            channels=channel_in_disc,
+            hidden_dim=opt['hidden_dim'],
+            num_layers=opt['num_layers'],
+            dropout=0.1,
+
+            # TransformerDiscriminator inputs: channels, n_classes, hidden_dim, num_layers, num_heads, dropout
+            num_heads=8,
+
+            # additional TTSDiscriminator inputs: patch_size
+            patch_size=opt['patch_size'],
+            seq_len=sequence_length_generated,
+        )
     else:
+        # initialize an autoencoder-GAN
+
         # initialize the autoencoder
         seq_length=dataset.shape[1]-len(opt['conditions'])
         ae_dict = torch.load(default_args['path_autoencoder'], map_location=torch.device('cpu'))
@@ -159,22 +205,57 @@ def main():
         if opt['input_sequence_length'] != 0:
             new_input_dim = autoencoder.output_dim if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim*autoencoder.output_dim_2
             latent_dim_in += new_input_dim - autoencoder.input_dim
-        generator = AutoencoderGenerator(latent_dim=latent_dim_in,
-                                         autoencoder=autoencoder,
-                                         num_layers=opt['num_layers'],
-                                         hidden_dim=opt['hidden_dim'],
-                                         activation=opt['activation'],)
-        discriminator = AutoencoderDiscriminator(input_dim=channel_in_disc,
-                                                 autoencoder=autoencoder,
-                                                 num_layers=opt['num_layers'],
-                                                 hidden_dim=opt['hidden_dim'],
-                                                 activation=opt['activation'],)
 
-        if isinstance(generator, AutoencoderGenerator) and isinstance(discriminator, AutoencoderDiscriminator) and opt['input_sequence_length'] == 0:
+        # adjust generator output_dim to match the output_dim of the autoencoder
+        n_channels = autoencoder.output_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
+        sequence_length_generated = autoencoder.output_dim_2 if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
+
+        # adjust discriminator input_dim to match the output_dim of the autoencoder
+        channel_in_disc = n_channels + opt['n_conditions']
+
+        generator = DecoderGenerator(
+            generator=gan_architectures[gan_types[opt['gan_type']][0]](
+                # FFGenerator inputs: latent_dim, output_dim, hidden_dim, num_layers, dropout, activation
+                latent_dim=latent_dim_in,
+                channels=n_channels,
+                seq_len=sequence_length_generated,
+                hidden_dim=opt['hidden_dim'],
+                num_layers=opt['num_layers'],
+                dropout=0.1,
+                activation=opt['activation'],
+
+                # TransformerGenerator inputs: latent_dim, channels, seq_len, hidden_dim, num_layers, num_heads, dropout
+                num_heads=8,
+
+                # additional TTSGenerator inputs: patch_size
+                patch_size=opt['patch_size'],
+            ),
+            decoder=autoencoder
+        )
+
+        discriminator = EncoderDiscriminator(
+            discriminator=gan_architectures[gan_types[opt['gan_type']][1]](
+                # FFDiscriminator inputs: input_dim, hidden_dim, num_layers, dropout
+                channels=channel_in_disc,
+                hidden_dim=opt['hidden_dim'],
+                num_layers=opt['num_layers'],
+                dropout=0.1,
+
+                # additional TransformerDiscriminator inputs: num_heads
+                num_heads=8,
+
+                # additional TTSDiscriminator inputs: patch_size
+                patch_size=opt['patch_size'],
+                seq_len=sequence_length_generated,
+            ),
+            encoder=autoencoder
+        )
+
+        if isinstance(generator, DecoderGenerator) and isinstance(discriminator, EncoderDiscriminator) and opt['input_sequence_length'] == 0:
             # if input_sequence_length is 0, do not decode the generator output during training
             generator.decode_output(False)
 
-        if isinstance(discriminator, AutoencoderDiscriminator) and isinstance(generator, AutoencoderGenerator) and opt['input_sequence_length'] == 0:
+        if isinstance(discriminator, EncoderDiscriminator) and isinstance(generator, DecoderGenerator) and opt['input_sequence_length'] == 0:
             # if input_sequence_length is 0, do not encode the discriminator input during training
             discriminator.encode_input(False)
 
