@@ -147,7 +147,7 @@ def main():
     # load generator weights
     consume_prefix_in_state_dict_if_present(state_dict['generator'], 'module.')
     if hasattr(state_dict['generator'],'module'):
-        generator.load_state_dict(state_dict['generator'][]'module'])
+        generator.load_state_dict(state_dict['generator'],['module'])
     else:
         generator.load_state_dict(state_dict['generator'])
     generator.to(device)
