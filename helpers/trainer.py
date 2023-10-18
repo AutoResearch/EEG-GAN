@@ -56,7 +56,7 @@ class GANTrainer(Trainer):
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
-        self.b1, self.b2 = .5, 0.999  # alternative values: 0, 0.9
+        self.b1, self.b2 = 0, 0.9  # alternative values: .5, 0.999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
 
         self.generator = generator
