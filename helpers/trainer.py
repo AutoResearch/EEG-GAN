@@ -293,7 +293,7 @@ class GANTrainer(Trainer):
             if not hasattr(self.generator, 'module'):
                 real_data = self.discriminator.encoder.encode(data) if isinstance(self.discriminator, EncoderDiscriminator) and not self.discriminator.encode else data
             else:
-                real_data = self.discriminator.module.encoder.encode(data)(data) if isinstance(self.discriminator.module, EncoderDiscriminator) and not self.discriminator.module.encode else data
+                real_data = self.discriminator.module.encoder.encode(data) if isinstance(self.discriminator.module, EncoderDiscriminator) and not self.discriminator.module.encode else data
 
             real_data = self.make_fake_data(real_data, disc_labels)
 
