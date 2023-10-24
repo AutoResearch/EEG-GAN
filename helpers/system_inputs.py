@@ -234,8 +234,8 @@ def default_inputs_training_gan():
         'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
-        'g_scheduler': [int, 'Factor to decrease the learning rate of the generator when asymptote', None, 'Generator scheduler factor: '],
-        'd_scheduler': [int, 'Factor to decrease the learning rate of the discriminator when asymptote', None, 'Discriminator scheduler factor: '],
+        'g_scheduler': [float, 'Factor to decrease the learning rate of the generator when asymptote', None, 'Generator scheduler factor: '],
+        'd_scheduler': [float, 'Factor to decrease the learning rate of the discriminator when asymptote', None, 'Discriminator scheduler factor: '],
     }
 
     return kw_dict
