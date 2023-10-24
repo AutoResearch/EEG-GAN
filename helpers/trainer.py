@@ -156,8 +156,8 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-            self.generator_scheduler.step(g_loss) #ADDED
-            self.discriminator_scheduler.step(d_loss) #ADDED
+            self.discriminator_scheduler.step(d_loss_batch/i_batch) #ADDED
+            self.generator_scheduler.step(g_loss_batch/i_batch) #ADDED
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
