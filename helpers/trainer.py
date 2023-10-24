@@ -58,6 +58,8 @@ class GANTrainer(Trainer):
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
         self.b1, self.b2 = 0, 0.9  # alternative values: .5, 0.999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
+        self.g_scheduler = opt['g_scheduler']
+        self.d_scheduler = opt['d_scheduler']
 
         self.generator = generator
         self.discriminator = discriminator
@@ -70,11 +72,13 @@ class GANTrainer(Trainer):
 
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
-        self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, patience=5, verbose=True) #ADDED
+        if self.g_scheduler is not None:
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, patience=5, verbose=True)
 
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
-        self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, patience=5, verbose=True) #ADDED
+        if self.d_scheduler is not None:
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, patience=5, verbose=True)
 
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -156,8 +160,10 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-            self.discriminator_scheduler.step(d_loss_batch/i_batch) #ADDED
-            self.generator_scheduler.step(g_loss_batch/i_batch) #ADDED
+            if self.d_scheduler is not None:
+                self.discriminator_scheduler.step(d_loss_batch/i_batch)
+            if self.g_scheduler is not None:
+                self.generator_scheduler.step(g_loss_batch/i_batch)
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
