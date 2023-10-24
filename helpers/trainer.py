@@ -151,13 +151,13 @@ class GANTrainer(Trainer):
                     train_generator = False
 
                 d_loss, g_loss, gen_samples_batch = self.batch_train(data, data_labels, train_generator)
-                self.generator_scheduler.step(g_loss) #ADDED
-                self.discriminator_scheduler.step(d_loss) #ADDED
 
                 d_loss_batch += d_loss
                 g_loss_batch += g_loss
                 i_batch += 1
 
+            self.generator_scheduler.step(g_loss) #ADDED
+            self.discriminator_scheduler.step(d_loss) #ADDED
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
