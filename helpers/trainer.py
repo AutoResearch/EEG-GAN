@@ -70,8 +70,11 @@ class GANTrainer(Trainer):
 
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
+        self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, patience=5, verbose=True) #ADDED
+
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
+        self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, patience=5, verbose=True) #ADDED
 
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -148,6 +151,8 @@ class GANTrainer(Trainer):
                     train_generator = False
 
                 d_loss, g_loss, gen_samples_batch = self.batch_train(data, data_labels, train_generator)
+                self.generator_scheduler.step(g_loss) #ADDED
+                self.discriminator_scheduler.step(d_loss) #ADDED
 
                 d_loss_batch += d_loss
                 g_loss_batch += g_loss
