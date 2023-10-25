@@ -73,12 +73,12 @@ class GANTrainer(Trainer):
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, patience=5, verbose=True)
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, verbose=True)
 
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, patience=5, verbose=True)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, verbose=True)
 
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -163,9 +163,9 @@ class GANTrainer(Trainer):
                 i_batch += 1
 
             if self.d_scheduler is not None:
-                self.discriminator_scheduler.step(d_loss_batch/i_batch)
+                self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
             if self.g_scheduler is not None:
-                self.generator_scheduler.step(g_loss_batch/i_batch)
+                self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
