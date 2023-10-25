@@ -365,12 +365,12 @@ class GANTrainer(Trainer):
             if self.g_scheduler:
                 self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
                 for i in range(len(self.generator_optimizer.param_groups)):
-                    self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler._last_lr
+                    self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler._last_lr[0]
 
             if self.d_scheduler:
                 self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
                 for i in range(len(self.generator_optimizer.param_groups)):
-                    self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler._last_lr
+                    self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler._last_lr[0]
 
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
