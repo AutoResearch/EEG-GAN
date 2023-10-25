@@ -72,18 +72,12 @@ class GANTrainer(Trainer):
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
-        if self.use_checkpoint and self.g_scheduler is not None:
-        else:
-            self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
+        self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.d_final_lr, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
             self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, patience=5, verbose=True)
 
-        if self.use_checkpoint and self.g_scheduler is not None:
-            self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
-                                            lr=self.learning_rate, betas=(self.b1, self.b2))
-        else:
-            self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
+        self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
             self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, patience=5, verbose=True)
