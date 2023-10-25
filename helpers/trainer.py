@@ -60,8 +60,6 @@ class GANTrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.g_scheduler = opt['g_scheduler']
         self.d_scheduler = opt['d_scheduler']
-        self.g_final_lr = opt['g_final_lr']
-        self.d_final_lr = opt['d_final_lr']
 
         self.generator = generator
         self.discriminator = discriminator
@@ -116,8 +114,6 @@ class GANTrainer(Trainer):
             'channel_names': self.channel_names,
             'g_scheduler': self.g_scheduler,
             'd_scheduler': self.d_scheduler,
-            'g_final_lr': self.g_final_lr,
-            'd_final_lr': self.d_final_lr,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -168,10 +164,8 @@ class GANTrainer(Trainer):
 
             if self.d_scheduler is not None:
                 self.discriminator_scheduler.step(d_loss_batch/i_batch)
-                self.configuration['d_final_lr'] = self.discriminator_scheduler._last_lr[0]
             if self.g_scheduler is not None:
                 self.generator_scheduler.step(g_loss_batch/i_batch)
-                self.configuration['g_final_lr'] = self.generator_scheduler._last_lr[0]
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
@@ -347,6 +341,8 @@ class GANTrainer(Trainer):
             'discriminator': discriminator.state_dict(),
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
+            'generator_scheduler': self.generator_scheduler.state_dict() if self.g_scheduler else [],
+            'discriminator_scheduler': self.discriminator_scheduler.state_dict() if self.g_scheduler else [],
             'discriminator_loss': self.d_losses,
             'generator_loss': self.g_losses,
             'samples': samples,
@@ -362,11 +358,9 @@ class GANTrainer(Trainer):
             # load state_dicts
             state_dict = torch.load(path_checkpoint, map_location=self.device)
             if self.g_scheduler:
-                self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
-                                        lr=state_dict['configuration']['g_final_lr'], betas=(self.b1, self.b2))
+                self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
             if self.d_scheduler:
-                self.discriminator_optimizer = torch.optim.Adam(self.generator.parameters(),
-                                        lr=state_dict['configuration']['d_final_lr'], betas=(self.b1, self.b2))
+                self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
             self.generator.load_state_dict(state_dict['generator'])
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])

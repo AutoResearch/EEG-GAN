@@ -91,8 +91,6 @@ def main():
         'diff_data': diff_data,
         'g_scheduler': default_args['g_scheduler'],
         'd_scheduler': default_args['d_scheduler'],
-        'g_final_lr': default_args['learning_rate'],
-        'd_final_lr': default_args['learning_rate']
     }
     
     gan_types = {
