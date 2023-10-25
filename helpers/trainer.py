@@ -361,16 +361,16 @@ class GANTrainer(Trainer):
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
-            
+
             if self.g_scheduler:
                 self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
                 for i in range(len(self.generator_optimizer.param_groups)):
-                    self.generator_optimizer.param_groups[i] = self.generator_scheduler._last_lr
+                    self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler._last_lr
 
             if self.d_scheduler:
                 self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
                 for i in range(len(self.generator_optimizer.param_groups)):
-                    self.discriminator_optimizer.param_groups[i] = self.discriminator_scheduler._last_lr
+                    self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler._last_lr
 
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
