@@ -357,14 +357,21 @@ class GANTrainer(Trainer):
         if os.path.isfile(path_checkpoint):
             # load state_dicts
             state_dict = torch.load(path_checkpoint, map_location=self.device)
-            if self.g_scheduler:
-                self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
-            if self.d_scheduler:
-                self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
             self.generator.load_state_dict(state_dict['generator'])
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
+            
+            if self.g_scheduler:
+                self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
+                for i in range(len(self.generator_optimizer.param_groups)):
+                    self.generator_optimizer.param_groups[i] = self.generator_scheduler._last_lr
+
+            if self.d_scheduler:
+                self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
+                for i in range(len(self.generator_optimizer.param_groups)):
+                    self.discriminator_optimizer.param_groups[i] = self.discriminator_scheduler._last_lr
+
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
             Warning("No checkpoint-file found. Using random initialization.")
