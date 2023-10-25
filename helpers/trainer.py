@@ -342,7 +342,7 @@ class GANTrainer(Trainer):
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
             'generator_scheduler': self.generator_scheduler.state_dict() if self.g_scheduler else [],
-            'discriminator_scheduler': self.discriminator_scheduler.state_dict() if self.g_scheduler else [],
+            'discriminator_scheduler': self.discriminator_scheduler.state_dict() if self.d_scheduler else [],
             'discriminator_loss': self.d_losses,
             'generator_loss': self.g_losses,
             'samples': samples,
