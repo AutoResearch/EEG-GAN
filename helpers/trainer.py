@@ -71,7 +71,7 @@ class GANTrainer(Trainer):
         self.discriminator.to(self.device)
 
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
-                                                    lr=self.d_final_lr, betas=(self.b1, self.b2))
+                                                    lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
             self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, patience=5, verbose=True)
 
