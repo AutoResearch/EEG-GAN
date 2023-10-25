@@ -89,6 +89,8 @@ def main():
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
+        'g_scheduler': default_args['g_scheduler'],
+        'd_scheduler': default_args['d_scheduler'],
     }
     
     gan_types = {
