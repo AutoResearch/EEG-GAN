@@ -60,6 +60,8 @@ class GANTrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.g_scheduler = opt['g_scheduler']
         self.d_scheduler = opt['d_scheduler']
+        self.g_final_lr = opt['g_final_lr']
+        self.d_final_lr = opt['d_final_lr']
 
         self.generator = generator
         self.discriminator = discriminator
@@ -70,12 +72,18 @@ class GANTrainer(Trainer):
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
-        self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
-                                                    lr=self.learning_rate, betas=(self.b1, self.b2))
+        if self.use_checkpoint and self.g_scheduler is not None:
+        else:
+            self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
+                                                    lr=self.d_final_lr, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
             self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, patience=5, verbose=True)
 
-        self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
+        if self.use_checkpoint and self.g_scheduler is not None:
+            self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
+                                            lr=self.learning_rate, betas=(self.b1, self.b2))
+        else:
+            self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
             self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, patience=5, verbose=True)
@@ -112,6 +120,10 @@ class GANTrainer(Trainer):
             'path_autoencoder': opt['path_autoencoder'] if 'path_autoencoder' in opt else None,
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
+            'g_scheduler': self.g_scheduler,
+            'd_scheduler': self.d_scheduler,
+            'g_final_lr': self.g_final_lr,
+            'd_final_lr': self.d_final_lr,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -162,8 +174,10 @@ class GANTrainer(Trainer):
 
             if self.d_scheduler is not None:
                 self.discriminator_scheduler.step(d_loss_batch/i_batch)
+                self.configuration['d_final_lr'] = self.discriminator_scheduler._last_lr[0]
             if self.g_scheduler is not None:
                 self.generator_scheduler.step(g_loss_batch/i_batch)
+                self.configuration['g_final_lr'] = self.generator_scheduler._last_lr[0]
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
@@ -353,6 +367,12 @@ class GANTrainer(Trainer):
         if os.path.isfile(path_checkpoint):
             # load state_dicts
             state_dict = torch.load(path_checkpoint, map_location=self.device)
+            if self.g_scheduler:
+                self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
+                                        lr=state_dict['configuration']['g_final_lr'], betas=(self.b1, self.b2))
+            if self.d_scheduler:
+                self.discriminator_optimizer = torch.optim.Adam(self.generator.parameters(),
+                                        lr=state_dict['configuration']['d_final_lr'], betas=(self.b1, self.b2))
             self.generator.load_state_dict(state_dict['generator'])
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
