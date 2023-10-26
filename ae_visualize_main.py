@@ -6,6 +6,8 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 
+# another comment
+
 #User input
 data_checkpoint = 'stock_data/ganTrialElectrodeERP_p500_e18_len100.csv'
 ae_checkpoint = 'trained_ae/ae_ddp_4000ep_20230824_145643.pt'

@@ -13,6 +13,7 @@ from nn_architecture.models import TransformerGenerator, AutoencoderGenerator
 from nn_architecture.ae_networks import TransformerDoubleAutoencoder, TransformerAutoencoder, \
     TransformerFlattenAutoencoder
 
+#another comment
 def main():
     default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
 
