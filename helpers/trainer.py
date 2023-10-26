@@ -190,7 +190,7 @@ class GANTrainer(Trainer):
 
             self.trained_epochs += 1
             #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
-            loop.set_postfix(loss={'D LOSS': np.round(d_loss_batch/i_batch,4), 'G LOSS': np.round(g_loss_batch/i_batch,4)})
+            loop.set_postfix(loss={'D LOSS': np.round(d_loss_batch/i_batch,6), 'G LOSS': np.round(g_loss_batch/i_batch,6)})
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
 
@@ -333,7 +333,7 @@ class GANTrainer(Trainer):
 
         return d_loss.item(), g_loss, gen_samples
 
-    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None):
+    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None, update_history=False):
         if path_checkpoint is None:
             path_checkpoint = 'trained_models'+os.path.sep+'checkpoint.pt'
         if generator is None:
@@ -341,9 +341,10 @@ class GANTrainer(Trainer):
         if discriminator is None:
             discriminator = self.discriminator
 
-        self.configuration['trained_epochs'] = self.trained_epochs
-        self.configuration['history']['trained_epochs'] = [self.trained_epochs]
-        self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
+        if update_history:
+            self.configuration['trained_epochs'] = self.trained_epochs
+            self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
+            self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
 
         state_dict = {
             'generator': generator.state_dict(),
@@ -360,8 +361,9 @@ class GANTrainer(Trainer):
         }
         torch.save(state_dict, path_checkpoint)
 
-        print(f"Checkpoint saved to {path_checkpoint}.")
-        print(f"Training complete in: {self.configuration['train_time']}")
+        if update_history:
+            print(f"Checkpoint saved to {path_checkpoint}.")
+            print(f"Training complete in: {self.configuration['train_time']}")
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):
@@ -393,7 +395,7 @@ class GANTrainer(Trainer):
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator, samples=samples)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator, samples=samples, update_history=True)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):

@@ -290,7 +290,7 @@ def main():
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
+        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples, update_history=True)
 
         generator = trainer.generator
         discriminator = trainer.discriminator
