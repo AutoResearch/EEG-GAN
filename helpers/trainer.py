@@ -190,7 +190,7 @@ class GANTrainer(Trainer):
 
             self.trained_epochs += 1
             #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
-            loop.set_postfix(loss={'D LOSS': d_loss_batch/i_batch, 'G LOSS': g_loss_batch/i_batch})
+            loop.set_postfix(loss={'D LOSS': np.round(d_loss_batch/i_batch,4), 'G LOSS': np.round(g_loss_batch/i_batch,4)})
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
 
