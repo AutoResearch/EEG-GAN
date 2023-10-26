@@ -91,6 +91,7 @@ def main():
         'diff_data': diff_data,
         'g_scheduler': default_args['g_scheduler'],
         'd_scheduler': default_args['d_scheduler'],
+        'scheduler_delay': default_args['scheduler_delay'],
     }
     
     gan_types = {

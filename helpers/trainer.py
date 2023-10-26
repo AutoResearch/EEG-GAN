@@ -60,6 +60,7 @@ class GANTrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.g_scheduler = opt['g_scheduler']
         self.d_scheduler = opt['d_scheduler']
+        self.scheduler_delay = opt['scheduler_delay']
 
         self.generator = generator
         self.discriminator = discriminator
@@ -114,6 +115,7 @@ class GANTrainer(Trainer):
             'channel_names': self.channel_names,
             'g_scheduler': self.g_scheduler,
             'd_scheduler': self.d_scheduler,
+            'scheduler_delay': self.scheduler_delay
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -162,9 +164,9 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-            if self.d_scheduler is not None:
+            if self.d_scheduler is not None and self.scheduler_delay < epoch:
                 self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
-            if self.g_scheduler is not None:
+            if self.g_scheduler is not None and self.scheduler_delay < epoch:
                 self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
