@@ -343,7 +343,7 @@ class GANTrainer(Trainer):
 
         if update_history:
             self.configuration['trained_epochs'] = self.trained_epochs
-            self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
+            self.configuration['history']['trained_epochs'] = [self.trained_epochs]
             self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
 
         state_dict = {
