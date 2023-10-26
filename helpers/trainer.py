@@ -517,10 +517,14 @@ class AETrainer(Trainer):
 
             samples = []
 
-            for epoch in range(self.epochs):
+            loop = tqdm(range(self.epochs))
+            for epoch in loop:
                 train_loss, test_loss, sample = self.batch_train(train_data, test_data)
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
+
+                loop.set_postfix(loss={'TRAIN LOSS': np.round(train_loss,6), 'TEST LOSS': np.round(test_loss,6)})
+
                 if len(sample) > 0:
                     samples.append(sample)
 
@@ -536,7 +540,7 @@ class AETrainer(Trainer):
                         trigger_checkpoint_01 = True
 
                 self.trained_epochs += 1
-                self.print_log(epoch + 1, train_loss, test_loss)
+                #self.print_log(epoch + 1, train_loss, test_loss)
 
             self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
             return samples
