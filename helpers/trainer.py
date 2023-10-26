@@ -115,7 +115,7 @@ class GANTrainer(Trainer):
             'channel_names': self.channel_names,
             'g_scheduler': self.g_scheduler,
             'd_scheduler': self.d_scheduler,
-            'scheduler_delay': self.scheduler_delay
+            'scheduler_delay': self.scheduler_delay,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
