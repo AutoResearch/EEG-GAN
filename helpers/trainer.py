@@ -1,4 +1,6 @@
 import os
+import time
+from tqdm import tqdm
 
 import torch
 import numpy as np
@@ -61,6 +63,7 @@ class GANTrainer(Trainer):
         self.g_scheduler = opt['g_scheduler']
         self.d_scheduler = opt['d_scheduler']
         self.scheduler_delay = opt['scheduler_delay']
+        self.start_time = time.time()
 
         self.generator = generator
         self.discriminator = discriminator
@@ -142,7 +145,9 @@ class GANTrainer(Trainer):
         gen_samples_batch = None
         batch = None
 
-        for epoch in range(self.epochs):
+        loop = tqdm(range(self.epochs))
+        for epoch in loop:
+            loop.set_description(f"EPOCH: {epoch+1}/{self.epochs}")
             # for-loop for number of batch_size entries in sessions
             i_batch = 0
             d_loss_batch = 0
@@ -163,6 +168,8 @@ class GANTrainer(Trainer):
                 d_loss_batch += d_loss
                 g_loss_batch += g_loss
                 i_batch += 1
+
+            loop.set_postfix(loss={'D Loss': d_loss_batch/i_batch, 'G Loss': g_loss_batch/i_batch})
 
             if self.d_scheduler is not None and self.scheduler_delay < epoch:
                 self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
@@ -337,6 +344,7 @@ class GANTrainer(Trainer):
 
         self.configuration['trained_epochs'] = self.trained_epochs
         self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+        self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
 
         state_dict = {
             'generator': generator.state_dict(),
@@ -354,6 +362,7 @@ class GANTrainer(Trainer):
         torch.save(state_dict, path_checkpoint)
 
         print(f"Checkpoint saved to {path_checkpoint}.")
+        print(f"Training complete in: {self.configuration['train_time']}")
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):
