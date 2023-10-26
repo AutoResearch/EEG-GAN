@@ -169,8 +169,6 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-            loop.set_postfix(loss={'D Loss': d_loss_batch/i_batch, 'G Loss': g_loss_batch/i_batch})
-
             if self.d_scheduler is not None and self.scheduler_delay < epoch:
                 self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
             if self.g_scheduler is not None and self.scheduler_delay < epoch:
@@ -191,7 +189,8 @@ class GANTrainer(Trainer):
                     trigger_checkpoint_01 = True
 
             self.trained_epochs += 1
-            self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
+            #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
+            loop.set_postfix(loss={'D LOSS': d_loss_batch/i_batch, 'G LOSS': g_loss_batch/i_batch})
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
 
