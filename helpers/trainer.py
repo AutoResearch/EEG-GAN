@@ -147,7 +147,6 @@ class GANTrainer(Trainer):
 
         loop = tqdm(range(self.epochs))
         for epoch in loop:
-            loop.set_description(f"EPOCH: {epoch+1}/{self.epochs}")
             # for-loop for number of batch_size entries in sessions
             i_batch = 0
             d_loss_batch = 0
