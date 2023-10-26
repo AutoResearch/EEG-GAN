@@ -28,9 +28,9 @@ class GANDDPTrainer(trainer.GANTrainer):
     #  DDP-specific modifications
     # ---------------------
 
-    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None):
+    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None, update_history=False):
         if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, samples, generator=self.generator.module, discriminator=self.discriminator.module)
+            super().save_checkpoint(path_checkpoint, samples, generator=self.generator.module, discriminator=self.discriminator.module, update_history=update_history)
         # dist.barrier()
 
     def print_log(self, current_epoch, d_loss, g_loss):
