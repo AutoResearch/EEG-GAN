@@ -142,8 +142,8 @@ def main():
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
         mp.spawn(run,
-                 args=(world_size, find_free_port(), ddp_backend, trainer, opt),
-                 nprocs=world_size, join=True)
+                 args=(opt['world_size'], find_free_port(), ddp_backend, trainer, opt),
+                 nprocs=opt['world_size'], join=True)
     else:
         trainer = GANTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
