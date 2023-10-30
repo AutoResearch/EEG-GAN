@@ -194,7 +194,7 @@ class GANTrainer(Trainer):
                         if self.generator_optimizer.param_groups[i]['lr'] < g_lr[i]: #Only update if the lr has been decreased
                             new_g_lr = g_lr[i]+(g_lr[i]*self.counterfactual_scheduler*self.d_scheduler)
                             self.generator_optimizer.param_groups[i]['lr'] = new_g_lr
-                        print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_g_lr}")
+                            print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_g_lr}")
             if self.g_scheduler is not None and self.scheduler_delay < epoch:
                 self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
                 if self.counterfactual_scheduler is not None:
