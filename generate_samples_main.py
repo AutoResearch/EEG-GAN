@@ -8,8 +8,9 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 from helpers import system_inputs
 from helpers.dataloader import Dataloader
+from helpers.initialize_gan import init_gan, gan_types
 from helpers.trainer import GANTrainer
-from nn_architecture.models import TransformerGenerator, AutoencoderGenerator
+from nn_architecture.models import DecoderGenerator, TransformerGenerator, AutoencoderGenerator
 from nn_architecture.ae_networks import TransformerDoubleAutoencoder, TransformerAutoencoder, \
     TransformerFlattenAutoencoder
 
@@ -83,65 +84,30 @@ def main():
     print("Initializing generator...")
     latent_dim_in = latent_dim + n_conditions + n_channels if input_sequence_length > 0 else latent_dim + n_conditions
 
-    # distinguish between autoencoder and transformer GAN
-    if state_dict['configuration']['path_autoencoder'] == '':
-        # no autoencoder defined -> use transformer generator
-        sequence_length_generated = sequence_length - input_sequence_length if input_sequence_length != sequence_length else sequence_length
-        generator = TransformerGenerator(latent_dim=latent_dim_in,
-                                         channels=n_channels,
-                                         seq_len=sequence_length_generated)
-        generator.eval()
-    else:
-        # load autoencoder
-        ae_dict = torch.load(state_dict['configuration']['path_autoencoder'], map_location=torch.device('cpu'))
-        # if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
-        #     autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
-        # elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
-        #     autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'],
-        #                                                sequence_length=sequence_length)
-        # elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
-        #     autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'],
-        #                                                 sequence_length=sequence_length)
-        # else:
-        #     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-        if ae_dict['configuration']['target'] == 'channels':
-            autoencoder = TransformerAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
-                                           output_dim=ae_dict['configuration']['channels_out'],
-                                           output_dim_2=sequence_length,
-                                           target=TransformerAutoencoder.TARGET_CHANNELS,
-                                           hidden_dim=ae_dict['configuration']['hidden_dim'],
-                                           num_layers=ae_dict['configuration']['num_layers'],
-                                           num_heads=ae_dict['configuration']['num_heads'],).to(device)
-        elif ae_dict['configuration']['target'] == 'time':
-            autoencoder = TransformerAutoencoder(input_dim=ae_dict['configuration']['input_dim'],
-                                           output_dim=ae_dict['configuration']['timeseries_out'],
-                                           output_dim_2=n_channels,
-                                           target=TransformerAutoencoder.TARGET_TIMESERIES,
-                                           hidden_dim=ae_dict['configuration']['hidden_dim'],
-                                           num_layers=ae_dict['configuration']['num_layers'],
-                                           num_heads=ae_dict['configuration']['num_heads'],).to(device)
-        elif ae_dict['configuration']['target'] == 'full':
-            autoencoder = TransformerDoubleAutoencoder(input_dim=n_channels,
-                                                 output_dim=ae_dict['configuration']['output_dim'],
-                                                 output_dim_2=ae_dict['configuration']['output_dim_2'],
-                                                 sequence_length=sequence_length,
-                                                 hidden_dim=ae_dict['configuration']['hidden_dim'],
-                                                 num_layers=ae_dict['configuration']['num_layers'],
-                                                 num_heads=ae_dict['configuration']['num_heads'],).to(device)
-        consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
-        autoencoder.load_state_dict(ae_dict['model'])
-        # freeze the autoencoder
-        for param in autoencoder.parameters():
-            param.requires_grad = False
-        autoencoder.eval()
-
-        # if prediction or seq2seq, adjust latent_dim_in to encoded input size
-        if input_sequence_length != 0:
-            new_input_dim = autoencoder.output_dim if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim * autoencoder.output_dim_2
-            latent_dim_in += new_input_dim - autoencoder.input_dim
-        generator = AutoencoderGenerator(latent_dim=latent_dim_in,
-                                         autoencoder=autoencoder)
-        generator.eval()
+    print(state_dict['configuration']['generator_class'])
+    print(gan_types)
+    for k, v in gan_types.items():
+        if state_dict['configuration']['generator_class'] in v:
+            gan_type = k
+            print(gan_type)
+            break
+    
+    generator, _ = init_gan(gan_type=gan_type,
+                            latent_dim_in=latent_dim_in,
+                            channel_in_disc=n_channels,
+                            n_channels=n_channels,
+                            n_conditions=n_conditions,
+                            sequence_length_generated=sequence_length,
+                            device=device,
+                            hidden_dim=state_dict['configuration']['hidden_dim'],
+                            num_layers=state_dict['configuration']['num_layers'],
+                            activation=state_dict['configuration']['activation'],
+                            input_sequence_length=input_sequence_length,
+                            patch_size=state_dict['configuration']['patch_size'],
+                            path_autoencoder=state_dict['configuration']['path_autoencoder'],
+                            )
+    generator.eval()
+    if isinstance(generator, DecoderGenerator):
         generator.decode_output()
 
     # load generator weights
