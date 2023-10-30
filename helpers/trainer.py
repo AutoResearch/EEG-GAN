@@ -1,3 +1,4 @@
+from doctest import debug_script
 import os
 import time
 from tqdm import tqdm
@@ -7,9 +8,9 @@ import numpy as np
 from torch.utils.data import DataLoader
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
-from nn_architecture import losses
+import nn_architecture.losses as losses
 from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
-from nn_architecture.models import AutoencoderGenerator, AutoencoderDiscriminator, DecoderGenerator, EncoderDiscriminator
+from nn_architecture.models import TransformerGenerator, TransformerDiscriminator, FFGenerator, FFDiscriminator, TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
 
 
 class Trainer:
@@ -60,8 +61,8 @@ class GANTrainer(Trainer):
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
         self.b1, self.b2 = 0, 0.9  # alternative values: .5, 0.999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
-        self.g_scheduler = opt['g_scheduler']
-        self.d_scheduler = opt['d_scheduler']
+        self.g_scheduler = opt['g_scheduler'] if 'g_scheduler' in opt else None
+        self.d_scheduler = opt['d_scheduler'] if 'd_scheduler' in opt else None
         self.scheduler_delay = opt['scheduler_delay']
         self.start_time = time.time()
 
@@ -77,13 +78,17 @@ class GANTrainer(Trainer):
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, verbose=True)
-
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, patience=5, verbose=True)
+        else:
+            self.generator_scheduler = None
+            
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, verbose=True)
-
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, patience=5, verbose=True)
+        else:
+            self.discriminator_scheduler = None
+            
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
             self.loss.set_lambda_gp(self.lambda_gp)
@@ -93,13 +98,19 @@ class GANTrainer(Trainer):
         self.trained_epochs = 0
 
         self.prev_g_loss = 0
+        generator_class = str(self.generator.__class__.__name__) if not isinstance(self.generator, DecoderGenerator) else str(self.generator.generator.__class__.__name__)
+        discriminator_class = str(self.discriminator.__class__.__name__) if not isinstance(self.discriminator, EncoderDiscriminator) else str(self.discriminator.discriminator.__class__.__name__)
         self.configuration = {
             'device': self.device,
-            'generator_class': str(self.generator.__class__.__name__),
-            'discriminator_class': str(self.discriminator.__class__.__name__),
+            'generator_class': generator_class,
+            'discriminator_class': discriminator_class,
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
             'input_sequence_length': self.input_sequence_length,
+            'num_layers': opt['num_layers'],
+            'hidden_dim': opt['hidden_dim'],
+            'activation': opt['activation'],
+            'latent_dim': self.latent_dim,
             'batch_size': self.batch_size,
             'epochs': self.epochs,
             'trained_epochs': self.trained_epochs,
@@ -350,10 +361,10 @@ class GANTrainer(Trainer):
             'discriminator': discriminator.state_dict(),
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
-            'generator_scheduler': self.generator_scheduler.state_dict() if self.g_scheduler else [],
-            'discriminator_scheduler': self.discriminator_scheduler.state_dict() if self.d_scheduler else [],
-            'discriminator_loss': self.d_losses,
+            'generator_scheduler': None if self.generator_scheduler is None else self.generator_scheduler.state_dict(),
+            'discriminator_scheduler': None if self.discriminator_scheduler is None else self.discriminator_scheduler.state_dict(),
             'generator_loss': self.g_losses,
+            'discriminator_loss': self.d_losses,
             'samples': samples,
             'trained_epochs': self.trained_epochs,
             'configuration': self.configuration,
@@ -372,7 +383,6 @@ class GANTrainer(Trainer):
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
-
             if self.g_scheduler:
                 self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
                 for i in range(len(self.generator_optimizer.param_groups)):
@@ -382,7 +392,6 @@ class GANTrainer(Trainer):
                 self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
                 for i in range(len(self.generator_optimizer.param_groups)):
                     self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler._last_lr[0]
-
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
             Warning("No checkpoint-file found. Using random initialization.")
