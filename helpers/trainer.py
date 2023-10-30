@@ -191,16 +191,18 @@ class GANTrainer(Trainer):
                 self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
                 if self.counterfactual_scheduler is not None:
                     for i in range(len(self.generator_optimizer.param_groups)):
-                        new_g_lr = g_lr[i]+(g_lr[i]*self.counterfactual_scheduler*self.d_scheduler)
-                        self.generator_optimizer.param_groups[i]['lr'] = new_g_lr
+                        if self.generator_optimizer.param_groups[i]['lr'] < g_lr[i]: #Only update if the lr has been decreased
+                            new_g_lr = g_lr[i]+(g_lr[i]*self.counterfactual_scheduler*self.d_scheduler)
+                            self.generator_optimizer.param_groups[i]['lr'] = new_g_lr
                         print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_g_lr}")
             if self.g_scheduler is not None and self.scheduler_delay < epoch:
                 self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
                 if self.counterfactual_scheduler is not None:
                     for i in range(len(self.discriminator_optimizer.param_groups)):
-                        new_d_lr = d_lr[i]+(d_lr[i]*self.counterfactual_scheduler*self.g_scheduler)
-                        self.discriminator_optimizer.param_groups[i]['lr'] = new_d_lr
-                        print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_d_lr}")
+                        if self.discriminator_scheduler.param_groups[i]['lr'] < d_lr[i]: #Only update if the lr has been decreased
+                            new_d_lr = d_lr[i]+(d_lr[i]*self.counterfactual_scheduler*self.g_scheduler)
+                            self.discriminator_optimizer.param_groups[i]['lr'] = new_d_lr
+                            print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_d_lr}")
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
