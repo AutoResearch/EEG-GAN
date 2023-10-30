@@ -237,6 +237,7 @@ def default_inputs_training_gan():
         'g_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the generator when loss has asymptoted', None, 'Generator scheduler factor: '],
         'd_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the discriminator when loss had asymptoted', None, 'Discriminator scheduler factor: '],
         'scheduler_delay': [int, 'Number of epochs before the scheduler(s) will be initiated', 500, 'Scheduler delay: '],
+        'counterfactual_lr': [float, 'If true, decreasing one learning rate will increase the other learning rate by a proportion of the change in the first', None, 'Counterfactual factor: '],
     }
 
     return kw_dict
