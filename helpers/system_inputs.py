@@ -236,6 +236,7 @@ def default_inputs_training_gan():
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'g_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the generator when loss has asymptoted', None, 'Generator scheduler factor: '],
         'd_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the discriminator when loss had asymptoted', None, 'Discriminator scheduler factor: '],
+        'scheduler_delay': [int, 'Number of epochs before the scheduler(s) will be initiated', 500, 'Scheduler delay: '],
     }
 
     return kw_dict

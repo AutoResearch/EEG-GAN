@@ -87,6 +87,7 @@ def main():
         'diff_data': diff_data,
         'g_scheduler': default_args['g_scheduler'],
         'd_scheduler': default_args['d_scheduler'],
+        'scheduler_delay': default_args['scheduler_delay'],
     }
 
     # Load dataset as tensor
@@ -154,7 +155,7 @@ def main():
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
+        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples, update_history=True)
 
         print(f"Checkpoint saved to {path_checkpoint}.")
         

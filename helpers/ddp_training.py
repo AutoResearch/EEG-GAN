@@ -28,9 +28,9 @@ class GANDDPTrainer(trainer.GANTrainer):
     #  DDP-specific modifications
     # ---------------------
 
-    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None):
+    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None, update_history=False):
         if self.rank == 0:
-            super().save_checkpoint(path_checkpoint, samples, generator=self.generator.module, discriminator=self.discriminator.module)
+            super().save_checkpoint(path_checkpoint, samples, generator=self.generator.module, discriminator=self.discriminator.module, update_history=update_history)
         # dist.barrier()
 
     def print_log(self, current_epoch, d_loss, g_loss):
@@ -42,10 +42,10 @@ class GANDDPTrainer(trainer.GANTrainer):
 
         super().print_log(current_epoch, reduce_tensor[0], reduce_tensor[1])
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None, update_history=False):
         if self.rank == 0:
             # print(f'Rank {self.rank} is managing checkpoints.')
-            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module, samples=samples)
+            super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module, samples=samples, update_history=update_history)
         #     print(f'Rank {self.rank} finished managing checkpoints.')
         # print(f'Rank {self.rank} reached barrier.')
         # dist.barrier()

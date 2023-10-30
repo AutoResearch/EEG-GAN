@@ -1,5 +1,7 @@
 from doctest import debug_script
 import os
+import time
+from tqdm import tqdm
 
 import torch
 import numpy as np
@@ -61,6 +63,8 @@ class GANTrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.g_scheduler = opt['g_scheduler'] if 'g_scheduler' in opt else None
         self.d_scheduler = opt['d_scheduler'] if 'd_scheduler' in opt else None
+        self.scheduler_delay = opt['scheduler_delay']
+        self.start_time = time.time()
 
         self.generator = generator
         self.discriminator = discriminator
@@ -123,6 +127,9 @@ class GANTrainer(Trainer):
             'path_autoencoder': opt['path_autoencoder'] if 'path_autoencoder' in opt else None,
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
+            'g_scheduler': self.g_scheduler,
+            'd_scheduler': self.d_scheduler,
+            'scheduler_delay': self.scheduler_delay,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -146,7 +153,11 @@ class GANTrainer(Trainer):
         checkpoint_01_file = 'checkpoint_01.pt'
         checkpoint_02_file = 'checkpoint_02.pt'
 
-        for epoch in range(self.epochs):
+        gen_samples_batch = None
+        batch = None
+
+        loop = tqdm(range(self.epochs))
+        for epoch in loop:
             # for-loop for number of batch_size entries in sessions
             i_batch = 0
             d_loss_batch = 0
@@ -168,10 +179,10 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-            if self.d_scheduler is not None:
-                self.discriminator_scheduler.step(d_loss_batch/i_batch)
-            if self.g_scheduler is not None:
-                self.generator_scheduler.step(g_loss_batch/i_batch)
+            if self.d_scheduler is not None and self.scheduler_delay < epoch:
+                self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
+            if self.g_scheduler is not None and self.scheduler_delay < epoch:
+                self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
@@ -188,9 +199,10 @@ class GANTrainer(Trainer):
                     trigger_checkpoint_01 = True
 
             self.trained_epochs += 1
-            self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
+            #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
+            loop.set_postfix(loss={'D LOSS': np.round(d_loss_batch/i_batch,6), 'G LOSS': np.round(g_loss_batch/i_batch,6)})
 
-        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples)
+        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples, update_history=True)
 
         if isinstance(self.discriminator, EncoderDiscriminator):
             self.discriminator.encode_input()
@@ -331,7 +343,7 @@ class GANTrainer(Trainer):
 
         return d_loss.item(), g_loss, gen_samples
 
-    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None):
+    def save_checkpoint(self, path_checkpoint=None, samples=None, generator=None, discriminator=None, update_history=False):
         if path_checkpoint is None:
             path_checkpoint = 'trained_models'+os.path.sep+'checkpoint.pt'
         if generator is None:
@@ -339,8 +351,10 @@ class GANTrainer(Trainer):
         if discriminator is None:
             discriminator = self.discriminator
 
-        self.configuration['trained_epochs'] = self.trained_epochs
-        self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+        if update_history:
+            self.configuration['trained_epochs'] = self.trained_epochs
+            self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+            self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
 
         state_dict = {
             'generator': generator.state_dict(),
@@ -357,7 +371,9 @@ class GANTrainer(Trainer):
         }
         torch.save(state_dict, path_checkpoint)
 
-        # print(f"Checkpoint saved to {path_checkpoint}.")
+        if update_history:
+            print(f"Checkpoint saved to {path_checkpoint}.")
+            print(f"Training complete in: {self.configuration['train_time']}")
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):
@@ -367,22 +383,27 @@ class GANTrainer(Trainer):
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
-            if state_dict['generator_scheduler'] is not None:
+            if self.g_scheduler:
                 self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
-            if state_dict['discriminator_scheduler'] is not None:
+                for i in range(len(self.generator_optimizer.param_groups)):
+                    self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler._last_lr[0]
+
+            if self.d_scheduler:
                 self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
+                for i in range(len(self.generator_optimizer.param_groups)):
+                    self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler._last_lr[0]
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
             Warning("No checkpoint-file found. Using random initialization.")
 
-    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None):
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None, update_history=False):
         """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
         but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
         Therefore, there's no need for the saved samples."""
 
         print("Managing checkpoints...")
         # save current model as checkpoint.pt
-        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator, samples=samples)
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), generator=generator, discriminator=discriminator, samples=samples, update_history=update_history)
 
         for f in checkpoint_files:
             if os.path.exists(os.path.join(path_checkpoint, f)):
@@ -505,10 +526,14 @@ class AETrainer(Trainer):
 
             samples = []
 
-            for epoch in range(self.epochs):
+            loop = tqdm(range(self.epochs))
+            for epoch in loop:
                 train_loss, test_loss, sample = self.batch_train(train_data, test_data)
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
+
+                loop.set_postfix(loss={'TRAIN LOSS': np.round(train_loss,6), 'TEST LOSS': np.round(test_loss,6)})
+
                 if len(sample) > 0:
                     samples.append(sample)
 
@@ -524,7 +549,7 @@ class AETrainer(Trainer):
                         trigger_checkpoint_01 = True
 
                 self.trained_epochs += 1
-                self.print_log(epoch + 1, train_loss, test_loss)
+                #self.print_log(epoch + 1, train_loss, test_loss)
 
             self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
             return samples
