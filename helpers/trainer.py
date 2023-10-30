@@ -64,7 +64,7 @@ class GANTrainer(Trainer):
         self.g_scheduler = opt['g_scheduler'] if 'g_scheduler' in opt else None
         self.d_scheduler = opt['d_scheduler'] if 'd_scheduler' in opt else None
         self.scheduler_delay = opt['scheduler_delay']
-        self.counterfactual_lr = opt['counterfactual_lr']
+        self.counterfactual_scheduler = opt['counterfactual_scheduler']
         self.start_time = time.time()
 
         self.generator = generator
@@ -131,7 +131,7 @@ class GANTrainer(Trainer):
             'g_scheduler': self.g_scheduler,
             'd_scheduler': self.d_scheduler,
             'scheduler_delay': self.scheduler_delay,
-            'counterfactual_lr': self.counterfactual_lr,
+            'counterfactual_scheduler': self.counterfactual_scheduler,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -186,16 +186,16 @@ class GANTrainer(Trainer):
                 d_lr = self.discriminator_scheduler._last_lr[0]
             if self.d_scheduler is not None and self.scheduler_delay < epoch:
                 self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
-                if self.counterfactual_lr is not None:
+                if self.counterfactual_scheduler is not None:
                     for i in range(len(self.generator_optimizer.param_groups)):
-                        new_g_lr = g_lr+(g_lr*self.counterfactual_lr*self.d_scheduler)
+                        new_g_lr = g_lr+(g_lr*self.counterfactual_scheduler*self.d_scheduler)
                         self.generator_optimizer.param_groups[i]['lr'] = new_g_lr
                         print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_g_lr}")
             if self.g_scheduler is not None and self.scheduler_delay < epoch:
                 self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
-                if self.counterfactual_lr is not None:
+                if self.counterfactual_scheduler is not None:
                     for i in range(len(self.discriminator_optimizer.param_groups)):
-                        new_d_lr = d_lr+(d_lr*self.counterfactual_lr*self.g_scheduler)
+                        new_d_lr = d_lr+(d_lr*self.counterfactual_scheduler*self.g_scheduler)
                         self.discriminator_optimizer.param_groups[i]['lr'] = new_d_lr
                         print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_d_lr}")
             self.d_losses.append(d_loss_batch/i_batch)

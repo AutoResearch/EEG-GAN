@@ -88,7 +88,7 @@ def main():
         'g_scheduler': default_args['g_scheduler'],
         'd_scheduler': default_args['d_scheduler'],
         'scheduler_delay': default_args['scheduler_delay'],
-        'counterfactual_lr': default_args['counterfactual_lr'],
+        'counterfactual_scheduler': default_args['counterfactual_scheduler'],
     }
 
     # Load dataset as tensor
