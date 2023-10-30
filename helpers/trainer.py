@@ -79,14 +79,14 @@ class GANTrainer(Trainer):
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=100, verbose=True)
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=100, verbose=False)
         else:
             self.generator_scheduler = None
             
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=100, verbose=True)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=100, verbose=False)
         else:
             self.discriminator_scheduler = None
             
@@ -180,31 +180,32 @@ class GANTrainer(Trainer):
                 d_loss_batch += d_loss
                 g_loss_batch += g_loss
                 i_batch += 1
-
-            g_lr=np.zeros(len(self.generator_optimizer.param_groups))
-            d_lr=np.zeros(len(self.discriminator_optimizer.param_groups))
-            for i in range(len(self.generator_optimizer.param_groups)):
-                g_lr[i] = self.generator_optimizer.param_groups[i]['lr']
-            for i in range(len(self.generator_optimizer.param_groups)):
-                d_lr[i] = self.discriminator_optimizer.param_groups[i]['lr']
-            if self.d_scheduler is not None and self.scheduler_delay < epoch:
-                self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
-                if self.counterfactual_scheduler is not None:
-                    for i in range(len(self.generator_optimizer.param_groups)):
-                        if self.discriminator_optimizer.param_groups[i]['lr'] < d_lr[i]: #Only update if the lr has been decreased
-                            new_g_lr = g_lr[i]+(g_lr[i]*self.counterfactual_scheduler*self.d_scheduler)
-                            self.generator_optimizer.param_groups[i]['lr'] = new_g_lr
-                            print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_g_lr}")
-            if self.g_scheduler is not None and self.scheduler_delay < epoch:
-                self.generator_scheduler.step(np.abs(g_loss_batch/i_batch))
-                if self.counterfactual_scheduler is not None:
-                    for i in range(len(self.discriminator_optimizer.param_groups)):
-                        if self.generator_optimizer.param_groups[i]['lr'] < g_lr[i]: #Only update if the lr has been decreased
-                            new_d_lr = d_lr[i]+(d_lr[i]*self.counterfactual_scheduler*self.g_scheduler)
-                            self.discriminator_optimizer.param_groups[i]['lr'] = new_d_lr
-                            print(f"Epoch {str(epoch).zfill(5)}: increasing counterfactual learning rate of group {i} to {new_d_lr}")
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
+
+            #Get current learning rates
+            d_lr = self.discriminator_optimizer.param_groups[0]['lr']
+            g_lr = self.generator_optimizer.param_groups[0]['lr']
+
+            #Discriminator scheduler
+            if self.d_scheduler is not None and self.scheduler_delay < epoch: #Check that delay has passed
+                self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
+                if self.discriminator_optimizer.param_groups[0]['lr'] < d_lr: #Only update if the lr has been decreased
+                    print(f"Epoch {str(epoch).zfill(5)}: Reducing discriminator learning rate to {self.discriminator_optimizer.param_groups[0]['lr']}")
+                    if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
+                        new_g_lr = g_lr+(g_lr*self.counterfactual_scheduler*self.d_scheduler) #Determine new lr
+                        self.generator_optimizer.param_groups[0]['lr'] = new_g_lr #Change lr
+                        print(f"Epoch {str(epoch).zfill(5)}: Increasing generator learning rate to {new_g_lr}")
+            
+            #Generator scheduler
+            if self.g_scheduler is not None and self.scheduler_delay < epoch: #Check that delay has passed
+                self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
+                if self.generator_optimizer.param_groups[0]['lr'] < g_lr: #Only update if the lr has been decreased
+                    print(f"Epoch {str(epoch).zfill(5)}: Reducing generator learning rate to {self.generator_optimizer.param_groups[0]['lr']}")
+                    if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
+                        new_d_lr = d_lr+(d_lr*self.counterfactual_scheduler*self.g_scheduler) #Determine new lr
+                        self.discriminator_optimizer.param_groups[0]['lr'] = new_d_lr #Change lr
+                        print(f"Epoch {str(epoch).zfill(5)}: Increasing discriminator learning rate to  {new_d_lr}")
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
