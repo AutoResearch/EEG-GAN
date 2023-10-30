@@ -181,8 +181,9 @@ class GANTrainer(Trainer):
                 g_loss_batch += g_loss
                 i_batch += 1
 
-            g_lr = self.generator_scheduler._last_lr[0]
-            d_lr = self.discriminator_scheduler._last_lr[0]
+            if epoch > 0:
+                g_lr = self.generator_scheduler._last_lr[0]
+                d_lr = self.discriminator_scheduler._last_lr[0]
             if self.d_scheduler is not None and self.scheduler_delay < epoch:
                 self.discriminator_scheduler.step(np.abs(d_loss_batch/i_batch))
                 if self.counterfactual_lr is not None:
