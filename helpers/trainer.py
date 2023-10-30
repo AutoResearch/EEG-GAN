@@ -196,7 +196,7 @@ class GANTrainer(Trainer):
                     self.discriminator_optimizer.param_groups[0]['lr'] = self.discriminator_scheduler._last_lr[0] #Assign 
                     print(f"Epoch {str(epoch).zfill(5)}: Reducing discriminator learning rate to {self.discriminator_optimizer.param_groups[0]['lr']}")
                     if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
-                        new_g_lr = g_lr*(1+(self.counterfactual_scheduler*self.d_scheduler))#Determine new lr
+                        new_g_lr = g_lr/(self.counterfactual_scheduler*self.d_scheduler)#Determine new lr
                         self.generator_optimizer.param_groups[0]['lr'] = new_g_lr #Change lr
                         print(f"Epoch {str(epoch).zfill(5)}: Increasing generator learning rate to {new_g_lr}")
             
@@ -207,7 +207,7 @@ class GANTrainer(Trainer):
                     self.generator_optimizer.param_groups[0]['lr'] = self.generator_scheduler._last_lr[0]
                     print(f"Epoch {str(epoch).zfill(5)}: Reducing generator learning rate to {self.generator_optimizer.param_groups[0]['lr']}")
                     if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
-                        new_d_lr = d_lr*(1+(self.counterfactual_scheduler*self.g_scheduler)) #Determine new lr
+                        new_d_lr = d_lr/(self.counterfactual_scheduler*self.g_scheduler) #Determine new lr
                         self.discriminator_optimizer.param_groups[0]['lr'] = new_d_lr #Change lr
                         print(f"Epoch {str(epoch).zfill(5)}: Increasing discriminator learning rate to  {new_d_lr}")
 
