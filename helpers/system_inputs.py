@@ -238,6 +238,7 @@ def default_inputs_training_gan():
         'd_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the discriminator when loss had asymptoted', None, 'Discriminator scheduler factor: '],
         'scheduler_delay': [int, 'Number of epochs before the scheduler(s) will be initiated', 500, 'Scheduler delay: '],
         'counterfactual_scheduler': [float, 'If true, decreasing one learning rate will increase the other learning rate by a proportion scheduler factor (e.g., g_scheduler:0.1 * counterfactual_scheduler:0.5 = 0.05)', None, 'Counterfactual factor: '],
+        'plot_losses': [bool, 'Whether to display loss plots in terminal during training', False, 'Plotting losses'],
     }
 
     return kw_dict

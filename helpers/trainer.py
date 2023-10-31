@@ -3,9 +3,10 @@ import os
 import time
 from tqdm import tqdm
 from decimal import Decimal
+import shutil
+import numpy as np
 
 import torch
-import numpy as np
 from torch.utils.data import DataLoader
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
@@ -66,6 +67,7 @@ class GANTrainer(Trainer):
         self.d_scheduler = opt['d_scheduler'] if 'd_scheduler' in opt else None
         self.scheduler_delay = opt['scheduler_delay']
         self.counterfactual_scheduler = opt['counterfactual_scheduler']
+        self.plot_losses = opt['plot_losses']
         self.start_time = time.time()
 
         self.generator = generator
@@ -80,7 +82,7 @@ class GANTrainer(Trainer):
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=10, verbose=False)
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=50, verbose=False)
             self.generator_scheduler._last_lr = [self.learning_rate]
         else:
             self.generator_scheduler = None
@@ -88,7 +90,7 @@ class GANTrainer(Trainer):
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=10, verbose=False)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=50, verbose=False)
             self.discriminator_scheduler._last_lr = [self.learning_rate]
         else:
             self.discriminator_scheduler = None
@@ -187,8 +189,10 @@ class GANTrainer(Trainer):
             self.g_losses.append(g_loss_batch/i_batch)
 
             #Get current learning rates
-            d_lr = self.discriminator_scheduler._last_lr[0]
-            g_lr = self.generator_scheduler._last_lr[0]
+            if self.d_scheduler is not None:
+                d_lr = self.discriminator_scheduler._last_lr[0]
+            if self.g_scheduler is not None:
+                g_lr = self.generator_scheduler._last_lr[0]
 
             #Discriminator scheduler
             if self.d_scheduler is not None and self.scheduler_delay < epoch: #Check that delay has passed
@@ -228,7 +232,9 @@ class GANTrainer(Trainer):
 
             self.trained_epochs += 1
             #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
-            loop.set_postfix(loss={'D LOSS': np.round(d_loss_batch/i_batch,6), 'G LOSS': np.round(g_loss_batch/i_batch,6)})
+            loop.set_postfix_str(f"D LOSS: {np.round(d_loss_batch/i_batch,6)}, G LOSS: {np.round(g_loss_batch/i_batch,6)}")
+            if self.plot_losses:
+                self.terminal_plot(range(len(self.d_losses)*3), self.d_losses, self.g_losses, rows=15, columns=30)
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples, update_history=True)
 
@@ -481,6 +487,62 @@ class GANTrainer(Trainer):
 
         return fake_data
 
+    #The following was adapted from the terminalplot package
+    def terminal_plot(self, x, y1, y2, rows=None, columns=None):
+        """
+        x, y list of values on x- and y-axis
+        plot those values within canvas size (rows and columns)
+        """
+        def_row, def_col = self.get_terminal_size()
+        rows = rows if rows else def_row
+        columns = columns if columns else def_col
+        # offset for caption
+        rows -= 4
+
+        # Scale points such that they fit on canvas
+        x_scaled = self.scale(x, columns)
+        y_scaled = self.scale(y1+y2+[0.5]*len(y1), rows)
+        y1_scaled = y_scaled[:int(len(x)/3)]
+        y2_scaled = y_scaled[int(len(x)/3):int(len(x)/3)*2]
+        zero_scaled = y_scaled[int(len(x)/3)*2:]
+
+        # Create empty canvas
+        canvas = [[" " for _ in range(columns)] for _ in range(rows)]
+
+        # Add scaled points to canvas
+        for ix, iy in zip(x_scaled, zero_scaled):
+            canvas[rows - iy - 1][ix] = "-"        
+        for ix, iy in zip(x_scaled, y2_scaled):
+            canvas[rows - iy - 1][ix] = "+"
+        for ix, iy in zip(x_scaled, y1_scaled):
+            if canvas[rows - iy - 1][ix] == "+":
+                canvas[rows - iy - 1][ix] = "x"
+            else:
+                canvas[rows - iy - 1][ix] = "*"
+
+        # Print rows of canvas
+        print('-----------------------------------------')
+        for row in ["".join(row) for row in canvas]:
+            print(row)
+        print(f'LEGEND: Discriminator Loss: *  |  Generator Loss: +  |  Overlap of Losses: x  |  Zero Line: -')
+        print('-----------------------------------------')
+
+    def scale(self, x, length):
+        """
+        Scale points in 'x', such that distance between
+        max(x) and min(x) equals to 'length'. min(x)
+        will be moved to 0.
+        """
+        s = (
+            float(length - 1) / (max(x) - min(x))
+            if x and max(x) - min(x) != 0
+            else length
+        )
+        return [int((i - min(x)) * s) for i in x]
+
+
+    def get_terminal_size(self):
+        return shutil.get_terminal_size()
 
 class AETrainer(Trainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
@@ -554,13 +616,14 @@ class AETrainer(Trainer):
 
             samples = []
 
+            self.terminal_plot(x, y, rows=None, columns=None)
             loop = tqdm(range(self.epochs))
             for epoch in loop:
                 train_loss, test_loss, sample = self.batch_train(train_data, test_data)
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
 
-                loop.set_postfix(loss={'TRAIN LOSS': np.round(train_loss,6), 'TEST LOSS': np.round(test_loss,6)})
+                loop.set_postfix_str(f"TRAIN LOSS: {np.round(train_loss,6)}, TEST LOSS: {np.round(test_loss,6)}")
 
                 if len(sample) > 0:
                     samples.append(sample)

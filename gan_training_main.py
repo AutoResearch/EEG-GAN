@@ -89,6 +89,7 @@ def main():
         'd_scheduler': default_args['d_scheduler'],
         'scheduler_delay': default_args['scheduler_delay'],
         'counterfactual_scheduler': default_args['counterfactual_scheduler'],
+        'plot_losses': default_args['plot_losses'],
     }
 
     # Load dataset as tensor
