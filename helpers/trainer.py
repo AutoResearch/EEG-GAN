@@ -3,6 +3,7 @@ import os
 import time
 from tqdm import tqdm
 from decimal import Decimal
+import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
