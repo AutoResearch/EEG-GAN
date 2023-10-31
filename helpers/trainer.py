@@ -212,7 +212,7 @@ class GANTrainer(Trainer):
                         new_d_lr = d_lr/(self.counterfactual_scheduler*self.g_scheduler) #Determine new lr
                         self.discriminator_optimizer.param_groups[0]['lr'] = new_d_lr #Change lr
                         self.discriminator_scheduler._last_lr[0] = new_d_lr #Change lr
-                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing discriminator learning rate to  {'%.2E' % Decimal(str(new_d_lr))}")
+                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing discriminator learning rate to {'%.2E' % Decimal(str(new_d_lr))}")
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
