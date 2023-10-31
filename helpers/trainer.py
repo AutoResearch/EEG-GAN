@@ -230,7 +230,7 @@ class GANTrainer(Trainer):
 
             self.trained_epochs += 1
             #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
-            loop.set_postfix(loss={'D LOSS': np.round(d_loss_batch/i_batch,6), 'G LOSS': np.round(g_loss_batch/i_batch,6)})
+            loop.set_postfix_str(f"D LOSS: {np.round(d_loss_batch/i_batch,6)}, G LOSS: {np.round(g_loss_batch/i_batch,6)}")
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples, update_history=True)
 
@@ -562,7 +562,7 @@ class AETrainer(Trainer):
                 self.train_loss.append(train_loss)
                 self.test_loss.append(test_loss)
 
-                loop.set_postfix(loss={'TRAIN LOSS': np.round(train_loss,6), 'TEST LOSS': np.round(test_loss,6)})
+                loop.set_postfix_str(f"TRAIN LOSS: {np.round(train_loss,6)}, TEST LOSS: {np.round(test_loss,6)}")
 
                 if len(sample) > 0:
                     samples.append(sample)
