@@ -79,7 +79,7 @@ class GANTrainer(Trainer):
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.g_scheduler is not None:
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=100, verbose=False)
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=10, verbose=False)
             self.generator_scheduler._last_lr = [self.learning_rate]
         else:
             self.generator_scheduler = None
@@ -87,7 +87,7 @@ class GANTrainer(Trainer):
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
         if self.d_scheduler is not None:
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=100, verbose=False)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=10, verbose=False)
             self.discriminator_scheduler._last_lr = [self.learning_rate]
         else:
             self.discriminator_scheduler = None
