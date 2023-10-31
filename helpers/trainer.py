@@ -2,6 +2,7 @@ from doctest import debug_script
 import os
 import time
 from tqdm import tqdm
+from decimal import Decimal
 
 import torch
 import numpy as np
@@ -194,24 +195,24 @@ class GANTrainer(Trainer):
                 self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
                 if self.discriminator_scheduler._last_lr[0] < d_lr: #Only update if the lr has been decreased
                     self.discriminator_optimizer.param_groups[0]['lr'] = self.discriminator_scheduler._last_lr[0] #Assign lr
-                    print(f"Epoch {str(epoch-1).zfill(5)}: Reducing discriminator learning rate to {self.discriminator_optimizer.param_groups[0]['lr']}")
+                    print(f"Epoch {str(epoch-1).zfill(5)}: Reducing discriminator learning rate to {'%.2E' % Decimal(str(self.discriminator_optimizer.param_groups[0]['lr']))}")
                     if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
                         new_g_lr = g_lr/(self.counterfactual_scheduler*self.d_scheduler) #Determine new lr
                         self.generator_optimizer.param_groups[0]['lr'] = new_g_lr #Change lr
                         self.generator_scheduler._last_lr[0] = new_g_lr #Change lr
-                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing generator learning rate to {new_g_lr}")
+                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing generator learning rate to {'%.2E' % Decimal(str(new_g_lr))}")
             
             #Generator scheduler
             if self.g_scheduler is not None and self.scheduler_delay < epoch: #Check that delay has passed
                 self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
                 if self.generator_scheduler._last_lr[0] < g_lr: #Only update if the lr has been decreased
                     self.generator_optimizer.param_groups[0]['lr'] = self.generator_scheduler._last_lr[0] #Assign lr
-                    print(f"Epoch {str(epoch-1).zfill(5)}: Reducing generator learning rate to {self.generator_optimizer.param_groups[0]['lr']}")
+                    print(f"Epoch {str(epoch-1).zfill(5)}: Reducing generator learning rate to {'%.2E' % Decimal(str(self.generator_optimizer.param_groups[0]['lr']))}")
                     if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
                         new_d_lr = d_lr/(self.counterfactual_scheduler*self.g_scheduler) #Determine new lr
                         self.discriminator_optimizer.param_groups[0]['lr'] = new_d_lr #Change lr
                         self.discriminator_scheduler._last_lr[0] = new_d_lr #Change lr
-                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing discriminator learning rate to  {new_d_lr}")
+                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing discriminator learning rate to  {'%.2E' % Decimal(str(new_d_lr))}")
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
