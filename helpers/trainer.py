@@ -64,6 +64,7 @@ class GANTrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.lr_scheduler = opt['lr_scheduler']
         self.scheduler_warmup = opt['scheduler_warmup']
+        self.scheduler_target = opt['scheduler_target']
         self.start_time = time.time()
 
         self.generator = generator
@@ -86,9 +87,13 @@ class GANTrainer(Trainer):
             self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.learning_rate*.1, max_lr=self.learning_rate, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
             self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.learning_rate*.1, max_lr=self.learning_rate, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
         elif self.lr_scheduler.lower() == 'reducelronplateau':
-                self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
-                self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)
-            
+            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)    
+        if self.scheduler_target.lower() == 'generator':
+            self.discriminator_scheduler = None
+        if self.scheduler_target.lower() == 'discriminator':
+            self.generator_scheduler = None
+
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
             self.loss.set_lambda_gp(self.lambda_gp)
@@ -129,6 +134,7 @@ class GANTrainer(Trainer):
             'channel_names': self.channel_names,
             'lr_scheduler': self.lr_scheduler,
             'scheduler_warmup': self.scheduler_warmup,
+            'scheduler_target': self.scheduler_target,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -182,11 +188,15 @@ class GANTrainer(Trainer):
 
             if self.scheduler_warmup < epoch:
                 if self.lr_scheduler.lower() == 'cycliclr':
-                    self.generator_scheduler.step()
-                    self.discriminator_scheduler.step()
+                    if self.scheduler_target.lower() == 'generator' or self.scheduler_target.lower() == 'both':
+                        self.generator_scheduler.step()
+                    if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
+                        self.discriminator_scheduler.step()
                 elif self.lr_scheduler.lower() == 'reducelronplateau':
-                    self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
-                    self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
+                    if self.scheduler_target.lower() == 'generator' or self.scheduler_target.lower() == 'both':
+                        self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
+                    if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
+                        self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:

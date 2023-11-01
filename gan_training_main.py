@@ -87,6 +87,7 @@ def main():
         'diff_data': diff_data,
         'lr_scheduler': default_args['lr_scheduler'],
         'scheduler_warmup': default_args['scheduler_warmup'],
+        'scheduler_target': default_args['scheduler_target'],
     }
 
     # Load dataset as tensor

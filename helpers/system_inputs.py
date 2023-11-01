@@ -235,7 +235,8 @@ def default_inputs_training_gan():
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'lr_scheduler': [str, 'The learning rate scheduler to use; Options: [CyclicLR, ReduceLROnPlateau]', '', 'Learning rate scheduler: '],
-        'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated', 0, 'Scheduler warmup: '],
+        'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated, if applicable', 0, 'Scheduler warmup: '],
+        'scheduler_target': [str, 'Which part of the GAN to apply the learning rate scheduler, if applicable; Options: [discriminator, generator, both]', 'both', 'LR Scheduler Target: ']
     }
 
     return kw_dict
