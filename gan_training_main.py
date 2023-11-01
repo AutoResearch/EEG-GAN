@@ -85,10 +85,8 @@ def main():
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
-        'g_scheduler': default_args['g_scheduler'],
-        'd_scheduler': default_args['d_scheduler'],
-        'scheduler_delay': default_args['scheduler_delay'],
-        'counterfactual_scheduler': default_args['counterfactual_scheduler'],
+        'lr_scheduler': default_args['lr_scheduler'],
+        'scheduler_warmup': default_args['scheduler_warmup'],
     }
 
     # Load dataset as tensor

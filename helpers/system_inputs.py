@@ -234,10 +234,8 @@ def default_inputs_training_gan():
         'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
-        'g_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the generator when loss has asymptoted', None, 'Generator scheduler factor: '],
-        'd_scheduler': [float, 'The factor, as a proportion, to decrease the learning rate of the discriminator when loss had asymptoted', None, 'Discriminator scheduler factor: '],
-        'scheduler_delay': [int, 'Number of epochs before the scheduler(s) will be initiated', 500, 'Scheduler delay: '],
-        'counterfactual_scheduler': [float, 'If true, decreasing one learning rate will increase the other learning rate by a proportion scheduler factor (e.g., g_scheduler:0.1 * counterfactual_scheduler:0.5 = 0.05)', None, 'Counterfactual factor: '],
+        'lr_scheduler': [str, 'The learning rate scheduler to use; Options: [CyclicLR, ReduceLROnPlateau]', 'CyclicLR', 'Learning rate scheduler: '],
+        'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated', 0, 'Scheduler warmup: '],
     }
 
     return kw_dict

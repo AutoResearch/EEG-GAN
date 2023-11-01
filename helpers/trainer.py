@@ -62,10 +62,8 @@ class GANTrainer(Trainer):
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
         self.b1, self.b2 = 0, 0.9  # alternative values: .5, 0.999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
-        self.g_scheduler = opt['g_scheduler'] if 'g_scheduler' in opt else None
-        self.d_scheduler = opt['d_scheduler'] if 'd_scheduler' in opt else None
-        self.scheduler_delay = opt['scheduler_delay']
-        self.counterfactual_scheduler = opt['counterfactual_scheduler']
+        self.lr_scheduler = opt['lr_scheduler']
+        self.scheduler_warmup = opt['scheduler_warmup']
         self.start_time = time.time()
 
         self.generator = generator
@@ -79,19 +77,17 @@ class GANTrainer(Trainer):
 
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
-        if self.g_scheduler is not None:
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.generator_optimizer, factor = self.g_scheduler, cooldown=50, verbose=False)
-            self.generator_scheduler._last_lr = [self.learning_rate]
-        else:
-            self.generator_scheduler = None
-            
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
-                                                        lr=self.learning_rate, betas=(self.b1, self.b2))
-        if self.d_scheduler is not None:
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.discriminator_optimizer, factor = self.d_scheduler, cooldown=50, verbose=False)
-            self.discriminator_scheduler._last_lr = [self.learning_rate]
-        else:
-            self.discriminator_scheduler = None
+                                                lr=self.learning_rate, betas=(self.b1, self.b2))
+        
+        self.generator_scheduler = None
+        self.discriminator_scheduler = None
+        if self.lr_scheduler.lower() == 'cycliclr':
+            self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.learning_rate, max_lr=0.001, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.learning_rate, max_lr=0.001, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+        elif self.lr_scheduler.lower() == 'reducelronplateau':
+                self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
+                self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)
             
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -131,10 +127,8 @@ class GANTrainer(Trainer):
             'path_autoencoder': opt['path_autoencoder'] if 'path_autoencoder' in opt else None,
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
-            'g_scheduler': self.g_scheduler,
-            'd_scheduler': self.d_scheduler,
-            'scheduler_delay': self.scheduler_delay,
-            'counterfactual_scheduler': self.counterfactual_scheduler,
+            'lr_scheduler': self.lr_scheduler,
+            'scheduler_warmup': self.scheduler_warmup,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -186,35 +180,13 @@ class GANTrainer(Trainer):
             self.d_losses.append(d_loss_batch/i_batch)
             self.g_losses.append(g_loss_batch/i_batch)
 
-            #Get current learning rates
-            if self.d_scheduler is not None:
-                d_lr = self.discriminator_scheduler._last_lr[0]
-            if self.d_scheduler is not None:
-                g_lr = self.generator_scheduler._last_lr[0]
-
-            #Discriminator scheduler
-            if self.d_scheduler is not None and self.scheduler_delay < epoch: #Check that delay has passed
-                self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
-                if self.discriminator_scheduler._last_lr[0] < d_lr: #Only update if the lr has been decreased
-                    self.discriminator_optimizer.param_groups[0]['lr'] = self.discriminator_scheduler._last_lr[0] #Assign lr
-                    print(f"Epoch {str(epoch-1).zfill(5)}: Reducing discriminator learning rate to {'%.2E' % Decimal(str(self.discriminator_optimizer.param_groups[0]['lr']))}")
-                    if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
-                        new_g_lr = g_lr/(self.counterfactual_scheduler*self.d_scheduler) #Determine new lr
-                        self.generator_optimizer.param_groups[0]['lr'] = new_g_lr #Change lr
-                        self.generator_scheduler._last_lr[0] = new_g_lr #Change lr
-                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing generator learning rate to {'%.2E' % Decimal(str(new_g_lr))}")
-            
-            #Generator scheduler
-            if self.g_scheduler is not None and self.scheduler_delay < epoch: #Check that delay has passed
-                self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
-                if self.generator_scheduler._last_lr[0] < g_lr: #Only update if the lr has been decreased
-                    self.generator_optimizer.param_groups[0]['lr'] = self.generator_scheduler._last_lr[0] #Assign lr
-                    print(f"Epoch {str(epoch-1).zfill(5)}: Reducing generator learning rate to {'%.2E' % Decimal(str(self.generator_optimizer.param_groups[0]['lr']))}")
-                    if self.counterfactual_scheduler is not None: #Check counterfactual scheduler parameter
-                        new_d_lr = d_lr/(self.counterfactual_scheduler*self.g_scheduler) #Determine new lr
-                        self.discriminator_optimizer.param_groups[0]['lr'] = new_d_lr #Change lr
-                        self.discriminator_scheduler._last_lr[0] = new_d_lr #Change lr
-                        print(f"Epoch {str(epoch-1).zfill(5)}: Increasing discriminator learning rate to {'%.2E' % Decimal(str(new_d_lr))}")
+            if self.scheduler_warmup < epoch:
+                if self.lr_scheduler.lower() == 'cycliclr':
+                    self.generator_scheduler.step()
+                    self.discriminator_scheduler.step()
+                elif self.lr_scheduler.lower() == 'reducelronplateau':
+                    self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
+                    self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
