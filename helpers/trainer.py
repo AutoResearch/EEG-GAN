@@ -83,8 +83,8 @@ class GANTrainer(Trainer):
         self.generator_scheduler = None
         self.discriminator_scheduler = None
         if self.lr_scheduler.lower() == 'cycliclr':
-            self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.learning_rate, max_lr=0.001, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-            self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.learning_rate, max_lr=0.001, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+            self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.learning_rate*.1, max_lr=self.learning_rate, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.learning_rate*.1, max_lr=self.learning_rate, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
         elif self.lr_scheduler.lower() == 'reducelronplateau':
                 self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
                 self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)
