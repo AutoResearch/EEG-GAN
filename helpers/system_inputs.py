@@ -225,6 +225,8 @@ def default_inputs_training_gan():
         'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
         'patch_size': [int, 'Patch size of the divided sequence (only for TTS-GAN)', 20, 'Patch size: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'discriminator_lr': [float, 'If used, it overrides the general learning rate for the discriminator', None, 'Discriminator learning rate: '],
+        'generator_lr': [float, 'If used, it overrides the general learning rate for the generator', None, 'Generator learning rate: '],
         'activation': [str, 'Activation function of the GAN components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
         'type': [str, 'Type of the GAN; Options: [ff, tr, tts]', 'tr', 'GAN Type: '],
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],

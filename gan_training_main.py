@@ -66,6 +66,8 @@ def main():
         'path_autoencoder': default_args['path_autoencoder'],
         'batch_size': default_args['batch_size'],
         'learning_rate': default_args['learning_rate'],
+        'discriminator_lr': default_args['discriminator_lr'],
+        'generator_lr': default_args['generator_lr'],
         'sample_interval': default_args['sample_interval'],
         'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
         'patch_size': default_args['patch_size'],

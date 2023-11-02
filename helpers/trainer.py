@@ -57,6 +57,8 @@ class GANTrainer(Trainer):
         self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
+        self.discriminator_lr = opt['discriminator_lr']
+        self.generator_lr = opt['generator_lr']
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
@@ -76,16 +78,19 @@ class GANTrainer(Trainer):
         self.generator.to(self.device)
         self.discriminator.to(self.device)
 
+        self.d_lr = self.discriminator_lr if self.discriminator_lr is not None else self.learning_rate
+        self.g_lr = self.generator_lr if self.generator_lr is not None else self.learning_rate
+
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
-                                                    lr=self.learning_rate, betas=(self.b1, self.b2))
+                                                    lr=self.g_lr, betas=(self.b1, self.b2))
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
-                                                lr=self.learning_rate, betas=(self.b1, self.b2))
+                                                lr=self.d_lr, betas=(self.b1, self.b2))
         
         self.generator_scheduler = None
         self.discriminator_scheduler = None
         if self.lr_scheduler.lower() == 'cycliclr':
-            self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.learning_rate*.1, max_lr=self.learning_rate, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-            self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.learning_rate*.1, max_lr=self.learning_rate, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+            self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.g_lr*.1, max_lr=self.g_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+            self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.d_lr*.1, max_lr=self.d_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
         elif self.lr_scheduler.lower() == 'reducelronplateau':
             self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
             self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)    
@@ -121,6 +126,8 @@ class GANTrainer(Trainer):
             'trained_epochs': self.trained_epochs,
             'sample_interval': self.sample_interval,
             'learning_rate': self.learning_rate,
+            'discriminator_lr': self.discriminator_lr,
+            'generator_lr': self.generator_lr,
             'n_conditions': self.n_conditions,
             'latent_dim': self.latent_dim,
             'critic_iterations': self.critic_iterations,
