@@ -91,9 +91,6 @@ class GANTrainer(Trainer):
         if self.lr_scheduler.lower() == 'cycliclr':
             self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.g_lr*.1, max_lr=self.g_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
             self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.d_lr*.1, max_lr=self.d_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-        elif self.lr_scheduler.lower() == 'reducelronplateau':
-            self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
-            self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)    
         if self.scheduler_target.lower() == 'generator':
             self.discriminator_scheduler = None
         if self.scheduler_target.lower() == 'discriminator':
@@ -199,11 +196,6 @@ class GANTrainer(Trainer):
                         self.generator_scheduler.step()
                     if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
                         self.discriminator_scheduler.step()
-                elif self.lr_scheduler.lower() == 'reducelronplateau':
-                    if self.scheduler_target.lower() == 'generator' or self.scheduler_target.lower() == 'both':
-                        self.discriminator_scheduler.step(np.abs(self.d_losses[-1])) #Run scheduler
-                    if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
-                        self.generator_scheduler.step(np.abs(self.g_losses[-1])) #Run scheduler
 
             # Save a checkpoint of the trained GAN and the generated samples every sample interval
             if epoch % self.sample_interval == 0:
@@ -402,15 +394,33 @@ class GANTrainer(Trainer):
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
-            if self.g_scheduler:
-                self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
-                for i in range(len(self.generator_optimizer.param_groups)):
-                    self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler._last_lr[0]
 
-            if self.d_scheduler:
-                self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
-                for i in range(len(self.generator_optimizer.param_groups)):
-                    self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler._last_lr[0]
+            '''
+            self.generator_scheduler = None
+            self.discriminator_scheduler = None
+            if self.lr_scheduler.lower() == 'cycliclr':
+                self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.g_lr*.1, max_lr=self.g_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+                self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.d_lr*.1, max_lr=self.d_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
+            elif self.lr_scheduler.lower() == 'reducelronplateau':
+                self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
+                self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)    
+            if self.scheduler_target.lower() == 'generator':
+                self.discriminator_scheduler = None
+            if self.scheduler_target.lower() == 'discriminator':
+                self.generator_scheduler = None
+            '''
+
+            if self.lr_scheduler != '' and state_dict['configuration']['lr_scheduler'] != '':
+                if self.scheduler_target == 'generator' or self.scheduler_target == 'both':
+                    self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
+                    for i in range(len(self.generator_optimizer.param_groups)):
+                        self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler.get_last_lr()[0]
+
+                if self.scheduler_target == 'discriminator' or self.scheduler_target == 'both':
+                    self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
+                    for i in range(len(self.generator_optimizer.param_groups)):
+                        self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler.get_last_lr()[0]
+                        
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
             Warning("No checkpoint-file found. Using random initialization.")
