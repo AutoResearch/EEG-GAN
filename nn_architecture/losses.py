@@ -76,20 +76,31 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         device = real_samples.device
 
         # Generate random epsilon
-        epsilon = torch.rand(batch_size, 1, 1, device=device, requires_grad=True)
-        epsilon = epsilon.expand_as(real_samples)
-
+        # TODO: this is old version
+        # epsilon = torch.rand(batch_size, 1, 1, device=device, requires_grad=True)
+        # epsilon = epsilon.expand_as(real_samples)
+        # TODO: this is new version - replace old version with this
+        # epsilon = torch.rand(*real_samples.shape, device=device, requires_grad=True)
+        # TODO: this is the original pip version; delete if supposed to
+        epsilon = torch.FloatTensor(real_samples.shape[0], 1).uniform_(0, 1).repeat((1, real_samples.shape[1])).to(real_samples.device)
+        while epsilon.dim() < real_samples.dim():
+            epsilon = epsilon.unsqueeze(-1)
+            
         # Interpolate between real and fake samples
         interpolated_samples = epsilon * real_samples + (1 - epsilon) * fake_samples
-        # interpolated_samples = torch.autograd.Variable(interpolated_samples, requires_grad=True)
+        interpolated_samples = torch.autograd.Variable(interpolated_samples, requires_grad=True)
 
         # Calculate critic scores for interpolated samples
         critic_scores = discriminator(interpolated_samples)
 
+        # TODO: check out if fake works with new version (commented out) or only with old one
+        # fake = torch.ones(critic_scores.size(), device=device)
+        fake = autograd.Variable(torch.ones((real_samples.shape[0], 1)).to(real_samples.device), requires_grad=False)
+        
         # Compute gradients of critic scores with respect to interpolated samples
         gradients = torch.autograd.grad(outputs=critic_scores,
                                         inputs=interpolated_samples,
-                                        grad_outputs=torch.ones(critic_scores.size(), device=device),
+                                        grad_outputs=fake,
                                         create_graph=True,
                                         retain_graph=True)[0]
 
