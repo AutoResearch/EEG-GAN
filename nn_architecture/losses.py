@@ -96,6 +96,8 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         # TODO: check out if fake works with new version (commented out) or only with old one
         # fake = torch.ones(critic_scores.size(), device=device)
         fake = autograd.Variable(torch.ones((real_samples.shape[0], 1)).to(real_samples.device), requires_grad=False)
+        while fake.dim() < critic_scores.dim():
+            fake = fake.unsqueeze(-1)
         
         # Compute gradients of critic scores with respect to interpolated samples
         gradients = torch.autograd.grad(outputs=critic_scores,

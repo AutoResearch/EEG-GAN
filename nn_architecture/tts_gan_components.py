@@ -133,7 +133,8 @@ class Dis_TransformerEncoderBlock(nn.Sequential):
                  num_heads=5,
                  drop_p=0.,
                  forward_expansion=4,
-                 forward_drop_p=0.):
+                 forward_drop_p=0.,
+                 **kwargs):
         super().__init__(
             ResidualAdd(nn.Sequential(
                 nn.LayerNorm(emb_size),
