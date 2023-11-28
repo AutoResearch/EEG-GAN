@@ -262,7 +262,8 @@ class GANTrainer(Trainer):
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
             z = torch.cat((z, gen_labels), dim=-1).to(self.device)
-
+            z.requires_grad = True
+            
             # Generate a batch of samples
             gen_imgs = self.generator(z)
 
@@ -340,6 +341,8 @@ class GANTrainer(Trainer):
             real_data = self.make_fake_data(real_data, disc_labels)
 
         # Loss for real and generated samples
+        real_data.requires_grad = True
+        fake_data.requires_grad = True
         validity_fake = self.discriminator(fake_data)
         validity_real = self.discriminator(real_data)
 

@@ -99,6 +99,7 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         while eta.dim() < real_images.dim():
             eta = eta.unsqueeze(-1)
         interpolated = (eta * real_images.detach() + ((1 - eta) * fake_images.detach()))
+        interpolated.requires_grad = True
 
         # deprecated - define it to calculate gradient
         # interpolated = autograd.Variable(interpolated, requires_grad=True)
