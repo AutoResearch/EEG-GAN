@@ -1,4 +1,5 @@
 import warnings
+import numpy as np
 
 import torch
 from torch import autograd
@@ -69,7 +70,7 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
         real, fake, discriminator, real_images, fake_images = args
         return super().discriminator(real, fake) + self._gradient_penalty(discriminator, real_images, fake_images)
 
-    def _gradient_penalty(self, discriminator, real_images, fake_images):
+    def _gradient_penalty(self, discriminator: torch.nn.Module, real_images: torch.Tensor, fake_images: torch.Tensor):
         """Calculates the gradient penalty for WGAN-GP"""
         
         # adjust dimensions of real_labels, fake_labels and eta to to match the dimensions of real_images
@@ -91,21 +92,22 @@ class WassersteinGradientPenaltyLoss(WassersteinLoss):
                 raise ValueError("real_images must be of dimension (batch_size, sequence_length, channels)!")
             real_images, fake_images = real_images.permute(0, 3, 2, 1), fake_images.permute(0, 3, 2, 1)
         
-        eta = torch.FloatTensor(real_images.shape[0], 1).uniform_(0, 1).repeat((1, real_images.shape[1])).to(real_images.device)
+        eta = torch.FloatTensor(np.random.random((real_images.shape[0], 1))).to(real_images.device)#.uniform_(0, 1).repeat((1, real_images.shape[1]))
 
         # interpolate between real and fake images/labels
         # interpolated_labels = real_labels  # (eta * real_labels + ((1 - eta) * fake_labels))
         while eta.dim() < real_images.dim():
             eta = eta.unsqueeze(-1)
-        interpolated = (eta * real_images + ((1 - eta) * fake_images))
+        interpolated = (eta * real_images.detach() + ((1 - eta) * fake_images.detach()))
 
-        # define it to calculate gradient
-        interpolated = autograd.Variable(interpolated, requires_grad=True)
+        # deprecated - define it to calculate gradient
+        # interpolated = autograd.Variable(interpolated, requires_grad=True)
 
         # calculate probability of interpolated examples
         prob_interpolated = discriminator(interpolated)
         
-        fake = autograd.Variable(torch.ones((real_images.shape[0], 1)).to(real_images.device), requires_grad=False)
+        # fake = autograd.Variable(torch.ones((real_images.shape[0], 1)).to(real_images.device), requires_grad=False)
+        fake = torch.ones((real_images.shape[0], 1), requires_grad=False).to(real_images.device)
 
         # calculate gradients of probabilities with respect to examples
         gradients = autograd.grad(outputs=prob_interpolated,
