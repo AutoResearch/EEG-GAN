@@ -165,7 +165,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
         # encoder block features
         # self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
         self.linear_enc_in = nn.Linear(input_dim, hidden_dim)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=2048, dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
         self.linear_enc_out = nn.Linear(hidden_dim, output_dim)
 
@@ -187,7 +187,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
         # decoder block features
         # self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
         self.linear_dec_in = nn.Linear(output_dim, hidden_dim)
-        self.decoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=2048, dropout=dropout, batch_first=True)
         self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
         self.linear_dec_out = nn.Linear(hidden_dim, input_dim)
 
