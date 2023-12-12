@@ -225,7 +225,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_dec_in(x.permute(0, 2, 1))
         x = self.decoder(x)
         x = self.linear_dec_out(x)
-        x = self.tanh(x)
+        x = self.activation(x)
         return x
 
     def save(self, path):
