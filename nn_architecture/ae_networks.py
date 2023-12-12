@@ -217,7 +217,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
         x = self.decoder_seq(x)
         x = self.linear_dec_out_seq(x)
-        x = self.activation(x)
+        x = self.tanh(x)
 
         # decoder features
         # x = self.pe_dec(x.permute(0, 2, 1))
