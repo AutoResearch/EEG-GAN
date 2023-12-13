@@ -156,6 +156,8 @@ class TransformerDoubleAutoencoder(Autoencoder):
         target = Autoencoder.TARGET_BOTH
         super(TransformerDoubleAutoencoder, self).__init__(input_dim, output_dim, output_dim_2, hidden_dim, target, num_layers, dropout, activation)
 
+        #Input dim = channel number
+        #Sequence length = timeseries length
         self.sequence_length = sequence_length
         self.num_heads = num_heads
         self.tanh = nn.Tanh()
@@ -197,40 +199,39 @@ class TransformerDoubleAutoencoder(Autoencoder):
         return x
 
     def encode(self, data):
-        # encoder features
-        # x = self.pe_enc(data)
+
+        #Encode channels
         x = self.linear_enc_in(data)
         x = self.encoder(x)
         x = self.linear_enc_out(x)
         x = self.tanh(x)
-
-        # encoder sequence
-        # x = self.pe_enc_seq(x.permute(0, 2, 1))
+        '''
+        #Encode timeseries
         x = x.permute(0, 2, 1)
         x = self.linear_enc_in_seq(x)
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
         x = self.tanh(x)
         x = x.permute(0, 2, 1)
+        '''
         return x
 
     def decode(self, encoded):
-        # decoder sequence
-        # x = self.pe_dec_seq(encoded.permute(0, 2, 1))
-
-        # decoder features
-        # x = self.pe_dec(x.permute(0, 2, 1))
-        x = self.linear_dec_in(encoded)
-        x = self.decoder(x)
-        x = self.linear_dec_out(x)
-        x = self.activation(x)
-
-        x = x.permute(0, 2, 1)
+        '''
+        #Decode timeseries
+        x = encoded.permute(0, 2, 1)
         x = self.linear_dec_in_seq(x)
         x = self.decoder_seq(x)
         x = self.linear_dec_out_seq(x)
         x = self.activation(x)
         x = x.permute(0, 2, 1)
+        '''
+        #Decode channels
+        #x = self.linear_dec_in(x)
+        x = self.linear_dec_in(encoded)
+        x = self.decoder(x)
+        x = self.linear_dec_out(x)
+        x = self.activation(x)
         return x
 
     def save(self, path):
