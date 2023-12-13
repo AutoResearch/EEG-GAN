@@ -167,22 +167,22 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.linear_enc_in = nn.Linear(input_dim, hidden_dim)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.linear_enc_out = nn.Linear(hidden_dim, output_dim)
+        self.linear_enc_out = nn.Linear(hidden_dim, output_dim) #Channels out
 
 
         # encoder block sequence
         # self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
-        self.linear_enc_in_seq = nn.Linear(output_dim, hidden_dim)
+        self.linear_enc_in_seq = nn.Linear(sequence_length, hidden_dim)
         self.encoder_layer_seq = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
         self.encoder_seq = nn.TransformerEncoder(self.encoder_layer_seq, num_layers=num_layers)
-        self.linear_enc_out_seq = nn.Linear(hidden_dim, output_dim_2)
+        self.linear_enc_out_seq = nn.Linear(hidden_dim, output_dim_2) #Timeseries out
 
         # decoder block sequence
         # self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
         self.linear_dec_in_seq = nn.Linear(output_dim_2, hidden_dim)
         self.decoder_layer_seq = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
         self.decoder_seq = nn.TransformerEncoder(self.decoder_layer_seq, num_layers=num_layers)
-        self.linear_dec_out_seq = nn.Linear(hidden_dim, output_dim)
+        self.linear_dec_out_seq = nn.Linear(hidden_dim, sequence_length)
 
         # decoder block features
         # self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
@@ -206,26 +206,31 @@ class TransformerDoubleAutoencoder(Autoencoder):
 
         # encoder sequence
         # x = self.pe_enc_seq(x.permute(0, 2, 1))
-        x = self.linear_enc_in_seq(x.permute(0, 2, 1))
+        x = x.permute(0, 2, 1)
+        x = self.linear_enc_in_seq(x)
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
         x = self.tanh(x)
-        return x.permute(0, 2, 1)
+        x = x.permute(0, 2, 1)
+        return x
 
     def decode(self, encoded):
         # decoder sequence
         # x = self.pe_dec_seq(encoded.permute(0, 2, 1))
-        x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
-        x = self.decoder_seq(x)
-        x = self.linear_dec_out_seq(x)
-        x = self.activation(x)
 
         # decoder features
         # x = self.pe_dec(x.permute(0, 2, 1))
-        x = self.linear_dec_in(x.permute(0, 2, 1))
+        x = self.linear_dec_in(encoded)
         x = self.decoder(x)
         x = self.linear_dec_out(x)
         x = self.activation(x)
+
+        x = x.permute(0, 2, 1)
+        x = self.linear_dec_in_seq(x)
+        x = self.decoder_seq(x)
+        x = self.linear_dec_out_seq(x)
+        x = self.activation(x)
+        x = x.permute(0, 2, 1)
         return x
 
     def save(self, path):
