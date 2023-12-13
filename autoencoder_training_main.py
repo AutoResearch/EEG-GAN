@@ -155,13 +155,23 @@ def main():
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],).to(opt['device'])
     elif opt['target'] == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
+        model_1 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
                                              output_dim=opt['output_dim'],
                                              output_dim_2=opt['output_dim_2'],
                                              sequence_length=opt['sequence_length'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
-                                             num_heads=opt['num_heads'],).to(opt['device'])
+                                             num_heads=opt['num_heads'],
+                                             training_level=1).to(opt['device'])
+        
+        model_2 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
+                                             output_dim=opt['output_dim'],
+                                             output_dim_2=opt['output_dim_2'],
+                                             sequence_length=opt['sequence_length'],
+                                             hidden_dim=opt['hidden_dim'],
+                                             num_layers=opt['num_layers'],
+                                             num_heads=opt['num_heads'],
+                                             training_level=2).to(opt['device'])
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
 
@@ -179,6 +189,9 @@ def main():
 
     opt['history'] = history
 
+    training_levels = 2 if opt['target'] == 'full' else 1
+    opt['training_levels'] = training_levels
+    
     if opt['ddp']:
         trainer = AEDDPTrainer(model, opt)
         if default_args['load_checkpoint']:
@@ -186,11 +199,33 @@ def main():
         mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
                  nprocs=opt['world_size'], join=True)
     else:
-        trainer = AETrainer(model, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
-        samples = trainer.training(train_dataloader, test_dataloader)
-        model = trainer.model
+        for training_level in range(1,training_levels+1):
+            opt['training_level'] = training_level
+            
+            if training_levels == 2 and training_level == 1:
+                model = model_1
+            elif training_levels == 2 and training_level == 2:
+                model = model_2
+            trainer = AETrainer(model, opt)
+            if default_args['load_checkpoint']:
+                trainer.load_checkpoint(default_args['path_checkpoint'])
+            samples = trainer.training(train_dataloader, test_dataloader)
+
+            if training_levels == 2 and training_level == 1:
+                model_1 = trainer.model
+                model_2.model_1 = model_1
+
+            elif training_levels == 2 and training_level == 2:
+                model_2 = trainer.model
+
+
+        if training_levels == 2:
+            pass
+            #model = 
+            #Add model combine here
+        else:
+            model = trainer.model
+
         print("Training finished.")
 
         # ----------------------------------------------------------------------------------------------------------------------
