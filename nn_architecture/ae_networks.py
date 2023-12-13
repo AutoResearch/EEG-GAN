@@ -199,7 +199,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
         return x
 
     def encode(self, data):
-
+        '''
         #Encode channels
         x = self.linear_enc_in(data)
         x = self.encoder(x)
@@ -207,17 +207,17 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = self.tanh(x)
         '''
         #Encode timeseries
-        x = x.permute(0, 2, 1)
+        x = data.permute(0, 2, 1)
+        #x = x.permute(0, 2, 1)
         x = self.linear_enc_in_seq(x)
         x = self.encoder_seq(x)
         x = self.linear_enc_out_seq(x)
         x = self.tanh(x)
         x = x.permute(0, 2, 1)
-        '''
         return x
 
     def decode(self, encoded):
-        '''
+
         #Decode timeseries
         x = encoded.permute(0, 2, 1)
         x = self.linear_dec_in_seq(x)
@@ -227,11 +227,11 @@ class TransformerDoubleAutoencoder(Autoencoder):
         x = x.permute(0, 2, 1)
         '''
         #Decode channels
-        #x = self.linear_dec_in(x)
-        x = self.linear_dec_in(encoded)
+        x = self.linear_dec_in(x)
         x = self.decoder(x)
         x = self.linear_dec_out(x)
         x = self.activation(x)
+        '''
         return x
 
     def save(self, path):
