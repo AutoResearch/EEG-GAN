@@ -193,11 +193,26 @@ def main():
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
-        trainer = AEDDPTrainer(model, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
-        mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
-                 nprocs=opt['world_size'], join=True)
+        for training_level in range(1,training_levels):
+            if training_levels == 2 and training_level == 1:
+                print('Training the first level of the autoencoder...')
+                model = model_1
+            elif training_levels == 2 and training_level == 2:
+                print('Training the second level of the autoencoder...')
+                model = model_2
+            trainer = AEDDPTrainer(model, opt)
+            if default_args['load_checkpoint']:
+                trainer.load_checkpoint(default_args['path_checkpoint'])
+            mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
+                    nprocs=opt['world_size'], join=True)
+            
+            if training_levels == 2 and training_level == 1:
+                model_1 = trainer.model
+                model_2.model_1 = model_1
+                model_2.model_1.eval()
+
+            elif training_levels == 2 and training_level == 2:
+                model_2 = trainer.model
     else:
         for training_level in range(1,training_levels+1):
             opt['training_level'] = training_level
@@ -221,12 +236,6 @@ def main():
             elif training_levels == 2 and training_level == 2:
                 model_2 = trainer.model
 
-
-        if training_levels == 2:
-            pass
-            #model = 
-            #Add model combine here
-        else:
             model = trainer.model
 
         print("Training finished.")
