@@ -193,7 +193,7 @@ def main():
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
-        for training_level in range(1,training_levels):
+        for training_level in range(1,training_levels+1):
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
                 model = model_1
