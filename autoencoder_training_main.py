@@ -203,8 +203,10 @@ def main():
             opt['training_level'] = training_level
             
             if training_levels == 2 and training_level == 1:
+                print('Training the first level of the autoencoder...')
                 model = model_1
             elif training_levels == 2 and training_level == 2:
+                print('Training the second level of the autoencoder...')
                 model = model_2
             trainer = AETrainer(model, opt)
             if default_args['load_checkpoint']:
@@ -214,6 +216,7 @@ def main():
             if training_levels == 2 and training_level == 1:
                 model_1 = trainer.model
                 model_2.model_1 = model_1
+                model_2.model_1.eval()
 
             elif training_levels == 2 and training_level == 2:
                 model_2 = trainer.model
