@@ -85,7 +85,8 @@ def init_gan(gan_type,
             ae_dict['configuration']['output_dim_2'] = ae_output_dim
             autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'full':
-            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length_generated).to(device)
+            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length_generated, training_level=1).to(device)
+            autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length_generated, training_level=2).to(device)
         else:
             raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
         consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
