@@ -9,7 +9,7 @@ from helpers.dataloader import Dataloader
 # another comment
 
 #User input
-data_checkpoint = 'stock_data/ganTrialElectrodeERP_p500_e18_len100.csv'
+data_checkpoint = 'data/ganTrialElectrodeERP_p500_e18_len100.csv'
 ae_checkpoint = 'trained_ae/ae_ddp_4000ep_20230824_145643.pt'
 
 #Load
