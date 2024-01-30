@@ -29,6 +29,10 @@ class Dataloader:
             # Load data from csv as pandas dataframe and convert to tensor
             df = pd.read_csv(path)
 
+            print('****')
+            for i in range(5):
+                print(df[i])
+
             if sort_data:
                 sorting_labels = []
                 if condition_label:
@@ -41,6 +45,10 @@ class Dataloader:
                 if channel_label:
                     sorting_labels.append(channel_label)
                 df = df.sort_values(by=sorting_labels)
+            print(sorting_labels)
+
+            for i in range(5):
+                print(df[i])
 
             # reshape and filter data based on channel specifications
             channels = [0]
@@ -56,14 +64,14 @@ class Dataloader:
 
             # get first column index of a time step
             n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
-            print(n_col_data)
-            print(len(n_col_data))
 
             if not isinstance(condition_label, list):
                 condition_label = [condition_label]
 
             # Get labels and data
             dataset = torch.FloatTensor(df.to_numpy()[:, n_col_data])
+            print('DATASETS')
+            print(dataset.shape)
             n_labels = len(condition_label) if condition_label[0] != '' else 0
             labels = torch.zeros((dataset.shape[0], n_labels))
             if n_labels:
@@ -101,6 +109,9 @@ class Dataloader:
             else:
                 dataset = dataset.unsqueeze(-1)
                 labels = labels.unsqueeze(-1)
+            print(dataset.shape)
+            print('n_channels')
+            print(n_channels)
 
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)
