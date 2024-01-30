@@ -84,9 +84,11 @@ def main():
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),  # number of processes for distributed training
         # 'multichannel': default_args['multichannel'],
         'channel_label': default_args['channel_label'],
+        'participant_label': default_args['participant_label'],
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
+        'sort_data': default_args['sort_data'],
         'lr_scheduler': default_args['lr_scheduler'],
         'scheduler_warmup': default_args['scheduler_warmup'],
         'scheduler_target': default_args['scheduler_target'],
@@ -95,10 +97,12 @@ def main():
     # Load dataset as tensor
     dataloader = Dataloader(default_args['path_dataset'],
                             kw_timestep=default_args['kw_timestep'],
-                            col_label=default_args['conditions'],
+                            condition_label=default_args['conditions'],
                             norm_data=norm_data,
                             std_data=std_data,
                             diff_data=diff_data,
+                            sort_data=default_args['sort_data'],
+                            participant_label=default_args['participant_label'],
                             channel_label=default_args['channel_label'])
     dataset = dataloader.get_data()
 

@@ -164,7 +164,7 @@ def _ddp_training(trainer_ddp, opt):
         opt['conditions'] = ['']
     dataloader = Dataloader(opt['path_dataset'],
                             kw_timestep=opt['kw_timestep'],
-                            col_label=opt['conditions'],
+                            condition_label=opt['conditions'],
                             norm_data=True,
                             channel_label=opt['channel_label'])
     dataset = dataloader.get_data()

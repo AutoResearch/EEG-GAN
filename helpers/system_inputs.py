@@ -238,7 +238,8 @@ def default_inputs_training_gan():
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'lr_scheduler': [str, 'The learning rate scheduler to use; Options: [CyclicLR]', '', 'Learning rate scheduler: '],
         'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated, if applicable', 0, 'Scheduler warmup: '],
-        'scheduler_target': [str, 'Which part of the GAN to apply the learning rate scheduler, if applicable; Options: [discriminator, generator, both]', 'both', 'LR Scheduler Target: ']
+        'scheduler_target': [str, 'Which part of the GAN to apply the learning rate scheduler, if applicable; Options: [discriminator, generator, both]', 'both', 'LR Scheduler Target: '],
+        'sort_data': [bool, 'Whether to sort data using using the hierarchy [Condition, ParticipantID, Electrode]', False, 'Sorting data is active'],
     }
 
     return kw_dict
@@ -254,7 +255,9 @@ def default_inputs_training_autoencoder():
         'save_name': [str, 'Name to save model', None, 'Model save name: '],
         'target': [str, 'Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;', 'full', 'Target: '],
         # 'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
+        'conditions': [str, 'Column name to detect used conditions', '', 'Condition label: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
+        'participant_label': [str, 'Column name to detect participant IDs', '', 'Participant label: '],
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'sigmoid', 'Activation function: '],
         'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],
@@ -267,6 +270,7 @@ def default_inputs_training_autoencoder():
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'sort_data': [bool, 'Whether to sort data using using the hierarchy [Condition, ParticipantID, Electrode]', False, 'Sorting data is active'],
     }
     return kw_dict
 

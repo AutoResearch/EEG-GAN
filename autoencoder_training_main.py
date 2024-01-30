@@ -34,7 +34,9 @@ def main():
         'target': default_args['target'],
         'sample_interval': default_args['sample_interval'],
         # 'conditions': default_args['conditions'],
+        'condition_label': default_args['conditions'],
         'channel_label': default_args['channel_label'],
+        'participant_label': default_args['participant_label'],
         'channels_out': default_args['channels_out'],
         'timeseries_out': default_args['timeseries_out'],
         'n_epochs': default_args['n_epochs'],
@@ -54,6 +56,7 @@ def main():
         'norm_data': True,
         'std_data': False,
         'diff_data': False,
+        'sort_data': default_args['sort_data'],
         'kw_timestep': default_args['kw_timestep'],
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
@@ -71,8 +74,8 @@ def main():
     #     return (dataset-x_min)/(x_max-x_min)
     
     data = Dataloader(path=opt['path_dataset'],
-                      channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
-                      norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
+                      kw_timestep=opt['kw_timestep'], condition_label=opt['condition_label'], channel_label=opt['channel_label'], participant_label=opt['participant_label'],
+                      norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'], sort_data=opt['sort_data'])
     dataset = data.get_data()
     # dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
     # dataset = scale(dataset)

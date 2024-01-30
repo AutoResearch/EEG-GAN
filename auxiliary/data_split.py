@@ -19,7 +19,7 @@ if __name__ == "__main__":
     shuffle_data = False
 
     # split dataset into train and test
-    dataloader = Dataloader(file_dataset, col_label=conditions_dataset)
+    dataloader = Dataloader(file_dataset, condition_label=conditions_dataset)
     train_data, test_data, train_idx, test_idx = dataloader.dataset_split(train_size=train_size, shuffle=shuffle_data)
 
     # train_data = dataloader.get_data()[train_idx][:, len(conditions_dataset):].detach().cpu().numpy()
