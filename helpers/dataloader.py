@@ -33,6 +33,8 @@ class Dataloader:
             for i in range(5):
                 print(df.loc[i])
 
+            print('sort data')
+            print(sort_data)
             if sort_data:
                 sorting_labels = []
                 if condition_label:
@@ -45,7 +47,7 @@ class Dataloader:
                 if channel_label:
                     sorting_labels.append(channel_label)
                 df = df.sort_values(by=sorting_labels)
-            print(sorting_labels)
+                print(sorting_labels)
 
             for i in range(5):
                 print(df.loc[i])
