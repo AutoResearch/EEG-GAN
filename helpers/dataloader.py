@@ -56,6 +56,8 @@ class Dataloader:
 
             # get first column index of a time step
             n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
+            print(n_col_data)
+            print(len(n_col_data))
 
             if not isinstance(condition_label, list):
                 condition_label = [condition_label]

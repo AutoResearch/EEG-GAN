@@ -158,7 +158,6 @@ def main():
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],).to(opt['device'])
     elif opt['target'] == 'full':
-        print(opt)
         model_1 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
                                              output_dim=opt['output_dim'],
                                              output_dim_2=opt['output_dim_2'],
