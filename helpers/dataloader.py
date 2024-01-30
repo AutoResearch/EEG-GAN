@@ -29,8 +29,6 @@ class Dataloader:
             # Load data from csv as pandas dataframe and convert to tensor
             df = pd.read_csv(path)
 
-            print('sort data')
-            print(sort_data)
             if sort_data:
                 sorting_labels = []
                 if condition_label:
@@ -65,11 +63,9 @@ class Dataloader:
 
             # Get labels and data
             dataset = torch.FloatTensor(df.to_numpy()[:, n_col_data])
-            print('DATASETS')
-            print(dataset.shape)
-            n_labels = len(condition_label) if condition_label[0] != '' else 0
-            labels = torch.zeros((dataset.shape[0], n_labels))
-            if n_labels:
+            self.n_labels = len(condition_label) if condition_label[0] != '' else 0
+            labels = torch.zeros((dataset.shape[0], self.n_labels))
+            if self.n_labels:
                 for i, l in enumerate(condition_label):
                     labels[:, i] = torch.FloatTensor(df[l])
 
@@ -104,9 +100,6 @@ class Dataloader:
             else:
                 dataset = dataset.unsqueeze(-1)
                 labels = labels.unsqueeze(-1)
-            print(dataset.shape)
-            print('n_channels')
-            print(n_channels)
 
             # concatenate labels to data
             dataset = torch.concat((labels, dataset), 1)
@@ -114,13 +107,18 @@ class Dataloader:
             self.dataset = dataset
             self.labels = labels
 
-    def get_data(self, shuffle=True):
+    def get_data(self, return_labels=True, shuffle=True):
         """returns the data as a tensor"""
         if shuffle:
-            return self.dataset[torch.randperm(self.dataset.shape[0])]
+            dataset = self.dataset[torch.randperm(self.dataset.shape[0])]
         else:
-            return self.dataset
+            dataset = self.dataset
 
+        if return_labels:
+            return dataset[:,self.n_labels:]
+        else:
+            return dataset
+        
     def get_labels(self):
         return self.labels
 

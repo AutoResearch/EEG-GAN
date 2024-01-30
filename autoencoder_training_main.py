@@ -76,7 +76,7 @@ def main():
     data = Dataloader(path=opt['path_dataset'],
                       kw_timestep=opt['kw_timestep'], condition_label=opt['condition_label'], channel_label=opt['channel_label'], participant_label=opt['participant_label'],
                       norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'], sort_data=opt['sort_data'])
-    dataset = data.get_data()
+    dataset = data.get_data(return_labels=False)
     # dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
     # dataset = scale(dataset)
     
