@@ -15,7 +15,7 @@ c1_syn = pd.read_csv(f'generated_samples/{filename}_c1.csv')
 gen_data_index = 2
 
 #### Load empirical data ####
-filename_emp = filename.replace('aegan','ganTrialElectrodeERP').replace('gan','ganTrialElectrodeERP').replace('_ep1000','').replace('_ep100','').replace('_ep4000','')+'_len100.csv'
+filename_emp = f'ganTrialElectrodeERP_p{participants}_e{electrodes}_len100.csv'
 c_emp = pd.read_csv(f'data/{filename_emp}')
 c0_emp = c_emp[c_emp['Condition']==0]
 c1_emp = c_emp[c_emp['Condition']==1]
