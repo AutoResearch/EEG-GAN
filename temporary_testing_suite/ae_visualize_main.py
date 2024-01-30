@@ -6,31 +6,49 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 
-# another comment
+#Load function
+def initiate_autoencoder(ae_dict, dataset):
+
+    n_channels = dataset.shape[-1]
+    sequence_length = dataset.shape[1] - 1 #TODO: This should be minus the number of condition labels/columns
+
+    if ae_dict['configuration']['target'] == 'channels':
+        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
+        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to('cpu')
+    elif ae_dict['configuration']['target'] == 'time':
+        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
+        # switch values for output_dim and output_dim_2
+        ae_output_dim = ae_dict['configuration']['output_dim']
+        ae_dict['configuration']['output_dim'] = ae_dict['configuration']['output_dim_2']
+        ae_dict['configuration']['output_dim_2'] = ae_output_dim
+        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to('cpu')
+    elif ae_dict['configuration']['target'] == 'full':
+        autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length, training_level=2).to('cpu')
+        autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length, training_level=1).to('cpu')
+        autoencoder.model_1.eval()
+    else:
+        raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+    consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
+    autoencoder.load_state_dict(ae_dict['model'])
+    # freeze the autoencoder
+    for param in autoencoder.parameters():
+        param.requires_grad = False
+    autoencoder.eval()
+
+    return autoencoder
 
 #User input
-data_checkpoint = 'data/ganTrialElectrodeERP_p500_e18_len100.csv'
-ae_checkpoint = 'trained_ae/ae_ddp_4000ep_20230824_145643.pt'
+data_checkpoint = 'data/ganTrialElectrodeERP_p100_e2_len100.csv'
+ae_checkpoint = 'trained_ae/ae_ddp_5000ep_p100_e2_enc50-1.pt'
 
 #Load
-ae_dict = torch.load(ae_checkpoint, map_location=torch.device('cuda'))
-dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
+ae_dict = torch.load(ae_checkpoint, map_location=torch.device('cpu'))
+dataloader = Dataloader(data_checkpoint, condition_label='Condition', channel_label='Electrode')
 dataset = dataloader.get_data()
 sequence_length = dataset.shape[1] - dataloader.labels.shape[1]
 
 #Initiate
-if ae_dict['configuration']['model_class'] == 'TransformerAutoencoder':
-    autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
-elif ae_dict['configuration']['model_class'] == 'TransformerDoubleAutoencoder':
-    autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
-elif ae_dict['configuration']['model_class'] == 'TransformerFlattenAutoencoder':
-    autoencoder = TransformerFlattenAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length)
-else:
-    raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-consume_prefix_in_state_dict_if_present(ae_dict['model'],'module.')
-autoencoder.load_state_dict(ae_dict['model'])
-autoencoder.device = torch.device('cpu')
-print(ae_dict["configuration"]["history"])
+autoencoder = initiate_autoencoder(ae_dict, dataset)
 
 #Test
 plt.figure()
