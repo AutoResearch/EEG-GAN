@@ -48,7 +48,7 @@ class Dataloader:
             print(sorting_labels)
 
             for i in range(5):
-                print(df[i])
+                print(df.loc[i])
 
             # reshape and filter data based on channel specifications
             channels = [0]
