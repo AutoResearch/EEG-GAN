@@ -29,10 +29,6 @@ class Dataloader:
             # Load data from csv as pandas dataframe and convert to tensor
             df = pd.read_csv(path)
 
-            print('****')
-            for i in range(5):
-                print(df.loc[i])
-
             print('sort data')
             print(sort_data)
             if sort_data:
@@ -48,9 +44,6 @@ class Dataloader:
                     sorting_labels.append(channel_label)
                 df = df.sort_values(by=sorting_labels)
                 print(sorting_labels)
-
-            for i in range(5):
-                print(df.loc[i])
 
             # reshape and filter data based on channel specifications
             channels = [0]
