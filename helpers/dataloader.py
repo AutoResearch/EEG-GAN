@@ -31,7 +31,7 @@ class Dataloader:
 
             print('****')
             for i in range(5):
-                print(df[i])
+                print(df.loc[i])
 
             if sort_data:
                 sorting_labels = []
