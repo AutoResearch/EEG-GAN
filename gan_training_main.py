@@ -150,7 +150,7 @@ def main():
         processes = []
         for i in range(opt['world_size']):
             subproc = mp.Process(target=run, 
-                                 args=(opt['world_size'], find_free_port(), ddp_backend, trainer, opt))
+                                 args=(i, opt['world_size'], find_free_port(), ddp_backend, trainer, opt))
             processes.append(subproc)
             subproc.start()
         for i in range(opt['world_size']):
