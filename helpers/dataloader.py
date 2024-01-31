@@ -15,8 +15,8 @@ class Dataloader:
     - convert to tensor"""
 
     def __init__(self, path=None,
-                 diff_data=False, std_data=False, norm_data=False, sort_data=False,
-                 kw_timestep='Time', condition_label='', channel_label=None, participant_label=None):#, multichannel: Union[bool, List[str]]=False):
+                 diff_data=False, std_data=False, norm_data=False,
+                 kw_timestep='Time', col_label='', channel_label=None):#, multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -28,20 +28,6 @@ class Dataloader:
         if path is not None:
             # Load data from csv as pandas dataframe and convert to tensor
             df = pd.read_csv(path)
-
-            if sort_data:
-                sorting_labels = []
-                if condition_label:
-                    if not isinstance(condition_label, list):
-                        condition_labels = [condition_label]
-                    for condition_labels in condition_labels:
-                        sorting_labels.append(condition_labels)
-                if participant_label:
-                    sorting_labels.append(participant_label)
-                if channel_label:
-                    sorting_labels.append(channel_label)
-                df = df.sort_values(by=sorting_labels)
-                print(sorting_labels)
 
             # reshape and filter data based on channel specifications
             channels = [0]
@@ -58,15 +44,15 @@ class Dataloader:
             # get first column index of a time step
             n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
 
-            if not isinstance(condition_label, list):
-                condition_label = [condition_label]
+            if not isinstance(col_label, list):
+                col_label = [col_label]
 
             # Get labels and data
             dataset = torch.FloatTensor(df.to_numpy()[:, n_col_data])
-            self.n_labels = len(condition_label) if condition_label[0] != '' else 0
-            labels = torch.zeros((dataset.shape[0], self.n_labels))
-            if self.n_labels:
-                for i, l in enumerate(condition_label):
+            n_labels = len(col_label) if col_label[0] != '' else 0
+            labels = torch.zeros((dataset.shape[0], n_labels))
+            if n_labels:
+                for i, l in enumerate(col_label):
                     labels[:, i] = torch.FloatTensor(df[l])
 
             # if multichannel:
@@ -107,18 +93,13 @@ class Dataloader:
             self.dataset = dataset
             self.labels = labels
 
-    def get_data(self, return_labels=True, shuffle=True):
+    def get_data(self, shuffle=True):
         """returns the data as a tensor"""
         if shuffle:
-            dataset = self.dataset[torch.randperm(self.dataset.shape[0])]
+            return self.dataset[torch.randperm(self.dataset.shape[0])]
         else:
-            dataset = self.dataset
+            return self.dataset
 
-        if return_labels:
-            return dataset[:,self.n_labels:]
-        else:
-            return dataset
-        
     def get_labels(self):
         return self.labels
 
