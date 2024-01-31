@@ -7,48 +7,55 @@ from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubl
 from helpers.dataloader import Dataloader
 
 #Load function
-def initiate_autoencoder(ae_dict, dataset):
+def initiate_autoencoder(ae_checkpoint, dataset):
+    ae_dict = torch.load(ae_checkpoint, map_location=torch.device('cpu'))
 
     n_channels = dataset.shape[-1]
-    sequence_length = dataset.shape[1] - 1 #TODO: This should be minus the number of condition labels/columns
+    sequence_length = dataset.shape[1] - 1
 
     if ae_dict['configuration']['target'] == 'channels':
-        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
-        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to('cpu')
+        autoencoder = TransformerAutoencoder(input_dim=n_channels,
+                                       output_dim=ae_dict['configuration']['channels_out'],
+                                       output_dim_2=sequence_length,
+                                       target=TransformerAutoencoder.TARGET_CHANNELS,
+                                       hidden_dim=ae_dict['configuration']['hidden_dim'],
+                                       num_layers=ae_dict['configuration']['num_layers'],
+                                       num_heads=ae_dict['configuration']['num_heads'],).to('cpu')
     elif ae_dict['configuration']['target'] == 'time':
-        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
-        # switch values for output_dim and output_dim_2
-        ae_output_dim = ae_dict['configuration']['output_dim']
-        ae_dict['configuration']['output_dim'] = ae_dict['configuration']['output_dim_2']
-        ae_dict['configuration']['output_dim_2'] = ae_output_dim
-        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to('cpu')
+        autoencoder = TransformerAutoencoder(input_dim=sequence_length,
+                                       output_dim=ae_dict['configuration']['timeseries_out'],
+                                       output_dim_2=n_channels,
+                                       target=TransformerAutoencoder.TARGET_TIMESERIES,
+                                       hidden_dim=ae_dict['configuration']['hidden_dim'],
+                                       num_layers=ae_dict['configuration']['num_layers'],
+                                       num_heads=ae_dict['configuration']['num_heads'],).to('cpu')
     elif ae_dict['configuration']['target'] == 'full':
-        autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length, training_level=2).to('cpu')
-        autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length, training_level=1).to('cpu')
-        autoencoder.model_1.eval()
+        autoencoder = TransformerDoubleAutoencoder(input_dim=n_channels,
+                                             output_dim=ae_dict['configuration']['output_dim'],
+                                             output_dim_2=ae_dict['configuration']['output_dim_2'],
+                                             sequence_length=sequence_length,
+                                             hidden_dim=ae_dict['configuration']['hidden_dim'],
+                                             num_layers=ae_dict['configuration']['num_layers'],
+                                             num_heads=ae_dict['configuration']['num_heads'],).to('cpu')
     else:
-        raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-    consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
+        raise ValueError(f"Encode target '{ae_dict['configuration']['target']}' not recognized, options are 'channels', 'time', or 'full'.")
+    consume_prefix_in_state_dict_if_present(ae_dict['model'],'module.')
     autoencoder.load_state_dict(ae_dict['model'])
-    # freeze the autoencoder
-    for param in autoencoder.parameters():
-        param.requires_grad = False
-    autoencoder.eval()
+    autoencoder.device = torch.device('cpu')
 
-    return autoencoder
+    return ae_dict, autoencoder
 
 #User input
 data_checkpoint = 'data/ganTrialElectrodeERP_p100_e2_len100.csv'
-ae_checkpoint = 'trained_ae/ae_ddp_5000ep_p100_e2_enc50-1.pt'
+ae_checkpoint = 'trained_ae/ae_ddp_1000ep_20240130_204203.pt'
 
 #Load
-ae_dict = torch.load(ae_checkpoint, map_location=torch.device('cpu'))
-dataloader = Dataloader(data_checkpoint, condition_label='Condition', channel_label='Electrode')
+dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
 dataset = dataloader.get_data()
 sequence_length = dataset.shape[1] - dataloader.labels.shape[1]
 
 #Initiate
-autoencoder = initiate_autoencoder(ae_dict, dataset)
+ae_dict, autoencoder = initiate_autoencoder(ae_checkpoint, dataset)
 
 #Test
 plt.figure()
