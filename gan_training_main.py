@@ -148,12 +148,12 @@ def main():
        #          nprocs=opt['world_size'], join=True)
         
         processes = []
-        for i in range(opt['world_size']):
+        for i in range(1):
             subproc = mp.Process(target=run, 
                                  args=(i, opt['world_size'], find_free_port(), ddp_backend, trainer, opt))
             processes.append(subproc)
-            subproc.start()
-        for i in range(opt['world_size']):
+            processes[i].start()
+        for i in range(1):
             processes[i].join()
     else:
         trainer = GANTrainer(generator, discriminator, opt)
