@@ -143,18 +143,9 @@ def main():
         trainer = GANDDPTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
             trainer.load_checkpoint(default_args['path_checkpoint'])
-       # mp.spawn(run,
-       #          args=(opt['world_size'], find_free_port(), ddp_backend, trainer, opt),
-       #          nprocs=opt['world_size'], join=True)
-        
-        processes = []
-        for i in range(1):
-            subproc = mp.Process(target=run, 
-                                 args=(i, 1, find_free_port(), ddp_backend, trainer, opt))
-            processes.append(subproc)
-            processes[i].start()
-        for i in range(1):
-            processes[i].join()
+        mp.spawn(run,
+                 args=(opt['world_size'], find_free_port(), ddp_backend, trainer, opt),
+                 nprocs=opt['world_size'], join=True)
     else:
         trainer = GANTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
