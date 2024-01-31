@@ -41,7 +41,7 @@ def main():
         dataloader = Dataloader(path=default_args['path_dataset'],
                                 norm_data=True,
                                 kw_timestep=default_args['kw_timestep'],
-                                condition_label=default_args['conditions'],
+                                col_label=default_args['conditions'],
                                 channel_label=default_args['channel_label'], )
         data = dataloader.get_data(shuffle=False)[:, n_conditions:].numpy()
         conditions = dataloader.get_labels()[:, :, 0].numpy()
@@ -53,7 +53,7 @@ def main():
             dataloader = Dataloader(path=default_args['path_comp_dataset'],
                                 norm_data=True,
                                 kw_timestep=default_args['kw_timestep'],
-                                condition_label=default_args['conditions'],
+                                col_label=default_args['conditions'],
                                 channel_label=default_args['channel_label'], )
             n_conditions = dataloader.get_labels()[:, :, 0].numpy().shape[-1]
         sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
@@ -226,7 +226,7 @@ def main():
             dataloader_comp = Dataloader(path=default_args['path_comp_dataset'],
                                          norm_data=True,
                                          kw_timestep=default_args['kw_timestep'],
-                                         condition_label=default_args['conditions'],
+                                         col_label=default_args['conditions'],
                                          channel_label=default_args['channel_label'], )
             original_data = dataloader_comp.get_data(shuffle=False)[:, n_conditions:].numpy()
         elif original_data is None and default_args['path_comp_dataset'] == '':

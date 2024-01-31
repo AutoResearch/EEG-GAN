@@ -74,7 +74,7 @@ if __name__ == "__main__":
             # load csv
             dataloader = Dataloader(default_args['path_test'],
                                     kw_timestep=default_args['kw_timestep_dataset'],
-                                    condition_label=default_args['conditions'],
+                                    col_label=default_args['conditions'],
                                     norm_data=True)
             test_data = dataloader.get_data()[:, opt['n_conditions']:].float()
             test_labels = dataloader.get_data()[:, :opt['n_conditions']].float()
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         # Get experiment's data as training data
         dataloader = Dataloader(default_args['path_dataset'],
                                 kw_timestep=default_args['kw_timestep_dataset'],
-                                condition_label=default_args['conditions'],
+                                col_label=default_args['conditions'],
                                 norm_data=True)
         if test_data is None:
             _, _, train_idx, test_idx = dataloader.dataset_split(train_size=.8)
