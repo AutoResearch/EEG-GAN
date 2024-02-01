@@ -35,6 +35,7 @@ def init_gan(gan_type,
              input_sequence_length=0, 
              patch_size=-1, 
              path_autoencoder='',
+             padding=0,
              **kwargs,
              ):
     if path_autoencoder == '':
@@ -105,7 +106,7 @@ def init_gan(gan_type,
 
         # adjust generator output_dim to match the output_dim of the autoencoder
         n_channels = autoencoder.output_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
-        sequence_length_generated = autoencoder.output_dim_2 if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
+        sequence_length_generated = autoencoder.output_dim_2+padding if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
 
         # adjust discriminator input_dim to match the output_dim of the autoencoder
         channel_in_disc = n_channels + n_conditions

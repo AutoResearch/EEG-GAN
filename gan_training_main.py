@@ -110,7 +110,7 @@ def main():
     opt['n_samples'] = dataset.shape[0]
 
     ae_dict = torch.load(opt['path_autoencoder'], map_location=torch.device('cpu')) if opt['path_autoencoder'] != '' else []
-    if opt['gan_type'] == 'tts' and ae_dict and ae_dict['configuration']['timeseries_out'] % opt['patch_size']!= 0:
+    if opt['gan_type'] == 'tts' and ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time') and ae_dict['configuration']['timeseries_out'] % opt['patch_size']!= 0:
         warnings.warn(
             f"Sequence length ({ae_dict['configuration']['timeseries_out']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
             f"The sequence length is padded with zeros to fit the condition.")
