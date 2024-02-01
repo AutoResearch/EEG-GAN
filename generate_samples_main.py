@@ -92,17 +92,18 @@ def main():
             print(gan_type)
             break
     
+    print(input_sequence_length)
     generator, _ = init_gan(gan_type=gan_type,
                             latent_dim_in=latent_dim_in,
                             channel_in_disc=n_channels,
                             n_channels=n_channels,
                             n_conditions=n_conditions,
-                            sequence_length_generated=sequence_length+state_dict['configuration']['padding'],
+                            sequence_length_generated=sequence_length,
                             device=device,
                             hidden_dim=state_dict['configuration']['hidden_dim'],
                             num_layers=state_dict['configuration']['num_layers'],
                             activation=state_dict['configuration']['activation'],
-                            input_sequence_length=input_sequence_length,
+                            input_sequence_length=input_sequence_length+state_dict['configuration']['padding'],
                             patch_size=state_dict['configuration']['patch_size'],
                             path_autoencoder=state_dict['configuration']['path_autoencoder'],
                             ae_sequence_length=sequence_length-state_dict['configuration']['padding']
