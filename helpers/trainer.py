@@ -68,7 +68,7 @@ class GANTrainer(Trainer):
         self.scheduler_warmup = opt['scheduler_warmup']
         self.scheduler_target = opt['scheduler_target']
         self.start_time = time.time()
-        self.padding = opt['padding']
+        self.padding = opt['padding'].to(self.device)
 
         self.generator = generator
         self.discriminator = discriminator
