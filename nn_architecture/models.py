@@ -381,6 +381,8 @@ class DecoderGenerator(Generator):
 
 
     def forward(self, data):
+        print('DATA')
+        print(data.shape)
         if self.decode:
             return self.decoder.decode(self.generator(data))
         else:
