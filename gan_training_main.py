@@ -136,7 +136,7 @@ def main():
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
     opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
     opt['ae_sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1] - padding.shape[1]
-    opt['padding'] = padding
+    opt['padding'] = padding.shape[1]
 
     # --------------------------------------------------------------------------------
     # Initialize generator, discriminator and trainer
