@@ -343,7 +343,7 @@ class GANTrainer(Trainer):
 
             real_data = self.make_fake_data(real_data, disc_labels)
             padding = torch.zeros((real_data.shape[0], self.padding, real_data.shape[-1]))
-            real_data = torch.cat((real_data, padding), dim=1)
+            real_data = torch.cat((real_data, padding.to(self.device)), dim=1)
 
         # Loss for real and generated samples
         real_data.requires_grad = True
