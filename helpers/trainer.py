@@ -321,8 +321,6 @@ class GANTrainer(Trainer):
                     if not hasattr(self.generator, 'module'):
                         gen_samples = self.generator.decoder.decode(fake_data[:, :-self.padding, :self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels)[:,:-self.padding,:])
                     else:
-                        print('**********************')
-                        print(fake_data[:, :, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels)[:,:-self.padding,:].shape)
                         gen_samples = self.generator.module.decoder.decode(fake_data[:, :, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels)[:,:-self.padding,:])
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
@@ -344,6 +342,8 @@ class GANTrainer(Trainer):
                 real_data = self.discriminator.module.encoder.encode(data) if isinstance(self.discriminator.module, EncoderDiscriminator) and not self.discriminator.module.encode else data
 
             real_data = self.make_fake_data(real_data, disc_labels)
+            padding = torch.zeros((real_data.shape[0], self.padding, real_data.shape[-1]))
+            real_data = torch.cat((real_data, padding), dim=1)
 
         # Loss for real and generated samples
         real_data.requires_grad = True
