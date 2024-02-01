@@ -140,6 +140,7 @@ class GANTrainer(Trainer):
             'lr_scheduler': self.lr_scheduler,
             'scheduler_warmup': self.scheduler_warmup,
             'scheduler_target': self.scheduler_target,
+            'padding': self.padding,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -319,11 +320,11 @@ class GANTrainer(Trainer):
 
                 if decode_imgs:
                     if not hasattr(self.generator, 'module'):
-                        fake_input = fake_data[:, :, :self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels)
+                        fake_input = fake_data[:,:,:self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels)
                         fake_input = fake_input[:,:-self.padding,:] if self.padding > 0 else fake_input
                         gen_samples = self.generator.decoder.decode(fake_input)
                     else:
-                        fake_input = fake_data[:, :, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels)
+                        fake_input = fake_data[:,:,:self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels)
                         fake_input = fake_input[:,:-self.padding,:] if self.padding > 0 else fake_input
                         gen_samples = self.generator.module.decoder.decode(fake_input)
                     

@@ -105,6 +105,7 @@ def main():
                             input_sequence_length=input_sequence_length,
                             patch_size=state_dict['configuration']['patch_size'],
                             path_autoencoder=state_dict['configuration']['path_autoencoder'],
+                            ae_sequence_length=input_sequence_length
                             )
     generator.eval()
     if isinstance(generator, DecoderGenerator):
@@ -136,16 +137,6 @@ def main():
     seq_len = max(1, input_sequence_length)
     cond_labels = torch.zeros((num_samples_parallel, seq_len, n_conditions)).to(device) + torch.tensor(condition).to(device)
     cond_labels = cond_labels.to(device)
-
-    # JOSHUA
-    '''
-    for n in range(num_samples_parallel):
-        for i, x in enumerate(condition):
-            if x == -1:
-                # random condition (works currently only for binary conditions)
-                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
-                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
-     '''
 
     # generate samples
     num_sequences = num_samples_total // num_samples_parallel
