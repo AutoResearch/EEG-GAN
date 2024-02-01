@@ -109,7 +109,18 @@ def main():
         opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
-    if opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
+    ae_dict = torch.load(opt['path_autoencoder'], map_location=torch.device('cpu')) if opt['path_autoencoder'] != '' else []
+    if opt['gan_type'] == 'tts' and ae_dict and ae_dict['configuration']['timeseries_out'] % opt['patch_size']!= 0:
+        warnings.warn(
+            f"Sequence length ({ae_dict['configuration']['timeseries_out']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
+            f"The sequence length is padded with zeros to fit the condition.")
+        padding = 0
+        while (ae_dict['configuration']['timeseries_out'] + padding) % default_args['patch_size'] != 0:
+            padding += 1
+        padding = torch.zeros((dataset.shape[0], padding))
+        dataset = torch.cat((dataset, padding), dim=1)
+        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    elif opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
         warnings.warn(
             f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
             f"The sequence length is padded with zeros to fit the condition.")
