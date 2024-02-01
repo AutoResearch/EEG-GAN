@@ -379,19 +379,16 @@ class DecoderGenerator(Generator):
         self.channels = generator.channels if hasattr(generator, 'channels') else None
         self.seq_len = generator.seq_len if hasattr(generator, 'seq_len') else None
 
-
     def forward(self, data):
         if self.decode:
             x =self.generator(data)
             x = x[:,:-self.padding,:]
-            print(x.shape)
             return self.decoder.decode(x)
         else:
             return self.generator(data)
 
     def decode_output(self, mode=True):
         self.decode = mode
-
 
 class EncoderDiscriminator(Discriminator):
     """
