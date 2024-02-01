@@ -111,6 +111,9 @@ def init_gan(gan_type,
         # adjust discriminator input_dim to match the output_dim of the autoencoder
         channel_in_disc = n_channels + n_conditions
 
+        print(latent_dim_in)
+        print(n_channels)
+        print(sequence_length_generated)
         generator = DecoderGenerator(
             generator=gan_architectures[gan_types[gan_type][0]](
                 # FFGenerator inputs: latent_dim, output_dim, hidden_dim, num_layers, dropout, activation

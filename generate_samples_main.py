@@ -84,20 +84,12 @@ def main():
     print("Initializing generator...")
     latent_dim_in = latent_dim + n_conditions + n_channels if input_sequence_length > 0 else latent_dim + n_conditions
 
-    print(state_dict['configuration']['generator_class'])
-    print(gan_types)
     for k, v in gan_types.items():
         if state_dict['configuration']['generator_class'] in v:
             gan_type = k
             print(gan_type)
             break
-    print(latent_dim_in)
-    print(n_channels)
-    print(n_conditions)
-    print(sequence_length)
-    print(state_dict['configuration']['hidden_dim'])
-    print(input_sequence_length)
-    print(sequence_length-state_dict['configuration']['padding'])
+
     generator, _ = init_gan(gan_type=gan_type,
                             latent_dim_in=latent_dim_in,
                             channel_in_disc=n_channels,
