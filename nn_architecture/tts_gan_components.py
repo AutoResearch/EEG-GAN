@@ -186,6 +186,7 @@ class PatchEmbedding_Linear(nn.Module):
         if x.dim() == 3:
             x = x.unsqueeze(2).permute(0, 3, 2, 1)
         b, _, _, _ = x.shape
+        print(x.shape)
         x = self.projection(x)
         cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)
         # prepend the cls token to the input
