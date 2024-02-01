@@ -232,7 +232,6 @@ class TransformerDoubleAutoencoder(Autoencoder):
         if self.training_level == 2:
             #Decode timeseries
             x = x.permute(0, 2, 1)
-            print(x.shape)
             x = self.linear_dec_in_second(x)
             x = self.decoder_second(x)
             x = self.linear_dec_out_second(x)
