@@ -68,6 +68,7 @@ class GANTrainer(Trainer):
         self.scheduler_warmup = opt['scheduler_warmup']
         self.scheduler_target = opt['scheduler_target']
         self.start_time = time.time()
+        self.padding = opt['padding']
 
         self.generator = generator
         self.discriminator = discriminator
@@ -275,7 +276,7 @@ class GANTrainer(Trainer):
 
             # Compute loss/validity of generated data and update generator
             print(f'\n\n FAKE DATA SHAPE: {fake_data.shape}\n\n')
-            fake_data = torch.cat((fake_data, opt['padding']), dim=1)
+            fake_data = torch.cat((fake_data, self.padding), dim=1)
             print(f'\n\n NEW FAKE DATA SHAPE: {fake_data.shape}\n\n')
             validity = self.discriminator(fake_data)
             g_loss = self.loss.generator(validity)
