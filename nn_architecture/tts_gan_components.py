@@ -195,9 +195,6 @@ class PatchEmbedding_Linear(nn.Module):
         # prepend the cls token to the input
         x = torch.cat([cls_tokens, x], dim=1)
         # position
-        print('&&&&&&&&&')
-        print(x.shape)
-        print(self.positions.shape)
         x += self.positions
         return x
 
