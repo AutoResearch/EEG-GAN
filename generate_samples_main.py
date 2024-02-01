@@ -97,7 +97,7 @@ def main():
                             channel_in_disc=n_channels,
                             n_channels=n_channels,
                             n_conditions=n_conditions,
-                            sequence_length_generated=sequence_length,
+                            sequence_length_generated=sequence_length+state_dict['configuration']['padding'],
                             device=device,
                             hidden_dim=state_dict['configuration']['hidden_dim'],
                             num_layers=state_dict['configuration']['num_layers'],
