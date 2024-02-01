@@ -382,8 +382,8 @@ class DecoderGenerator(Generator):
 
     def forward(self, data):
         if self.decode:
-            x = self.generator(data)
-            x = x[:,:-self.padding,:]
+            x =self.generator(data)
+            x = x[:,:-15,:]
             print(x.shape)
             return self.decoder.decode(x)
         else:
