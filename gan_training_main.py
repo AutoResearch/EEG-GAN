@@ -131,6 +131,8 @@ def main():
         padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
         dataset = torch.cat((dataset, padding), dim=1)
         opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    else:
+        padding = torch.zeros((dataset.shape[0], 0, dataset.shape[-1]))
 
     opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
