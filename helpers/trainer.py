@@ -321,6 +321,8 @@ class GANTrainer(Trainer):
                     if not hasattr(self.generator, 'module'):
                         gen_samples = self.generator.decoder.decode(fake_data[:, :-self.padding, :self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels))
                     else:
+                        print('**********************')
+                        print(fake_data[:, :-self.padding, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels).shape)
                         gen_samples = self.generator.module.decoder.decode(fake_data[:, :-self.padding, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels))
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
