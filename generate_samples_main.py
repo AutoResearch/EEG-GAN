@@ -168,7 +168,7 @@ def main():
         new_samples = np.zeros((num_samples_parallel * n_channels, n_conditions + 1 + sequence_length))
         for j, channel in enumerate(channel_names):
             padding = np.zeros((samples.shape[0], state_dict['configuration']['padding'], 1))
-            new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, np.concatenate((samples[:, :, j], padding), dim=1)), axis=-1)
+            new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, np.concatenate((samples[:, :, j], padding), axis=1)), axis=-1)
         # add samples to all_samples
         all_samples[i * num_samples_parallel * n_channels:(i + 1) * num_samples_parallel * n_channels] = new_samples
 
