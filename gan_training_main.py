@@ -118,9 +118,7 @@ def main():
         while (ae_dict['configuration']['timeseries_out'] + padding) % default_args['patch_size'] != 0:
             padding += 1
 
-        padding = torch.zeros((dataset.shape[0], padding))
-        print(padding.shape)
-        print(dataset.shape)
+        padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
         dataset = torch.cat((dataset, padding), dim=1)
         opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
     elif opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
@@ -130,7 +128,7 @@ def main():
         padding = 0
         while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
             padding += 1
-        padding = torch.zeros((dataset.shape[0], padding))
+        padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
         dataset = torch.cat((dataset, padding), dim=1)
         opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
