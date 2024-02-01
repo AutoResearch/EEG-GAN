@@ -181,6 +181,9 @@ class PatchEmbedding_Linear(nn.Module):
         )
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
         print(f"SeQ LENGTH:::: {seq_length}")
+        print(patch_size)
+        print(seq_length // patch_size)
+        print(40 // patch_size)
         self.positions = nn.Parameter(torch.randn((seq_length // patch_size) + 1, emb_size))
 
     def forward(self, x: Tensor) -> Tensor:
