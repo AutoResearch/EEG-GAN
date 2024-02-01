@@ -75,6 +75,7 @@ def init_gan(gan_type,
 
         # initialize the autoencoder
         ae_dict = torch.load(path_autoencoder, map_location=torch.device('cpu'))
+        print(ae_sequence_length)
         if ae_dict['configuration']['target'] == 'channels':
             autoencoder = TransformerAutoencoder(input_dim=n_channels,
                                         output_dim=ae_dict['configuration']['channels_out'],
