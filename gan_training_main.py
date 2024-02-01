@@ -135,6 +135,7 @@ def main():
     opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
     opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
+    opt['ae_sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
 
     # --------------------------------------------------------------------------------
     # Initialize generator, discriminator and trainer
