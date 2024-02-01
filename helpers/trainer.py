@@ -324,9 +324,12 @@ class GANTrainer(Trainer):
                     else:
                         gen_samples = self.generator.module.decoder.decode(fake_data[:, :, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels))
                     
-
+                    print('PAD')
                     print(self.padding)
+                    print('GEN')
+                    print(gen_samples.shape)
                     gen_samples = gen_samples[:,:-self.padding,:] if self.padding > 0 else gen_samples
+                    print('NEW GEN')
                     print(gen_samples.shape)
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
