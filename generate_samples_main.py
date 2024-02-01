@@ -159,6 +159,9 @@ def main():
             # concat with conditions and input sequence
             z = torch.cat((z, labels_in), dim=-1).float().to(device)
             # generate samples
+            print(seq_len)
+            print(z.shape)
+            
             samples = generator(z).cpu().numpy()
         # if prediction case, concatenate input sequence and generated sequence
         if input_sequence_length > 0 and input_sequence_length != sequence_length and input_sequence is not None:
