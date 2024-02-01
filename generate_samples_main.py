@@ -108,6 +108,7 @@ def main():
                             )
     generator.eval()
     if isinstance(generator, DecoderGenerator):
+        generator.padding=state_dict['configuration']['padding']
         generator.decode_output()
 
     # load generator weights

@@ -383,7 +383,7 @@ class DecoderGenerator(Generator):
     def forward(self, data):
         if self.decode:
             x =self.generator(data)
-            x = x[:,:-15,:]
+            x = x[:,:-self.padding,:]
             print(x.shape)
             return self.decoder.decode(x)
         else:
