@@ -105,7 +105,7 @@ def main():
                             input_sequence_length=input_sequence_length,
                             patch_size=state_dict['configuration']['patch_size'],
                             path_autoencoder=state_dict['configuration']['path_autoencoder'],
-                            ae_sequence_length=input_sequence_length
+                            ae_sequence_length=sequence_length
                             )
     generator.eval()
     if isinstance(generator, DecoderGenerator):
