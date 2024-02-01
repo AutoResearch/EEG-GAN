@@ -180,6 +180,7 @@ class PatchEmbedding_Linear(nn.Module):
             nn.Linear(patch_size * in_channels, emb_size)
         )
         self.cls_token = nn.Parameter(torch.randn(1, 1, emb_size))
+        print(f"SeQ LENGTH:::: {seq_length}")
         self.positions = nn.Parameter(torch.randn((seq_length // patch_size) + 1, emb_size))
 
     def forward(self, x: Tensor) -> Tensor:
