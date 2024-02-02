@@ -39,7 +39,7 @@ class Generator(nn.Module):
         )
 
     def forward(self, z):
-        x = self.l1(z).contiguous().view(-1, self.seq_len, self.embed_dim)
+        x = self.l1(z).view(-1, self.seq_len, self.embed_dim)
         x = x + self.pos_embed
         H, W = 1, self.seq_len
         x = self.blocks(x)
