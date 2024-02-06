@@ -145,7 +145,8 @@ def main():
                                        target=TransformerAutoencoder.TARGET_CHANNELS,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
-                                       num_heads=opt['num_heads'],).to(opt['device'])
+                                       num_heads=opt['num_heads'],
+                                       activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'time':
         model = TransformerAutoencoder(input_dim=opt['sequence_length'],
                                        output_dim=opt['timeseries_out'],
@@ -153,7 +154,8 @@ def main():
                                        target=TransformerAutoencoder.TARGET_TIMESERIES,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
-                                       num_heads=opt['num_heads'],).to(opt['device'])
+                                       num_heads=opt['num_heads'],
+                                       activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
         model_1 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
                                              output_dim=opt['output_dim'],
@@ -162,6 +164,7 @@ def main():
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
+                                             activation=opt['activation'],
                                              training_level=1).to(opt['device'])
         
         model_2 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
@@ -171,6 +174,7 @@ def main():
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
+                                             activation=opt['activation'],
                                              training_level=2).to(opt['device'])
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")

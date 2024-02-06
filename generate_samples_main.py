@@ -24,8 +24,6 @@ def main():
 
     num_samples_total = default_args['num_samples_total']
     num_samples_parallel = default_args['num_samples_parallel']
-    kw_timestep_dataset = default_args['kw_timestep_dataset']
-    average_over = default_args['average']
 
     condition = default_args['conditions']
     if not isinstance(condition, list):
@@ -35,7 +33,7 @@ def main():
         condition = []
 
     file = default_args['path_file']
-    if file.split(os.path.sep)[0] == file:
+    if file.split(os.path.sep)[0] == file and file.split('/')[0] == file:
         # use default path if no path is given
         path = 'trained_models'
         file = os.path.join(path, file)
@@ -54,7 +52,6 @@ def main():
     state_dict = torch.load(file, map_location='cpu')
 
     # load model/training configuration
-    filename_dataset = state_dict['configuration']['path_dataset']
     n_conditions = state_dict['configuration']['n_conditions']
     n_channels = state_dict['configuration']['n_channels']
     channel_names = state_dict['configuration']['channel_names']
@@ -87,7 +84,6 @@ def main():
     for k, v in gan_types.items():
         if state_dict['configuration']['generator_class'] in v:
             gan_type = k
-            print(gan_type)
             break
 
     generator, _ = init_gan(gan_type=gan_type,
@@ -103,12 +99,11 @@ def main():
                             input_sequence_length=input_sequence_length,
                             patch_size=state_dict['configuration']['patch_size'],
                             path_autoencoder=state_dict['configuration']['path_autoencoder'],
-                            ae_sequence_length=sequence_length-state_dict['configuration']['padding'],
                             padding=state_dict['configuration']['padding'],
                             )
     generator.eval()
     if isinstance(generator, DecoderGenerator):
-        generator.padding=state_dict['configuration']['padding']
+        generator.padding=state_dict['configuration']['padding'] #TODO: ADD BACK
         generator.decode_output()
 
     # load generator weights
