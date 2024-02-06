@@ -381,7 +381,7 @@ class DecoderGenerator(Generator):
 
     def forward(self, data):
         if self.decode:
-            data_input =self.generator(data)
+            data_input = self.generator(data)
             data_input = data_input[:,:-self.padding,:] if self.padding > 0 else data_input
             return self.decoder.decode(data_input)
         else:

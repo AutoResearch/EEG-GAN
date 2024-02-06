@@ -276,8 +276,8 @@ class GANTrainer(Trainer):
                 fake_data = self.make_fake_data(gen_imgs, data_labels, gen_cond_data)
 
             # Compute loss/validity of generated data and update generator
-            #pad = torch.zeros((fake_data.shape[0], self.padding, fake_data.shape[-1]))
-            #fake_data = torch.cat((fake_data, pad.to(self.device)), dim=1)
+            pad = torch.zeros((fake_data.shape[0], self.padding, fake_data.shape[-1]))
+            fake_data = torch.cat((fake_data, pad.to(self.device)), dim=1)
             validity = self.discriminator(fake_data)
             g_loss = self.loss.generator(validity)
             self.generator_optimizer.zero_grad()

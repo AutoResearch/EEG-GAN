@@ -28,7 +28,6 @@ def init_gan(gan_type,
              n_conditions,
              device,
              sequence_length_generated=-1,
-             ae_sequence_length=-1,
              hidden_dim=128, 
              num_layers=2, 
              activation='tanh', 
@@ -78,17 +77,17 @@ def init_gan(gan_type,
         ae_dict = torch.load(path_autoencoder, map_location=torch.device('cpu'))
         if ae_dict['configuration']['target'] == 'channels':
             ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
-            autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=ae_sequence_length).to(device)
+            autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'time':
             ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
             # switch values for output_dim and output_dim_2
             ae_output_dim = ae_dict['configuration']['output_dim']
             ae_dict['configuration']['output_dim'] = ae_dict['configuration']['output_dim_2']
             ae_dict['configuration']['output_dim_2'] = ae_output_dim
-            autoencoder = TransformerAutoencoder(**ae_dict['configuration'], sequence_length=ae_sequence_length).to(device)
+            autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'full':
-            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=ae_sequence_length, training_level=2).to(device)
-            autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=ae_sequence_length, training_level=1).to(device)
+            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length_generated, training_level=2).to(device)
+            autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length_generated, training_level=1).to(device)
             autoencoder.model_1.eval()
         else:
             raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
