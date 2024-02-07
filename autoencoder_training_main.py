@@ -83,6 +83,8 @@ def main():
     # Determine n_channels, output_dim, and seq_length
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1]
+    opt['channels_in'] = opt['n_channels']
+    opt['timeseries_in'] = opt['sequence_length']
 
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
@@ -136,8 +138,8 @@ def main():
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
-        model_1 = TransformerDoubleAutoencoder(channels_in=opt['n_channels'],
-                                             timeseries_in=opt['sequence_length'],
+        model_1 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
+                                             timeseries_in=opt['timeseries_in'],
                                              channels_out=opt['channels_out'],
                                              timeseries_out=opt['timeseries_out'],
                                              hidden_dim=opt['hidden_dim'],
@@ -146,8 +148,8 @@ def main():
                                              activation=opt['activation'],
                                              training_level=1).to(opt['device'])
         
-        model_2 = TransformerDoubleAutoencoder(channels_in=opt['n_channels'],
-                                             timeseries_in=opt['sequence_length'],
+        model_2 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
+                                             timeseries_in=opt['timeseries_in'],
                                              channels_out=opt['channels_out'],
                                              timeseries_out=opt['timeseries_out'],
                                              hidden_dim=opt['hidden_dim'],
@@ -155,6 +157,7 @@ def main():
                                              num_heads=opt['num_heads'],
                                              activation=opt['activation'],
                                              training_level=2).to(opt['device'])
+
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
 
