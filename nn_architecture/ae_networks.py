@@ -151,7 +151,7 @@ class TransformerAutoencoder(Autoencoder):
         # torch.save(save, os.path.join(path, file))
 
 class TransformerDoubleAutoencoder(Autoencoder):
-    def __init__(self, input_dim: int, output_dim: int, output_dim_2: int, sequence_length: int, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', training_level=2, **kwargs):
+    def __init__(self, input_dim: int, output_dim: int, output_dim_2: int, sequence_length: int, hidden_dim=256, num_layers=3, num_heads=4, dropout=0.1, activation='linear', training_level=2, **kwargs):
         target = Autoencoder.TARGET_BOTH
         super(TransformerDoubleAutoencoder, self).__init__(input_dim, output_dim, output_dim_2, hidden_dim, target, num_layers, dropout, activation)
 
