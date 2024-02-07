@@ -168,13 +168,13 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.linear_enc_in_channels = nn.Linear(channels_in, hidden_dim)
         self.encoder_layer_channels = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.encoder_channels = nn.TransformerEncoder(self.encoder_layer_channels, num_layers=num_layers)
-        self.linear_enc_out_channels = nn.Linear(hidden_dim, channels_out) #Channels out
+        self.linear_enc_out_channels = nn.Linear(hidden_dim, channels_out)
 
         # Timeseries Encoder
         self.linear_enc_in_timeseries = nn.Linear(timeseries_in, hidden_dim)
         self.encoder_layer_timeseries = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.encoder_timeseries = nn.TransformerEncoder(self.encoder_layer_timeseries, num_layers=num_layers)
-        self.linear_enc_out_timeseries = nn.Linear(hidden_dim, timeseries_out) #Timeseries out
+        self.linear_enc_out_timeseries = nn.Linear(hidden_dim, timeseries_out)
 
         # Timeseries Decoder
         self.linear_dec_in_timeseries = nn.Linear(timeseries_out, hidden_dim)
@@ -183,7 +183,6 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.linear_dec_out_timeseries = nn.Linear(hidden_dim, timeseries_in)
 
         # Channel Decoder
-        # self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
         self.linear_dec_in_channels = nn.Linear(channels_out, hidden_dim)
         self.decoder_layer_channels = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.decoder_channels = nn.TransformerEncoder(self.decoder_layer_channels, num_layers=num_layers)
@@ -204,6 +203,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
             x = self.tanh(x)
 
         if self.training_level == 2:
+            #Encode channels
             x = self.model_1.encode(data)
 
             #Encode timeseries
@@ -235,6 +235,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
             x = self.activation(x)
             x = x.permute(0, 2, 1)
 
+            #Decode channels
             x = self.model_1.decode(x)
 
         return x
