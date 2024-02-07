@@ -33,7 +33,6 @@ def main():
         'save_name': default_args['save_name'],
         'target': default_args['target'],
         'sample_interval': default_args['sample_interval'],
-        # 'conditions': default_args['conditions'],
         'channel_label': default_args['channel_label'],
         'channels_out': default_args['channels_out'],
         'timeseries_out': default_args['timeseries_out'],
@@ -50,7 +49,6 @@ def main():
         'num_layers': default_args['num_layers'],
         'ddp': default_args['ddp'],
         'ddp_backend': default_args['ddp_backend'],
-        # 'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
         'norm_data': True,
         'std_data': False,
         'diff_data': False,
@@ -64,18 +62,11 @@ def main():
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
-
-    # Scale function -> Not necessary; already in dataloader -> param: norm_data=True
-    # def scale(dataset):
-    #     x_min, x_max = dataset.min(), dataset.max()
-    #     return (dataset-x_min)/(x_max-x_min)
     
     data = Dataloader(path=opt['path_dataset'],
                       channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
                       norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
     dataset = data.get_data()
-    # dataset = dataset[:, opt['n_conditions']:, :].to(opt['device']) #Remove labels
-    # dataset = scale(dataset)
     
     # Split data function
     def split_data(dataset, train_size=.8):
@@ -106,7 +97,6 @@ def main():
     model_dict = None
     if default_args['load_checkpoint'] and os.path.isfile(opt['path_checkpoint']):
         model_dict = torch.load(opt['path_checkpoint'])
-        # model_state = model_dict['state_dict']
 
         target_old = opt['target']
         channels_out_old = opt['channels_out']
@@ -123,20 +113,9 @@ def main():
         print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
         print(f"timeseries_out:\t{timeseries_out_old} -> {opt['timeseries_out']}")
         print('-----------------------------------\n')
-        # print(f"Target: {opt['target']}")
-        # if (opt['target'] == 'channels') | (opt['target'] == 'full'):
-        #     print(f"channels_out: {opt['channels_out']}")
-        # if (opt['target'] == 'timeseries') | (opt['target'] == 'full'):
-        #     print(f"timeseries_out: {opt['timeseries_out']}")
-        #     print('-----------------------------------\n')
 
     elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
         raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
-    
-    # Add parameters for tracking
-    opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
-    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
-    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
     
     if opt['target'] == 'channels':
         model = TransformerAutoencoder(input_dim=opt['n_channels'],
@@ -157,20 +136,20 @@ def main():
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
-        model_1 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
-                                             output_dim=opt['output_dim'],
-                                             output_dim_2=opt['output_dim_2'],
-                                             sequence_length=opt['sequence_length'],
+        model_1 = TransformerDoubleAutoencoder(channels_in=opt['n_channels'],
+                                             timeseries_in=opt['sequence_length'],
+                                             channels_out=opt['channels_out'],
+                                             timeseries_out=opt['timeseries_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
                                              activation=opt['activation'],
                                              training_level=1).to(opt['device'])
         
-        model_2 = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
-                                             output_dim=opt['output_dim'],
-                                             output_dim_2=opt['output_dim_2'],
-                                             sequence_length=opt['sequence_length'],
+        model_2 = TransformerDoubleAutoencoder(channels_in=opt['n_channels'],
+                                             timeseries_in=opt['sequence_length'],
+                                             channels_out=opt['channels_out'],
+                                             timeseries_out=opt['timeseries_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
@@ -249,11 +228,9 @@ def main():
         # ----------------------------------------------------------------------------------------------------------------------
 
         # Save model
-        # model_dict = dict(state_dict=model.state_dict(), config=model.config)
         if opt['save_name'] is None:
             fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
             opt['save_name'] = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
-        # save(model_dict, save_name)
     
         trainer.save_checkpoint(opt['save_name'], update_history=True, samples=samples)
         print(f"Model and configuration saved in {opt['save_name']}")
