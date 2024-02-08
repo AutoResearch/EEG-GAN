@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
+from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, ReversedTransformerDoubleAutoencoder, train, save
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 from helpers.trainer import AETrainer
@@ -143,7 +143,7 @@ def main():
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
-        model_1 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
+        model_1 = ReversedTransformerDoubleAutoencoder(channels_in=opt['channels_in'],
                                              timeseries_in=opt['timeseries_in'],
                                              channels_out=opt['channels_out'],
                                              timeseries_out=opt['timeseries_out'],
@@ -153,7 +153,7 @@ def main():
                                              activation=opt['activation'],
                                              training_level=1).to(opt['device'])
         
-        model_2 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
+        model_2 = ReversedTransformerDoubleAutoencoder(channels_in=opt['channels_in'],
                                              timeseries_in=opt['timeseries_in'],
                                              channels_out=opt['channels_out'],
                                              timeseries_out=opt['timeseries_out'],
