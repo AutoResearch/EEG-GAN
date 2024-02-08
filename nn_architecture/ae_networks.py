@@ -208,6 +208,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
             #x = self.model_1.encode(data) #DEBUG: Temporary to turn D-AE into Timeseries-AE
 
             #Encode timeseries
+            x = data #DEBUG: Temporary to turn D-AE into Timeseries-AE
             x = x.permute(0, 2, 1)
             x = self.linear_enc_in_timeseries(x)
             x = self.encoder_timeseries(x)
