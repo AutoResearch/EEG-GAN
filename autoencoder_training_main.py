@@ -83,13 +83,8 @@ def main():
     # Determine n_channels, output_dim, and seq_length
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1]
-    
     opt['channels_in'] = opt['n_channels']
     opt['timeseries_in'] = opt['sequence_length']
-
-    opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
-    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
-    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
 
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
@@ -123,6 +118,11 @@ def main():
 
     elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
         raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
+    
+    # Add parameters for tracking
+    opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
+    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
+    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
     
     if opt['target'] == 'channels':
         model = TransformerAutoencoder(input_dim=opt['n_channels'],
