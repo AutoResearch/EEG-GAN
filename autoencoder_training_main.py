@@ -193,6 +193,7 @@ def main():
             elif training_levels == 2 and training_level == 2:
                 print('Training the second level of the autoencoder...')
                 model = model_2
+            model = model_1 #DEBUG: Temporary to turn D-AE into Channel-AE
             trainer = AEDDPTrainer(model, opt)
             if default_args['load_checkpoint']:
                 trainer.load_checkpoint(default_args['path_checkpoint'])
