@@ -125,32 +125,43 @@ def main():
     opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
     
     if opt['target'] == 'channels':
-        model = TransformerAutoencoder(input_dim=opt['input_dim'],
-                                       output_dim=opt['output_dim'],
-                                       output_dim_2=opt['output_dim_2'],
+        model = TransformerAutoencoder(input_dim=opt['n_channels'],
+                                       output_dim=opt['channels_out'],
+                                       output_dim_2=opt['sequence_length'],
                                        target=TransformerAutoencoder.TARGET_CHANNELS,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'time':
-        model = TransformerAutoencoder(input_dim=opt['input_dim'],
-                                       output_dim=opt['output_dim'],
-                                       output_dim_2=opt['output_dim_2'],
+        model = TransformerAutoencoder(input_dim=opt['sequence_length'],
+                                       output_dim=opt['timeseries_out'],
+                                       output_dim_2=opt['n_channels'],
                                        target=TransformerAutoencoder.TARGET_TIMESERIES,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
-        model = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
-                                             output_dim=opt['output_dim'],
-                                             output_dim_2=opt['output_dim_2'],
-                                             sequence_length=opt['sequence_length'],
+        model_1 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
+                                             timeseries_in=opt['timeseries_in'],
+                                             channels_out=opt['channels_out'],
+                                             timeseries_out=opt['timeseries_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
-                                             activation=opt['activation']).to(opt['device'])
+                                             activation=opt['activation'],
+                                             training_level=1).to(opt['device'])
+        
+        model_2 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
+                                             timeseries_in=opt['timeseries_in'],
+                                             channels_out=opt['channels_out'],
+                                             timeseries_out=opt['timeseries_out'],
+                                             hidden_dim=opt['hidden_dim'],
+                                             num_layers=opt['num_layers'],
+                                             num_heads=opt['num_heads'],
+                                             activation=opt['activation'],
+                                             training_level=2).to(opt['device'])
 
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
@@ -169,8 +180,7 @@ def main():
 
     opt['history'] = history
 
-    #training_levels = 2 if opt['target'] == 'full' else 1
-    training_levels = 1
+    training_levels = 2 if opt['target'] == 'full' else 1
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
