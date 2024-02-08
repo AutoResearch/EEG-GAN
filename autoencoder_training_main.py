@@ -180,8 +180,7 @@ def main():
 
     opt['history'] = history
 
-    #training_levels = 2 if opt['target'] == 'full' else 1
-    training_levels = 1 #DEBUG: Temporary to turn D-AE into Channel-AE
+    training_levels = 2 if opt['target'] == 'full' else 1
 
     opt['training_levels'] = training_levels
     
@@ -193,7 +192,6 @@ def main():
             elif training_levels == 2 and training_level == 2:
                 print('Training the second level of the autoencoder...')
                 model = model_2
-            model = model_1 #DEBUG: Temporary to turn D-AE into Channel-AE
             trainer = AEDDPTrainer(model, opt)
             if default_args['load_checkpoint']:
                 trainer.load_checkpoint(default_args['path_checkpoint'])

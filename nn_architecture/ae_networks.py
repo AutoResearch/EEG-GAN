@@ -194,21 +194,18 @@ class TransformerDoubleAutoencoder(Autoencoder):
         return x
 
     def encode(self, data):
-        #if self.training_level == 1: #DEBUG: Temporary to turn D-AE into Timeseries-AE
-        if self.training_level == 999: #DEBUG: Temporary to turn D-AE into Timeseries-AE
+        if self.training_level == 1:
             #Encode channels
             x = self.linear_enc_in_channels(data)
             x = self.encoder_channels(x)
             x = self.linear_enc_out_channels(x)
             x = self.tanh(x)
 
-        #if self.training_level == 2: #DEBUG: Temporary to turn D-AE into Timeseries-AE
-        if self.training_level == 1: #DEBUG: Temporary to turn D-AE into Timeseries-AE
+        if self.training_level == 2: 
             #Encode channels
-            #x = self.model_1.encode(data) #DEBUG: Temporary to turn D-AE into Timeseries-AE
+            x = self.model_1.encode(data) 
 
             #Encode timeseries
-            x = data #DEBUG: Temporary to turn D-AE into Timeseries-AE
             x = x.permute(0, 2, 1)
             x = self.linear_enc_in_timeseries(x)
             x = self.encoder_timeseries(x)
@@ -221,16 +218,14 @@ class TransformerDoubleAutoencoder(Autoencoder):
     def decode(self, encoded):
         x = encoded
 
-        #if self.training_level == 1: #DEBUG: Temporary to turn D-AE into Timeseries-AE
-        if self.training_level == 999: #DEBUG: Temporary to turn D-AE into Timeseries-AE
+        if self.training_level == 1:
             #Decode channels
             x = self.linear_dec_in_channels(x)
             x = self.decoder_channels(x)
             x = self.linear_dec_out_channels(x)
             x = self.activation(x)
 
-        #if self.training_level == 2:
-        if self.training_level == 1: #DEBUG: Temporary to turn D-AE into Timeseries-AE
+        if self.training_level == 2:
             #Decode timeseries
             x = x.permute(0, 2, 1)
             x = self.linear_dec_in_timeseries(x)
@@ -240,7 +235,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
             x = x.permute(0, 2, 1)
 
             #Decode channels
-            #x = self.model_1.decode(x) #DEBUG: Temporary to turn D-AE into Timeseries-AE
+            x = self.model_1.decode(x)
 
         return x
 
