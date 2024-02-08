@@ -180,7 +180,9 @@ def main():
 
     opt['history'] = history
 
-    training_levels = 2 if opt['target'] == 'full' else 1
+    #training_levels = 2 if opt['target'] == 'full' else 1
+    training_levels = 1 #DEBUG: Temporary to turn D-AE into Channel-AE
+
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
