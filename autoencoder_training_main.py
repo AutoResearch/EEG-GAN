@@ -131,18 +131,18 @@ def main():
     opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
     
     if opt['target'] == 'channels':
-        model = TransformerAutoencoder(input_dim=opt['n_channels'],
-                                       output_dim=opt['channels_out'],
-                                       output_dim_2=opt['sequence_length'],
+        model = TransformerAutoencoder(input_dim=opt['input_dim'],
+                                       output_dim=opt['output_dim'],
+                                       output_dim_2=opt['output_dim_2'],
                                        target=TransformerAutoencoder.TARGET_CHANNELS,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'time':
-        model = TransformerAutoencoder(input_dim=opt['sequence_length'],
-                                       output_dim=opt['timeseries_out'],
-                                       output_dim_2=opt['n_channels'],
+        model = TransformerAutoencoder(input_dim=opt['input_dim'],
+                                       output_dim=opt['output_dim'],
+                                       output_dim_2=opt['output_dim_2'],
                                        target=TransformerAutoencoder.TARGET_TIMESERIES,
                                        hidden_dim=opt['hidden_dim'],
                                        num_layers=opt['num_layers'],
