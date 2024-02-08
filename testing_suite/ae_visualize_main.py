@@ -9,7 +9,7 @@ from helpers.dataloader import Dataloader
 
 #### User input ####
 data_checkpoint = 'data/ganTrialElectrodeERP_p100_e2_len100.csv'
-ae_checkpoint = 'trained_ae/ae_ddp_500ep_20240207_220907.pt'
+ae_checkpoint = 'trained_ae/ae_ddp_5ep_20240208_115530.pt'
 
 #### Load data ####
 dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
@@ -27,12 +27,8 @@ elif ae_dict['configuration']['target'] == 'time':
     ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
     autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
 elif ae_dict['configuration']['target'] == 'full':
-    '''
     autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
     autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
-    '''
-    ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_BOTH
-    autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration']).to(device)
 else:
     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
 consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
