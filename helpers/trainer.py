@@ -538,6 +538,7 @@ class AETrainer(Trainer):
             'timeseries_in': opt['timeseries_in'],
             'timeseries_out': opt['timeseries_out'] if 'timeseries_out' in opt else None,
             'channels_out': opt['channels_out'] if 'channels_out' in opt else None,
+            'sequence_length': opt['sequence_length'],
             'target': opt['target'] if 'target' in opt else None,
             # 'conditions': opt['conditions'] if 'conditions' in opt else None,
             'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
