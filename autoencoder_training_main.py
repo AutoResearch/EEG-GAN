@@ -121,8 +121,8 @@ def main():
     
     # Add parameters for tracking
     opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
-    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
-    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
+    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['timeseries_out']
+    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['n_channels']
     
     if opt['target'] == 'channels':
         model = TransformerAutoencoder(input_dim=opt['n_channels'],
