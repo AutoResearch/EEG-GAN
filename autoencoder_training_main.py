@@ -120,6 +120,7 @@ def main():
         raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
     
     # Add parameters for tracking
+    #DEBUG: These are my version:
     opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
     opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['timeseries_out']
     opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['n_channels']
@@ -143,25 +144,14 @@ def main():
                                        num_heads=opt['num_heads'],
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
-        model_1 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
-                                             timeseries_in=opt['timeseries_in'],
-                                             channels_out=opt['channels_out'],
-                                             timeseries_out=opt['timeseries_out'],
+        model = TransformerDoubleAutoencoder(input_dim=opt['n_channels'],
+                                             output_dim=opt['output_dim'],
+                                             output_dim_2=opt['output_dim_2'],
+                                             sequence_length=opt['sequence_length'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
-                                             activation=opt['activation'],
-                                             training_level=1).to(opt['device'])
-        
-        model_2 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
-                                             timeseries_in=opt['timeseries_in'],
-                                             channels_out=opt['channels_out'],
-                                             timeseries_out=opt['timeseries_out'],
-                                             hidden_dim=opt['hidden_dim'],
-                                             num_layers=opt['num_layers'],
-                                             num_heads=opt['num_heads'],
-                                             activation=opt['activation'],
-                                             training_level=2).to(opt['device'])
+                                             activation=opt['activation']).to(opt['device'])
 
     else:
         raise ValueError(f"Encode target '{opt['target']}' not recognized, options are 'channels', 'time', or 'full'.")
@@ -180,7 +170,8 @@ def main():
 
     opt['history'] = history
 
-    training_levels = 2 if opt['target'] == 'full' else 1
+    #training_levels = 2 if opt['target'] == 'full' else 1
+    training_levels = 1
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
