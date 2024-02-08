@@ -83,8 +83,13 @@ def main():
     # Determine n_channels, output_dim, and seq_length
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1]
+    
     opt['channels_in'] = opt['n_channels']
     opt['timeseries_in'] = opt['sequence_length']
+
+    opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
+    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
+    opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
 
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
@@ -107,9 +112,6 @@ def main():
         opt['target'] = model_dict['configuration']['target']
         opt['channels_out'] = model_dict['configuration']['channels_out']
         opt['timeseries_out'] = model_dict['configuration']['timeseries_out']
-        opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
-        opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['n_channels']
-        opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['timeseries_out']
         
         # Report changes to user
         print(f"Loading model {opt['path_checkpoint']}.\n\nInhereting the following parameters:")
