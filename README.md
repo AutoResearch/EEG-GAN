@@ -18,10 +18,10 @@ Launching the desktop will take you to a virtual desktop. Open terminal and navi
 
 ## Load modules
 ```
-module load python/3.9.0
-module load gcc/10.2
-module load cuda/11.7.1
-module load cudnn/8.2.0
+Module load cuda/11.8.0-lpttyok
+Module load cudnn/8.7.0.84-11.8-lg2dpd5
+Module load gcc/10.1.0-mojgbnp
+
 ```
 
 ## Create and activate virtual environment

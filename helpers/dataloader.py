@@ -81,8 +81,8 @@ class Dataloader:
             # reshape data to separate electrodes --> new shape: (trial, sequence, channel)
             if len(self.channels) > 1:
                 sort_index = df.sort_values(channel_label, kind="mergesort").index
-                dataset = dataset[sort_index].view(n_channels, dataset.shape[0]//n_channels, dataset.shape[1]).permute(1, 2, 0)
-                labels = labels[sort_index].view(n_channels, labels.shape[0]//n_channels, labels.shape[1]).permute(1, 2, 0)
+                dataset = dataset[sort_index].contiguous().view(n_channels, dataset.shape[0]//n_channels, dataset.shape[1]).permute(1, 2, 0)
+                labels = labels[sort_index].contiguous().view(n_channels, labels.shape[0]//n_channels, labels.shape[1]).permute(1, 2, 0)
             else:
                 dataset = dataset.unsqueeze(-1)
                 labels = labels.unsqueeze(-1)
@@ -159,7 +159,7 @@ class Dataloader:
             last_window[:, :n_labels] = self.labels
             last_window[:, n_labels:n_labels + sequence.shape[1] - i - window_size] = sequence[:, i + window_size:]
             windows[-1] = last_window
-        return windows.view(-1, n_labels + window_size)
+        return windows.contiguous().view(-1, n_labels + window_size)
 
     def inverse_norm(self, data):
         """Inverse normalize data. Used also for generated samples by the generator."""

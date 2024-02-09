@@ -58,8 +58,8 @@ class GANDDPTrainer(trainer.GANTrainer):
         # set ddp generator and discriminator
         self.generator.to(self.rank)
         self.discriminator.to(self.rank)
-        self.generator = DDP(self.generator, device_ids=[self.rank], find_unused_parameters=True) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
-        self.discriminator = DDP(self.discriminator, device_ids=[self.rank], find_unused_parameters=True) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
+        self.generator = DDP(self.generator, device_ids=[self.rank], find_unused_parameters=False) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
+        self.discriminator = DDP(self.discriminator, device_ids=[self.rank], find_unused_parameters=False) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
 
         # safe optimizer state_dicts for later use
         g_opt_state = self.generator_optimizer.state_dict()

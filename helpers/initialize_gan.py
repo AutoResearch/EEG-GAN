@@ -27,13 +27,14 @@ def init_gan(gan_type,
              n_channels, 
              n_conditions,
              device,
-             sequence_length_generated=-1, 
+             sequence_length_generated=-1,
              hidden_dim=128, 
              num_layers=2, 
              activation='tanh', 
              input_sequence_length=0, 
              patch_size=-1, 
              path_autoencoder='',
+             padding=0,
              **kwargs,
              ):
     if path_autoencoder == '':
@@ -79,13 +80,11 @@ def init_gan(gan_type,
             autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'time':
             ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
-            # switch values for output_dim and output_dim_2
-            ae_output_dim = ae_dict['configuration']['output_dim']
-            ae_dict['configuration']['output_dim'] = ae_dict['configuration']['output_dim_2']
-            ae_dict['configuration']['output_dim_2'] = ae_output_dim
             autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
         elif ae_dict['configuration']['target'] == 'full':
-            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], sequence_length=sequence_length_generated).to(device)
+            autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
+            autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
+            autoencoder.model_1.eval()
         else:
             raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
         consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
@@ -102,7 +101,7 @@ def init_gan(gan_type,
 
         # adjust generator output_dim to match the output_dim of the autoencoder
         n_channels = autoencoder.output_dim if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim_2
-        sequence_length_generated = autoencoder.output_dim_2 if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
+        sequence_length_generated = autoencoder.output_dim_2+padding if autoencoder.target in [autoencoder.TARGET_CHANNELS, autoencoder.TARGET_BOTH] else autoencoder.output_dim
 
         # adjust discriminator input_dim to match the output_dim of the autoencoder
         channel_in_disc = n_channels + n_conditions

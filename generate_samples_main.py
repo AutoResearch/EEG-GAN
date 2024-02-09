@@ -24,8 +24,6 @@ def main():
 
     num_samples_total = default_args['num_samples_total']
     num_samples_parallel = default_args['num_samples_parallel']
-    kw_timestep_dataset = default_args['kw_timestep_dataset']
-    average_over = default_args['average']
 
     condition = default_args['conditions']
     if not isinstance(condition, list):
@@ -35,7 +33,7 @@ def main():
         condition = []
 
     file = default_args['path_file']
-    if file.split(os.path.sep)[0] == file:
+    if file.split(os.path.sep)[0] == file and file.split('/')[0] == file:
         # use default path if no path is given
         path = 'trained_models'
         file = os.path.join(path, file)
@@ -54,7 +52,6 @@ def main():
     state_dict = torch.load(file, map_location='cpu')
 
     # load model/training configuration
-    filename_dataset = state_dict['configuration']['path_dataset']
     n_conditions = state_dict['configuration']['n_conditions']
     n_channels = state_dict['configuration']['n_channels']
     channel_names = state_dict['configuration']['channel_names']
@@ -84,14 +81,11 @@ def main():
     print("Initializing generator...")
     latent_dim_in = latent_dim + n_conditions + n_channels if input_sequence_length > 0 else latent_dim + n_conditions
 
-    print(state_dict['configuration']['generator_class'])
-    print(gan_types)
     for k, v in gan_types.items():
         if state_dict['configuration']['generator_class'] in v:
             gan_type = k
-            print(gan_type)
             break
-    
+
     generator, _ = init_gan(gan_type=gan_type,
                             latent_dim_in=latent_dim_in,
                             channel_in_disc=n_channels,
@@ -105,9 +99,11 @@ def main():
                             input_sequence_length=input_sequence_length,
                             patch_size=state_dict['configuration']['patch_size'],
                             path_autoencoder=state_dict['configuration']['path_autoencoder'],
+                            padding=state_dict['configuration']['padding'],
                             )
     generator.eval()
     if isinstance(generator, DecoderGenerator):
+        generator.padding=state_dict['configuration']['padding'] #TODO: ADD BACK
         generator.decode_output()
 
     # load generator weights
@@ -137,16 +133,6 @@ def main():
     cond_labels = torch.zeros((num_samples_parallel, seq_len, n_conditions)).to(device) + torch.tensor(condition).to(device)
     cond_labels = cond_labels.to(device)
 
-    # JOSHUA
-    '''
-    for n in range(num_samples_parallel):
-        for i, x in enumerate(condition):
-            if x == -1:
-                # random condition (works currently only for binary conditions)
-                # cond_labels[n, i] = np.random.randint(0, 2)  # TODO: Channel recovery: Maybe better - random conditions for each entry
-                cond_labels[n, i] = 0 if n % 2 == 0 else 1  # TODO: Currently all conditions of one row are the same (0 or 1)
-     '''
-
     # generate samples
     num_sequences = num_samples_total // num_samples_parallel
     print("Generating samples...")
@@ -168,7 +154,7 @@ def main():
                                                   sequence_length=seq_len, device=device)
             # concat with conditions and input sequence
             z = torch.cat((z, labels_in), dim=-1).float().to(device)
-            # generate samples
+            # generate samples            
             samples = generator(z).cpu().numpy()
         # if prediction case, concatenate input sequence and generated sequence
         if input_sequence_length > 0 and input_sequence_length != sequence_length and input_sequence is not None:
@@ -176,7 +162,8 @@ def main():
         # reshape samples by concatenating over channels in incrementing channel name order
         new_samples = np.zeros((num_samples_parallel * n_channels, n_conditions + 1 + sequence_length))
         for j, channel in enumerate(channel_names):
-            new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, samples[:, :, j]), axis=-1)
+            padding = np.zeros((samples.shape[0], state_dict['configuration']['padding']))
+            new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, np.concatenate((samples[:, :, j], padding), axis=1)), axis=-1)
         # add samples to all_samples
         all_samples[i * num_samples_parallel * n_channels:(i + 1) * num_samples_parallel * n_channels] = new_samples
 

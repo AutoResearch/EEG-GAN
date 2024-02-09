@@ -106,8 +106,12 @@ class FFDiscriminator(Discriminator):
 
         self.block = nn.Sequential(*modulelist)
 
-    def forward(self, x):
-        return self.block(x.reshape(-1, 1, self.seq_len * self.channels))
+    def forward(self, data):
+        if data.dim() == 4:
+            # this is probably a tts-format -> transform
+            data = data.squeeze(2).permute(0, 2, 1)
+            
+        return self.block(data.reshape(-1, self.seq_len * self.channels))
 
 
 class AutoencoderGenerator(FFGenerator):
@@ -328,9 +332,13 @@ class TransformerDiscriminator(Discriminator):
         #    param.requires_grad = False
 
     def forward(self, data):
+        if data.dim() == 4:
+            # this is probably a tts-format -> transform
+            data = data.squeeze(2).permute(0, 2, 1)
+        
         # x = self.pe(data)
         x = self.linear_enc_in(data)
-        x = self.encoder(x).reshape(-1, 1, self.seq_len*self.hidden_dim)
+        x = self.encoder(x).reshape(-1, self.seq_len*self.hidden_dim)
         x = self.linear_enc_out(x)  # .reshape(-1, self.channels)
         # x = self.mask(x, data[:,:,self.latent_dim-self.channels:].diff(dim=1))
         # x = self.tanh(x)
@@ -371,16 +379,16 @@ class DecoderGenerator(Generator):
         self.channels = generator.channels if hasattr(generator, 'channels') else None
         self.seq_len = generator.seq_len if hasattr(generator, 'seq_len') else None
 
-
     def forward(self, data):
         if self.decode:
-            return self.decoder.decode(self.generator(data))
+            data_input = self.generator(data)
+            data_input = data_input[:,:-self.padding,:] if self.padding > 0 else data_input
+            return self.decoder.decode(data_input)
         else:
             return self.generator(data)
 
     def decode_output(self, mode=True):
         self.decode = mode
-
 
 class EncoderDiscriminator(Discriminator):
     """

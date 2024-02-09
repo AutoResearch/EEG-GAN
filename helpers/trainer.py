@@ -68,6 +68,7 @@ class GANTrainer(Trainer):
         self.scheduler_warmup = opt['scheduler_warmup']
         self.scheduler_target = opt['scheduler_target']
         self.start_time = time.time()
+        self.padding = opt['padding']
 
         self.generator = generator
         self.discriminator = discriminator
@@ -139,6 +140,7 @@ class GANTrainer(Trainer):
             'lr_scheduler': self.lr_scheduler,
             'scheduler_warmup': self.scheduler_warmup,
             'scheduler_target': self.scheduler_target,
+            'padding': self.padding,
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
@@ -261,8 +263,9 @@ class GANTrainer(Trainer):
 
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-            z = torch.cat((gen_labels, z), dim=-1).to(self.device)
-
+            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
+            z.requires_grad = True
+            
             # Generate a batch of samples
             gen_imgs = self.generator(z)
 
@@ -273,6 +276,8 @@ class GANTrainer(Trainer):
                 fake_data = self.make_fake_data(gen_imgs, data_labels, gen_cond_data)
 
             # Compute loss/validity of generated data and update generator
+            pad = torch.zeros((fake_data.shape[0], self.padding, fake_data.shape[-1]))
+            fake_data = torch.cat((fake_data, pad.to(self.device)), dim=1)
             validity = self.discriminator(fake_data)
             g_loss = self.loss.generator(validity)
             self.generator_optimizer.zero_grad()
@@ -296,7 +301,7 @@ class GANTrainer(Trainer):
         with torch.no_grad():
             # Sample noise and labels as generator input
             z = self.sample_latent_variable(batch_size=batch_size, latent_dim=self.latent_dim, sequence_length=seq_length, device=self.device)
-            z = torch.cat((gen_labels, z), dim=-1).to(self.device)
+            z = torch.cat((z, gen_labels), dim=-1).to(self.device)
 
             # Generate a batch of fake samples
             gen_imgs = self.generator(z)
@@ -315,9 +320,14 @@ class GANTrainer(Trainer):
 
                 if decode_imgs:
                     if not hasattr(self.generator, 'module'):
-                        gen_samples = self.generator.decoder.decode(fake_data[:, :, :self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels))
+                        fake_input = fake_data[:,:,:self.generator.channels].reshape(-1, self.generator.seq_len, self.generator.channels)
+                        fake_input = fake_input[:,:-self.padding,:] if self.padding > 0 else fake_input
+                        gen_samples = self.generator.decoder.decode(fake_input)
                     else:
-                        gen_samples = self.generator.module.decoder.decode(fake_data[:, :, :self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels))
+                        fake_input = fake_data[:,:,:self.generator.module.channels].reshape(-1, self.generator.module.seq_len, self.generator.module.channels)
+                        fake_input = fake_input[:,:-self.padding,:] if self.padding > 0 else fake_input
+                        gen_samples = self.generator.module.decoder.decode(fake_input)
+                    
                     # concatenate gen_cond_data_orig with decoded fake_data
                     # currently redundant because gen_cond_data is None in this case
                     if self.input_sequence_length != 0 and self.input_sequence_length != self.sequence_length:
@@ -338,8 +348,12 @@ class GANTrainer(Trainer):
                 real_data = self.discriminator.module.encoder.encode(data) if isinstance(self.discriminator.module, EncoderDiscriminator) and not self.discriminator.module.encode else data
 
             real_data = self.make_fake_data(real_data, disc_labels)
+            padding = torch.zeros((real_data.shape[0], self.padding, real_data.shape[-1]))
+            real_data = torch.cat((real_data, padding.to(self.device)), dim=1)
 
         # Loss for real and generated samples
+        real_data.requires_grad = True
+        fake_data.requires_grad = True
         validity_fake = self.discriminator(fake_data)
         validity_real = self.discriminator(real_data)
 
@@ -520,8 +534,11 @@ class AETrainer(Trainer):
             'hidden_dim': opt['hidden_dim'],
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
             'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
+            'channels_in': opt['channels_in'],
+            'timeseries_in': opt['timeseries_in'],
             'timeseries_out': opt['timeseries_out'] if 'timeseries_out' in opt else None,
             'channels_out': opt['channels_out'] if 'channels_out' in opt else None,
+            'sequence_length': opt['sequence_length'],
             'target': opt['target'] if 'target' in opt else None,
             # 'conditions': opt['conditions'] if 'conditions' in opt else None,
             'channel_label': opt['channel_label'] if 'channel_label' in opt else None,

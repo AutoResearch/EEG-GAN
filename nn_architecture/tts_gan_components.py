@@ -39,13 +39,13 @@ class Generator(nn.Module):
         )
 
     def forward(self, z):
-        x = self.l1(z).view(-1, self.seq_len, self.embed_dim)
+        x = self.l1(z).contiguous().view(-1, self.seq_len, self.embed_dim)
         x = x + self.pos_embed
         H, W = 1, self.seq_len
         x = self.blocks(x)
         x = x.reshape(x.shape[0], 1, x.shape[1], x.shape[2])
-        output = self.deconv(x.permute(0, 3, 1, 2))
-        output = output.squeeze(2).permute(0, 2, 1)
+        output = self.deconv(x.permute(0, 3, 1, 2).contiguous())
+        output = output.squeeze(2).permute(0, 2, 1).contiguous()
         return output
 
 
@@ -133,7 +133,8 @@ class Dis_TransformerEncoderBlock(nn.Sequential):
                  num_heads=5,
                  drop_p=0.,
                  forward_expansion=4,
-                 forward_drop_p=0.):
+                 forward_drop_p=0.,
+                 **kwargs):
         super().__init__(
             ResidualAdd(nn.Sequential(
                 nn.LayerNorm(emb_size),
@@ -183,7 +184,7 @@ class PatchEmbedding_Linear(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         if x.dim() == 3:
-            x = x.unsqueeze(2).permute(0, 3, 2, 1)
+            x = x.unsqueeze(2).permute(0, 3, 2, 1).contiguous()
         b, _, _, _ = x.shape
         x = self.projection(x)
         cls_tokens = repeat(self.cls_token, '() n e -> b n e', b=b)

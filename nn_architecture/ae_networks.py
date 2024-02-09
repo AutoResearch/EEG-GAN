@@ -150,45 +150,50 @@ class TransformerAutoencoder(Autoencoder):
         file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
         # torch.save(save, os.path.join(path, file))
 
-
 class TransformerDoubleAutoencoder(Autoencoder):
-    def __init__(self, input_dim: int, output_dim: int, output_dim_2: int, sequence_length: int, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', **kwargs):
+    def __init__(self, channels_in: int, timeseries_in: int, channels_out: int, timeseries_out: int, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', training_level=2, **kwargs):
         target = Autoencoder.TARGET_BOTH
-        super(TransformerDoubleAutoencoder, self).__init__(input_dim, output_dim, output_dim_2, hidden_dim, target, num_layers, dropout, activation)
+        super(TransformerDoubleAutoencoder, self).__init__(channels_in, channels_out, timeseries_out, hidden_dim, target, num_layers, dropout, activation)
 
-        self.sequence_length = sequence_length
+        '''
+        Note that this double autoencoder trains two autoencoders - the first is a timeseries autoencoder and the second is a channels autoencoder.
+        Whereas the first autoencoder is doing the same as the single TransformerAutoencoder with the target=timeseries,
+        the second autoencoder first encodes the data via the timeseries autoencoder and then learns to encode the channel dimension from that.
+
+        After extensive testing, training the timeseries autoencoder first and the channels autoencoder second is much quicker and more effective than
+        training the channels autoencoder first and the timeseries autoencoder second. 
+        '''
+        
+        self.training_level = training_level
+        self.sequence_length = timeseries_in
         self.num_heads = num_heads
         self.tanh = nn.Tanh()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # encoder block features
-        # self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
-        self.linear_enc_in = nn.Linear(input_dim, hidden_dim)
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
-        self.linear_enc_out = nn.Linear(hidden_dim, output_dim)
+        # Timeseries Encoder
+        self.linear_enc_in_timeseries = nn.Linear(timeseries_in, hidden_dim)
+        self.encoder_layer_timeseries = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder_timeseries = nn.TransformerEncoder(self.encoder_layer_timeseries, num_layers=num_layers)
+        self.linear_enc_out_timeseries = nn.Linear(hidden_dim, timeseries_out)
 
-        # encoder block sequence
-        # self.pe_enc_seq = PositionalEncoder(batch_first=True, d_model=sequence_length)
-        self.linear_enc_in_seq = nn.Linear(sequence_length, hidden_dim)
-        self.encoder_layer_seq = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
-        self.encoder_seq = nn.TransformerEncoder(self.encoder_layer_seq, num_layers=num_layers)
-        self.linear_enc_out_seq = nn.Linear(hidden_dim, output_dim_2)
+        # Channel Encoder
+        self.linear_enc_in_channels = nn.Linear(channels_in, hidden_dim)
+        self.encoder_layer_channels = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.encoder_channels = nn.TransformerEncoder(self.encoder_layer_channels, num_layers=num_layers)
+        self.linear_enc_out_channels = nn.Linear(hidden_dim, channels_out)
 
-        # decoder block sequence
-        # self.pe_dec_seq = PositionalEncoder(batch_first=True, d_model=output_dim_2)
-        self.linear_dec_in_seq = nn.Linear(output_dim_2, hidden_dim)
-        self.decoder_layer_seq = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
-        self.decoder_seq = nn.TransformerEncoder(self.decoder_layer_seq, num_layers=num_layers)
-        self.linear_dec_out_seq = nn.Linear(hidden_dim, sequence_length)
-
-        # decoder block features
-        # self.pe_dec = PositionalEncoder(batch_first=True, d_model=output_dim)
-        self.linear_dec_in = nn.Linear(output_dim, hidden_dim)
-        self.decoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dropout=dropout, batch_first=True)
-        self.decoder = nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers)
-        self.linear_dec_out = nn.Linear(hidden_dim, input_dim)
+        # Channel Decoder
+        self.linear_dec_in_channels = nn.Linear(channels_out, hidden_dim)
+        self.decoder_layer_channels = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder_channels = nn.TransformerEncoder(self.decoder_layer_channels, num_layers=num_layers)
+        self.linear_dec_out_channels = nn.Linear(hidden_dim, channels_in)
+        
+        # Timeseries Decoder
+        self.linear_dec_in_timeseries = nn.Linear(timeseries_out, hidden_dim)
+        self.decoder_layer_timeseries = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+        self.decoder_timeseries = nn.TransformerEncoder(self.decoder_layer_timeseries, num_layers=num_layers)
+        self.linear_dec_out_timeseries = nn.Linear(hidden_dim, timeseries_in)
 
     def forward(self, data):
         x = self.encode(data.to(self.device))
@@ -196,35 +201,54 @@ class TransformerDoubleAutoencoder(Autoencoder):
         return x
 
     def encode(self, data):
-        # encoder features
-        # x = self.pe_enc(data)
-        x = self.linear_enc_in(data)
-        x = self.encoder(x)
-        x = self.linear_enc_out(x)
-        x = self.tanh(x)
+        x = data
 
-        # encoder sequence
-        # x = self.pe_enc_seq(x.permute(0, 2, 1))
-        x = self.linear_enc_in_seq(x.permute(0, 2, 1))
-        x = self.encoder_seq(x)
-        x = self.linear_enc_out_seq(x)
-        x = self.tanh(x)
-        return x.permute(0, 2, 1)
+        if self.training_level == 1:
+
+            #Encode timeseries
+            x = x.permute(0, 2, 1)
+            x = self.linear_enc_in_timeseries(x)
+            x = self.encoder_timeseries(x)
+            x = self.linear_enc_out_timeseries(x)
+            x = self.tanh(x)
+            x = x.permute(0, 2, 1)
+        
+        if self.training_level == 2: 
+
+            #Encode timeseries
+            x = self.model_1.encode(x) 
+
+            #Encode channels
+            x = self.linear_enc_in_channels(x)
+            x = self.encoder_channels(x)
+            x = self.linear_enc_out_channels(x)
+            x = self.tanh(x)
+
+        return x
 
     def decode(self, encoded):
-        # decoder sequence
-        # x = self.pe_dec_seq(encoded.permute(0, 2, 1))
-        x = self.linear_dec_in_seq(encoded.permute(0, 2, 1))
-        x = self.decoder_seq(x)
-        x = self.linear_dec_out_seq(x)
-        x = self.activation(x)
+        x = encoded
 
-        # decoder features
-        # x = self.pe_dec(x.permute(0, 2, 1))
-        x = self.linear_dec_in(x.permute(0, 2, 1))
-        x = self.decoder(x)
-        x = self.linear_dec_out(x)
-        x = self.activation(x)
+        if self.training_level == 1:
+
+            x = x.permute(0, 2, 1)
+            x = self.linear_dec_in_timeseries(x)
+            x = self.decoder_timeseries(x)
+            x = self.linear_dec_out_timeseries(x)
+            x = self.activation(x)
+            x = x.permute(0, 2, 1)
+        
+        if self.training_level == 2:
+
+            #Decode timeseries
+            x = self.model_1.decode(x)
+
+            #Decode channels
+            x = self.linear_dec_in_channels(x)
+            x = self.decoder_channels(x)
+            x = self.linear_dec_out_channels(x)
+            x = self.activation(x)
+
         return x
 
     def save(self, path):

@@ -109,20 +109,35 @@ def main():
         opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
-    if opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
+    ae_dict = torch.load(opt['path_autoencoder'], map_location=torch.device('cpu')) if opt['path_autoencoder'] != '' else []
+    if opt['gan_type'] == 'tts' and ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time') and ae_dict['configuration']['timeseries_out'] % opt['patch_size']!= 0:
+        warnings.warn(
+            f"Sequence length ({ae_dict['configuration']['timeseries_out']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
+            f"The sequence length is padded with zeros to fit the condition.")
+        padding = 0
+        while (ae_dict['configuration']['timeseries_out'] + padding) % default_args['patch_size'] != 0:
+            padding += 1
+
+        padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
+        dataset = torch.cat((dataset, padding), dim=1)
+        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    elif opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
         warnings.warn(
             f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
             f"The sequence length is padded with zeros to fit the condition.")
         padding = 0
         while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
             padding += 1
-        padding = torch.zeros((dataset.shape[0], padding))
+        padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
         dataset = torch.cat((dataset, padding), dim=1)
         opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    else:
+        padding = torch.zeros((dataset.shape[0], 0, dataset.shape[-1]))
 
     opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
     opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
+    opt['padding'] = padding.shape[1]
 
     # --------------------------------------------------------------------------------
     # Initialize generator, discriminator and trainer
