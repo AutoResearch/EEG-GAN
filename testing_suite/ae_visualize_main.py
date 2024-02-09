@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 import torch
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from tqdm import tqdm
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
+from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, ReversedTransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 
 #### User input ####
 data_checkpoint = 'data/ganTrialElectrodeERP_p100_e2_len100.csv'
-ae_checkpoint = 'trained_ae/ae_ddp_5ep_20240208_115530.pt'
+ae_checkpoint = 'trained_ae/ae_ddp_5000ep_p100_e8_enc50-4.pt'
 
 #### Load data ####
 dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
@@ -29,13 +29,14 @@ elif ae_dict['configuration']['target'] == 'time':
 elif ae_dict['configuration']['target'] == 'full':
     autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
     autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
+    #autoencoder = ReversedTransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
+    #autoencoder.model_1 = ReversedTransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
 else:
     raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
 consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
 autoencoder.load_state_dict(ae_dict['model'])
 for param in autoencoder.parameters():
     param.requires_grad = False
-
 
 #### Plot losses ####
 plt.figure()
