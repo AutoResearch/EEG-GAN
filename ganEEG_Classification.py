@@ -12,7 +12,6 @@ from sklearn.metrics import classification_report
 from scipy import signal
 import scipy
 import random as rnd
-from IPython.display import clear_output
 import time
 
 from helpers.dataloader import Dataloader
@@ -312,7 +311,8 @@ for electrode in electrodes:
         x_test = np.array(extractFeatures(EEG_test_data[:,2:])) #Extract features
         x_test = scale(x_test, axis=0) #Scale data within each trial
     else:
-        x_test = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
+        #x_test = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
+        x_test = scale(x_test, axis=1)
 
     for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
         
@@ -408,7 +408,6 @@ for electrode in electrodes:
                     X_train = np.array([sample.T.flatten() for sample in X_train])
 
                     #Report current analyses
-                    clear_output(wait=True)
                     print(electrode)
                     print(classifier)
                     print('Augmented' if add_synthetic_data else 'Empirical')
