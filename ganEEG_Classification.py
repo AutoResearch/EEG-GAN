@@ -397,7 +397,7 @@ for electrode in electrodes:
                     #Shuffle order of samples
                     train_shuffle = rnd.sample(range(len(X_train)),len(X_train))
                     Y_train = Y_train[train_shuffle]
-                    X_train = X_train[train_shuffle,:,:]
+                    X_train = X_train[train_shuffle,:]
                     
                     #Create augmented dataset
                     if add_synthetic_data: #If this is augmented analyses
