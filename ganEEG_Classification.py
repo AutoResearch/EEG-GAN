@@ -307,12 +307,14 @@ for electrode in electrodes:
     #Create test variable
     norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
 
+    # Flatten and normalize data
+    x_test = np.array([sample.T.flatten() for sample in EEG_test_data[:,1:,:]])
     if features:
         x_test = np.array(extractFeatures(EEG_test_data[:,2:])) #Extract features
         x_test = scale(x_test, axis=0) #Scale data within each trial
     else:
+        x_test = scale(x_test, axis=1)
         #x_test = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
-        x_test = scale(EEG_test_data[:,1:,:], axis=1)
 
     for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
         
@@ -382,11 +384,14 @@ for electrode in electrodes:
                     #Extract outcome and feature data
                     Y_train = EEG_data[:,0,0]
                     
+                    #Flatten dataset into vector
+                    EEG_data = np.array([sample.T.flatten() for sample in EEG_data[:,1:,:]])
+
                     if features: #If extracting features
                         X_train = np.array(extractFeatures(EEG_data[:,2:])) #Extract features
                         X_train = scale(X_train, axis=0) #Scale across samples
                     else:
-                        X_train = scale(EEG_data[:,1:,:], axis=1) #Extract raw data
+                        X_train = scale(EEG_data, axis=1)
                         #X_train = norm(EEG_data[:,1:,:]) #Extract raw data
 
                     #Shuffle order of samples
@@ -403,10 +408,6 @@ for electrode in electrodes:
                         train_shuffle = rnd.sample(range(len(X_train)),len(X_train))
                         X_train = X_train[train_shuffle,:]
                         Y_train = Y_train[train_shuffle]
-
-                    #Flatten dataset into vector
-                    x_test = np.array([sample.T.flatten() for sample in x_test])
-                    X_train = np.array([sample.T.flatten() for sample in X_train])
 
                     #Report current analyses
                     print(electrode)
