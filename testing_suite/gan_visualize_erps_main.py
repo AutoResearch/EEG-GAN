@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import torch
 
 #### Define parameters ####
-gan_filename = 'aegan_ep8000_p100_e2_enc25-1.pt'
-data_filename = 'ganTrialElectrodeERP_p100_e2_len100.csv'
+gan_filename = 'gan_ddp_ep4000_p100_e8.pt'
+data_filename = 'ganTrialElectrodeERP_p100_e8_len100.csv'
 
 #### Load generated data ####
 syn_filename = gan_filename.replace('.pt','')
@@ -60,4 +60,22 @@ for electrode in c0_syn['Electrode'].unique():
     ax[1,int(electrode-1)].get_xaxis().set_visible(False)
     ax[1,int(electrode-1)].get_yaxis().set_visible(False)
     ax[1,int(electrode-1)].spines[['right', 'top']].set_visible(False)
+
+    '''
+    #Empirical
+    ax[int(electrode-1)].plot(c0_emp[c0_emp['Electrode']==electrode].mean()[emp_data_index:], label='C0')
+    ax[int(electrode-1)].plot(c1_emp[c1_emp['Electrode']==electrode].mean()[emp_data_index:], label='C1')
+    ax[int(electrode-1)].set_title(f'Empirical (E: {int(electrode)})')
+    ax[int(electrode-1)].get_xaxis().set_visible(False)
+    ax[int(electrode-1)].get_yaxis().set_visible(False)
+    ax[int(electrode-1)].spines[['right', 'top']].set_visible(False)
+
+    #Synthetic
+    ax[int(electrode)].plot(c0_syn[c0_syn['Electrode']==electrode].mean()[syn_data_index:], label='C0')
+    ax[int(electrode)].plot(c1_syn[c1_syn['Electrode']==electrode].mean()[syn_data_index:], label='C1')
+    ax[int(electrode)].set_title(f'Synthetic (E: {int(electrode)})')
+    ax[int(electrode)].get_xaxis().set_visible(False)
+    ax[int(electrode)].get_yaxis().set_visible(False)
+    ax[int(electrode)].spines[['right', 'top']].set_visible(False)
+    '''
 plt.show()
