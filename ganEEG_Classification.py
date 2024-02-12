@@ -312,7 +312,7 @@ for electrode in electrodes:
         x_test = scale(x_test, axis=0) #Scale data within each trial
     else:
         #x_test = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
-        x_test = scale(x_test, axis=1)
+        x_test = scale(EEG_test_data[:,1:,:], axis=1)
 
     for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
         
