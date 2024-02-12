@@ -386,7 +386,8 @@ for electrode in electrodes:
                         X_train = np.array(extractFeatures(EEG_data[:,2:])) #Extract features
                         X_train = scale(X_train, axis=0) #Scale across samples
                     else:
-                        X_train = norm(EEG_data[:,1:,:]) #Extract raw data
+                        X_train = scale(EEG_data[:,1:,:], axis=1) #Extract raw data
+                        #X_train = norm(EEG_data[:,1:,:]) #Extract raw data
 
                     #Shuffle order of samples
                     train_shuffle = rnd.sample(range(len(X_train)),len(X_train))
