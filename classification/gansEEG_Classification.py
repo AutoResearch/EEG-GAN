@@ -15,7 +15,7 @@ import random as rnd
 from IPython.display import clear_output
 import time
 
-from ..helpers.dataloader import Dataloader
+from helpers.dataloader import Dataloader
 
 ###############################################
 ## USER INPUTS                               ##
