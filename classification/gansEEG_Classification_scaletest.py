@@ -287,7 +287,7 @@ for electrode in electrodes:
     EEG_test_data = averageEEG(test_participant_IDs, EEG_test_data)
         
     #Create outcome variable
-    y_test = EEG_test_data[:,0,0]
+    y_test_orig = EEG_test_data[:,0,0]
 
     #Create test variable
     norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
@@ -296,7 +296,7 @@ for electrode in electrodes:
         x_test = np.array(extractFeatures(EEG_test_data[:,2:])) #Extract features
         x_test = scale(x_test, axis=0) #Scale data within each trial
     else:
-        x_test = np.expand_dims(scale(EEG_test_data[:,1:,0], axis=1),2) #Extract normalized raw EEG
+        x_test_orig = np.expand_dims(scale(EEG_test_data[:,1:,0], axis=1),2) #Extract normalized raw EEG
         #x_test = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
 
     for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
@@ -315,6 +315,12 @@ for electrode in electrodes:
                     
             for data_sample_size in data_sample_sizes: #Iterate through sample sizes   
                 for run in range(5): #Conduct analyses 5 times per sample size
+
+                    ###############################################
+                    ## SYNTHETIC PROCESSING                      ##
+                    ###############################################
+                    y_test = y_test_orig
+                    x_test = x_test_orig
                     
                     ###############################################
                     ## SYNTHETIC PROCESSING                      ##
