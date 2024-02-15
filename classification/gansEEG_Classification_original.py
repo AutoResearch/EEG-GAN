@@ -16,7 +16,7 @@ import time
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = True #Datatype: False = Full Data, True = Features data
+features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
 syntheticDataOptions = [0] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
