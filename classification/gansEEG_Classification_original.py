@@ -295,6 +295,7 @@ else:
 
 #Average data
 EEGDataTest = averageEEG(EEGDataTest)[:,1:]
+EEGDataTest = np.delete(EEGDataTest, 2, 1) #Delete electrode column
     
 #Create outcome variable
 y_test = EEGDataTest[:,0]
@@ -339,7 +340,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                     synData_0 = np.genfromtxt(synFilename_0, delimiter=',', skip_header=1)
                     synData_1 = np.genfromtxt(synFilename_1, delimiter=',', skip_header=1)
                     synData = np.concatenate((synData_0,synData_1),axis=0)
-                    synData = np.delete(synData,1,1)
+                    synData = np.delete(synData,1,1) #Delete electrode column
                     #synData = cutData(synData)
                     
                     #Extract outcome data
