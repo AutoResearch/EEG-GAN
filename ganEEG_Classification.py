@@ -22,8 +22,8 @@ from helpers.dataloader import Dataloader
 features = False #WARNING: Do not use! Not adapted for newer data
 validation_or_test = 'validation' #'validation' or 'test' set to predict
 data_sample_sizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-electrodes = [1, 2, 8]
-synthetic_data_options = [0] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
+electrodes = [1]
+synthetic_data_options = [0, 1] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 
 ###############################################
@@ -151,21 +151,6 @@ def averageEEG(participant_IDs, EEG):
             averagedEEG.append(np.mean(EEG[(participant_IDs==participant)&(EEG[:,0,0]==condition),:], axis=0))
             
     return np.array(averagedEEG)
-
-#Cut synthetic data in half function
-def cutData(synData):  
-    
-    #Determine index to cut   
-    keepIndex = round((synData.shape[0]*0.5)/2) #Removes half of the data (we generated more samples than we wanted)
-    
-    #Extract each condition
-    lossSynData = synData[synData[:,0]==1,:]
-    winSynData = synData[synData[:,0]==0,:]
-
-    #Combine only the kept parts of each dataset
-    synData = np.vstack((lossSynData[0:keepIndex,:],winSynData[0:keepIndex,:]))
-
-    return synData
 
 #Define neural network classifier function
 def neuralNetwork(X_train, Y_train, x_test, y_test):
@@ -327,7 +312,7 @@ for electrode in electrodes:
             else:
                 f = open(currentEmpFilename, 'a')
                     
-            for dataSampleSize in data_sample_sizes: #Iterate through sample sizes   
+            for data_sample_size in data_sample_sizes: #Iterate through sample sizes   
                 for run in range(5): #Conduct analyses 5 times per sample size
                     
                     ###############################################
@@ -336,39 +321,49 @@ for electrode in electrodes:
                     if add_synthetic_data:
                         
                         #Load Synthetic Data
-                        synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
-                        synData = np.genfromtxt(synFilename, delimiter=',', skip_header=1)
-                        synData = cutData(synData)
+                        syn_filename_c0 = f'generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode}_SS{data_sample_size}_Run0{run}_c0.csv'
+                        syn_filename_c1 = f'generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode}_SS{data_sample_size}_Run0{run}_c1.csv'
+
+                        dataloader_c0 = Dataloader(syn_filename_c0, col_label='Condition', channel_label='Electrode')
+                        dataloader_c1 = Dataloader(syn_filename_c1, col_label='Condition', channel_label='Electrode')
+
+                        syn_data_c0 = dataloader_c0.get_data().detach().numpy()
+                        syn_data_c1 = dataloader_c1.get_data().detach().numpy()
+                        syn_data = np.concatenate((syn_data_c0,syn_data_c1),axis=0)
+                        syn_participant_IDs = np.concatenate((np.repeat(np.arange(1,51,1),50),np.repeat(np.arange(1,51,1),50)))
                         
-                        #Extract outcome data
-                        synOutcomes = synData[:,0]
+                        ''' Removed processing for now
+                        Extract outcome data
+                        syn_outcomes = syn_data[:,0,:]
 
                         #Process synthetic data
-                        processedSynData = filterSyntheticEEG(synData[:,1:]) 
+                        processedSynData = filterSyntheticEEG(syn_data[:,1:]) 
                         processedSynData = baselineCorrect(processedSynData)
 
                         #Create new array for processed synthetic data
-                        processedSynData = np.insert(np.asarray(processedSynData),0,synOutcomes, axis = 1)
-
-                        #Average data across trials
-                        processedSynData = averageSynthetic(processedSynData)
+                        processedSynData = np.insert(np.asarray(processedSynData),0,syn_outcomes, axis = 1)
+                        '''
+                        processed_syn_data = syn_data
                         
+                        #Average data across trials
+                        processed_syn_data = averageEEG(syn_participant_IDs,processed_syn_data)
+
                         #Extract outcome and feature data
-                        synOutomes = processedSynData[:,0] #Extract outcome
+                        syn_outcomes = processed_syn_data[:,0,0] #Extract outcome
                         
                         if features: #If extracting features
-                            synPredictors = np.array(extractFeatures(processedSynData[:,1:])) #Extract features
+                            synPredictors = np.array(extractFeatures(processed_syn_data[:,1:])) #Extract features
                             synPredictors = scale(synPredictors, axis=0) #Scale across samples
                         else:
-                            synFeatures = processedSynData[:,1:] #Extract raw data
-                            synPredictors = scale(synFeatures, axis=1) #Scale across timeseries within trials
+                            synFeatures = processed_syn_data[:,1:,:] #Extract raw data
+                            synPredictors = norm(synFeatures)
 
                     ###############################################
                     ## EMPIRICAL PROCESSING                      ##
                     ###############################################
                     
                     #Load empirical data
-                    temp_filename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode}_SS{dataSampleSize}_Run0{run}.csv'
+                    temp_filename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode}_SS{data_sample_size}_Run0{run}.csv'
                     
                     dataloader = Dataloader(temp_filename, col_label='Condition', channel_label='Electrode')
                     EEG_data = dataloader.get_data().detach().numpy()
@@ -394,12 +389,12 @@ for electrode in electrodes:
                     
                     #Create augmented dataset
                     if add_synthetic_data: #If this is augmented analyses
-                        Y_train = np.concatenate((Y_train,synOutomes)) #Combine empirical and synthetic outcomes
+                        Y_train = np.concatenate((Y_train,syn_outcomes)) #Combine empirical and synthetic outcomes
                         X_train = np.concatenate((X_train,synPredictors)) #Combine empirical and synthetic features
                         
                         #Shuffle order of samples
                         train_shuffle = rnd.sample(range(len(X_train)),len(X_train))
-                        X_train = X_train[train_shuffle,:]
+                        X_train = X_train[train_shuffle,:,:]
                         Y_train = Y_train[train_shuffle]
 
                     #Flatten dataset into vector
@@ -410,7 +405,7 @@ for electrode in electrodes:
                     print(electrode)
                     print(classifier)
                     print('Augmented' if add_synthetic_data else 'Empirical')
-                    print('Sample Size: ' + str(int(dataSampleSize)))
+                    print('Sample Size: ' + str(int(data_sample_size)))
                     print('Run: ' + str(run))
                 
                     ###############################################
@@ -438,9 +433,9 @@ for electrode in electrodes:
                         
                     #Create list of what to write
                     if add_synthetic_data:
-                        toWrite = [str(dataSampleSize),str(run),str(0),str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
+                        toWrite = [str(data_sample_size),str(run),str(0),str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
                     else:
-                        toWrite = [str(dataSampleSize),str(run),'0',str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
+                        toWrite = [str(data_sample_size),str(run),'0',str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
 
                     #Write data to file
                     for currentWrite in toWrite: #Iterate through write list
