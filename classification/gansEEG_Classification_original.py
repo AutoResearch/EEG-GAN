@@ -289,9 +289,9 @@ def logisticRegression(X_train, Y_train, x_test, y_test):
 
 #Load data 
 if validationOrTest == 'validation':
-    EEGDataTest = np.genfromtxt('data/Validation and Test Datasets/ganTrialElectrodeERP_p500_e1_validation.csv', delimiter=',', skip_header=1)
+    EEGDataTest = np.genfromtxt('data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e1_validation.csv', delimiter=',', skip_header=1)
 else:
-    EEGDataTest = np.genfromtxt('data/Validation and Test Datasets/gansTrialERP_len100_TestData.csv', delimiter=',', skip_header=1)
+    EEGDataTest = np.genfromtxt('data/Reinforcement Learning/Validation and Test Datasets/gansTrialERP_len100_TestData.csv', delimiter=',', skip_header=1)
 
 #Average data
 EEGDataTest = averageEEG(EEGDataTest)[:,1:]
