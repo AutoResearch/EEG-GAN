@@ -19,7 +19,7 @@ import time
 features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [1] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
+syntheticDataOptions = [1,0] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 
 ###############################################
@@ -376,7 +376,8 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 
                 #Average data per participant and condition
                 EEGData = averageEEG(EEGData)[:,1:]
-                    
+                EEGData = np.delete(EEGData, 2, 1) #Delete electrode column
+
                 #Extract outcome and feature data
                 Y_train = EEGData[:,0]
                 
