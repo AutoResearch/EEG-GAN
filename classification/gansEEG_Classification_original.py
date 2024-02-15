@@ -365,7 +365,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 ###############################################
                 
                 #Load empirical data
-                tempFilename = 'data/Reinforcement Leaning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS'+dataSampleSize+ '_Run' + str(run).zfill(2) +'.csv'
+                tempFilename = 'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS'+dataSampleSize+ '_Run' + str(run).zfill(2) +'.csv'
                 EEGData = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)#[:,1:]
                 
                 #Average data per participant and condition
