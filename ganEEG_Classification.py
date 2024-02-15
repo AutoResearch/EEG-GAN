@@ -14,7 +14,7 @@ import scipy
 import random as rnd
 import time
 
-from helpers.dataloader import Dataloader
+from ..helpers.dataloader import Dataloader
 
 ###############################################
 ## USER INPUTS                               ##
