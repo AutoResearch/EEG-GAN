@@ -1,7 +1,6 @@
 playground.py
 .vscode
 __pycache__
-trained_ae
 trained_models
 plots
 generated_samples
