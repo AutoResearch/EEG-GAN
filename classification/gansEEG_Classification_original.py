@@ -19,7 +19,7 @@ import time
 features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [0] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
+syntheticDataOptions = [1] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 
 ###############################################
@@ -333,9 +333,14 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 if addSyntheticData:
                     
                     #Load Synthetic Data
-                    synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
-                    synData = np.genfromtxt(synFilename, delimiter=',', skip_header=1)
-                    synData = cutData(synData)
+                    #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
+                    synFilename_0 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e1_SS{dataSampleSize}_Run0{run}_c0.csv"
+                    synFilename_1 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e1_SS{dataSampleSize}_Run0{run}_c1.csv"
+                    synData_0 = np.genfromtxt(synFilename_0, delimiter=',', skip_header=1)
+                    synData_1 = np.genfromtxt(synFilename_1, delimiter=',', skip_header=1)
+                    synData = np.concatenate((synData_0,synData_1),axis=0)
+                    synData = np.delete(synData,1,1)
+                    #synData = cutData(synData)
                     
                     #Extract outcome data
                     synOutcomes = synData[:,0]
