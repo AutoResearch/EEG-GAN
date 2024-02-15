@@ -12,7 +12,6 @@ from sklearn.metrics import classification_report
 from scipy import signal
 import scipy
 import random as rnd
-from IPython.display import clear_output
 import time
 
 from helpers.dataloader import Dataloader
@@ -279,16 +278,16 @@ for electrode in electrodes:
     else:
         test_filename = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode}_test.csv'
     
-    dataloader = Dataloader(test_filename, col_label='Condition', channel_label='Electrode')
-    EEG_test_data = dataloader.get_data().detach().numpy()
-    EEG_meta = pd.read_csv(test_filename).iloc[:,:4]
-    EEG_participant_IDs = EEG_meta.loc[EEG_meta['Electrode']==1.0,:]['ParticipantID']
+    test_dataloader = Dataloader(test_filename, col_label='Condition', channel_label='Electrode')
+    EEG_test_data = test_dataloader.get_data().detach().numpy()
+    test_EEG_meta = pd.read_csv(test_filename).iloc[:,:4]
+    test_participant_IDs = test_EEG_meta.loc[test_EEG_meta['Electrode']==1.0,:]['ParticipantID']
 
     #Average data
-    EEG_test_data = averageEEG(EEG_participant_IDs, EEG_test_data)
+    EEG_test_data = averageEEG(test_participant_IDs, EEG_test_data)
         
     #Create outcome variable
-    y_test = EEG_test_data[:,0,0]
+    y_test_electrode = EEG_test_data[:,0,0]
 
     #Create test variable
     norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
@@ -297,7 +296,7 @@ for electrode in electrodes:
         x_test = np.array(extractFeatures(EEG_test_data[:,2:])) #Extract features
         x_test = scale(x_test, axis=0) #Scale data within each trial
     else:
-        x_test = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
+        x_test_electrode = norm(EEG_test_data[:,1:,:]) #Extract normalized raw EEG
 
     for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
         
@@ -315,6 +314,13 @@ for electrode in electrodes:
                     
             for data_sample_size in data_sample_sizes: #Iterate through sample sizes   
                 for run in range(5): #Conduct analyses 5 times per sample size
+
+                    ###############################################
+                    ## RE-DEFINE TEST DATA                       ##
+                    ###############################################
+                    
+                    y_test = y_test_electrode
+                    x_test = x_test_electrode
                     
                     ###############################################
                     ## SYNTHETIC PROCESSING                      ##
@@ -366,13 +372,13 @@ for electrode in electrodes:
                     #Load empirical data
                     temp_filename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode}_SS{data_sample_size}_Run0{run}.csv'
                     
-                    dataloader = Dataloader(temp_filename, col_label='Condition', channel_label='Electrode')
-                    EEG_data = dataloader.get_data().detach().numpy()
-                    EEG_meta = pd.read_csv(temp_filename).iloc[:,:4]
-                    EEG_participant_IDs = EEG_meta.loc[EEG_meta['Electrode']==1.0,:]['ParticipantID']
+                    emp_dataloader = Dataloader(temp_filename, col_label='Condition', channel_label='Electrode')
+                    EEG_data = emp_dataloader.get_data().detach().numpy()
+                    emp_EEG_meta = pd.read_csv(temp_filename).iloc[:,:4]
+                    emp_participant_IDs = emp_EEG_meta.loc[emp_EEG_meta['Electrode']==1.0,:]['ParticipantID']
 
                     #Average data
-                    EEG_data = averageEEG(EEG_participant_IDs, EEG_data)
+                    EEG_data = averageEEG(emp_participant_IDs, EEG_data)
                         
                     #Extract outcome and feature data
                     Y_train = EEG_data[:,0,0]
@@ -387,6 +393,10 @@ for electrode in electrodes:
                     train_shuffle = rnd.sample(range(len(X_train)),len(X_train))
                     Y_train = Y_train[train_shuffle]
                     X_train = X_train[train_shuffle,:,:]
+
+                    test_shuffle = rnd.sample(range(len(x_test)),len(x_test))
+                    y_test = y_test[test_shuffle]
+                    x_test = x_test[test_shuffle,:,:]
                     
                     #Create augmented dataset
                     if add_synthetic_data: #If this is augmented analyses
@@ -399,8 +409,8 @@ for electrode in electrodes:
                         Y_train = Y_train[train_shuffle]
 
                     #Flatten dataset into vector
-                    x_test = np.array([sample.T.flatten() for sample in x_test])
-                    X_train = np.array([sample.T.flatten() for sample in X_train])
+                    x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
+                    X_train = np.array([train_sample.T.flatten() for train_sample in X_train])
 
                     #Report current analyses
                     print(electrode)
