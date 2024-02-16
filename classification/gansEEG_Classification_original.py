@@ -16,7 +16,7 @@ import time
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = False #Datatype: False = Full Data, True = Features data
+features = True #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
 syntheticDataOptions = [1,0] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
@@ -193,12 +193,12 @@ def neuralNetwork(X_train, Y_train, x_test, y_test):
     
     #Define search space
     param_grid = [
-        {'hidden_layer_sizes': [(50,), (50,50), (50,25,50)],
+        {'hidden_layer_sizes': [(25,), (50,), (25, 25), (50,50), (50,25,50)],
         'activation': ['logistic', 'tanh', 'relu'],
-        'solver': ['adam'],
+        'solver': ['sgd', 'adam'],
         'alpha': [0.0001, 0.05],
         'learning_rate': ['constant', 'invscaling', 'adaptive'],
-        'max_iter' : [5000]}]
+        'max_iter' : [5000, 10000, 20000, 50000]}]
 
     #Search over search space
     optimal_params = GridSearchCV(
@@ -306,7 +306,7 @@ if features:
     x_test = scale(x_test, axis=0) #Scale data within each trial
 else:
     x_test = EEGDataTest[:,2:] #Extract raw EEG
-    x_test = scale(x_test,axis = 1) #Scale data within each trial
+    x_test = scale(x_test, axis = 1) #Scale data within each trial
 
 ###############################################
 ## CLASSIFICATION                            ##
