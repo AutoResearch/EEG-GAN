@@ -16,10 +16,10 @@ import time
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = True #Datatype: False = Full Data, True = Features data
+features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [1,0] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications
+syntheticDataOptions = [2] #[1, 0, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = duplicated data
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 
 ###############################################
@@ -27,18 +27,22 @@ classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 ###############################################
 
 #Base save file names
-augFilename = 'classification/Classification Results/augmentedPredictions_XX_SynP050_Runs8000_Filtered.csv'
-empFilename = 'classification/Classification Results/empiricalPredictions_XX_Runs8000.csv'
+electrode_number = 2
+augFilename = f'classification/Classification Results/augmentedPredictions_e{electrode_number}_XX.csv'
+empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
+dupFilename = f'classification/Classification Results/duplicatePredictions_e{electrode_number}_XX.csv'
 
 #Add features tag if applied
 if features:
     augFilename = augFilename.split('.csv')[0]+'_Features.csv'
     empFilename = empFilename.split('.csv')[0]+'_Features.csv'
+    dupFilename = dupFilename.split('.csv')[0]+'_Features.csv'
 
 #Add test tag if test set being used
 if validationOrTest == 'test':
     augFilename = augFilename.split('.csv')[0]+'_TestClassification.csv'
     empFilename = empFilename.split('.csv')[0]+'_TestClassification.csv'
+    dupFilename = dupFilename.split('.csv')[0]+'_TestClassification.csv'
     
 #Display parameters
 print('data Sample Sizes: ' )
@@ -46,6 +50,7 @@ print(dataSampleSizes)
 print('Classification Data: ' + validationOrTest)
 print('Augmented Filename: ' + augFilename)
 print('Empirical Filename: ' + empFilename) 
+print('Duplicate Filename: ' + dupFilename)
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -132,7 +137,7 @@ def extractFFT(EEG):
 def extractFeatures(EEG):
     erpFeatures = extractERP(EEG) #Extracts Reward Positivity amplitude
     fftFeatures = extractFFT(EEG) #Extracts Delta and Theta power
-    eegFeatures = np.transpose(np.vstack((erpFeatures,np.transpose(fftFeatures)))) #Combine features
+    eegFeatures = np.transpose(np.v((erpFeatures,np.transpose(fftFeatures)))) #Combine features
     
     return eegFeatures
 
@@ -155,7 +160,7 @@ def averageSynthetic(synData):
     newWinSynData = [np.insert(np.mean(winSynData[int(trialIndex):int(trialIndex)+samplesToAverage,1:],axis=0),0,0) for trialIndex in winTimeIndices]
 
     #Combine conditions
-    avgSynData = np.vstack((np.asarray(newLossSynData),np.asarray(newWinSynData)))
+    avgSynData = np.v((np.asarray(newLossSynData),np.asarray(newWinSynData)))
     
     return avgSynData
 
@@ -184,7 +189,7 @@ def cutData(synData):
     winSynData = synData[synData[:,0]==0,:]
 
     #Combine only the kept parts of each dataset
-    synData = np.vstack((lossSynData[0:keepIndex,:],winSynData[0:keepIndex,:]))
+    synData = np.v((lossSynData[0:keepIndex,:],winSynData[0:keepIndex,:]))
 
     return synData
 
@@ -316,22 +321,25 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
     #Determine current filenames
     currentAugFilename = augFilename.replace('XX',classifier)
     currentEmpFilename = empFilename.replace('XX',classifier)
+    currentDupFilename = dupFilename.replace('XX',classifier)
     
     for addSyntheticData in syntheticDataOptions: #Iterate through analyses (empirical, augmented)
         
         #Open corresponding file to write to
-        if addSyntheticData:
+        if addSyntheticData==1:
             f = open(currentAugFilename, 'a')
-        else:
+        elif addSyntheticData==0:
             f = open(currentEmpFilename, 'a')
-                
+        else:
+            f = open(currentDupFilename, 'a')
+
         for dataSampleSize in dataSampleSizes: #Iterate through sample sizes   
             for run in range(5): #Conduct analyses 5 times per sample size
                 
                 ###############################################
                 ## SYNTHETIC PROCESSING                      ##
                 ###############################################
-                if addSyntheticData:
+                if addSyntheticData == 1:
                     
                     #Load Synthetic Data
                     #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
@@ -364,7 +372,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                         synPredictors = scale(synPredictors, axis=0) #Scale across samples
                     else:
                         synFeatures = processedSynData[:,1:] #Extract raw data
-                        synPredictors = scale(synFeatures, axis=1) #Scale across timeseries within trials
+                        synPredictors = scale(synFeatures, axis=1) #Scale across timeseries within trials                   
 
                 ###############################################
                 ## EMPIRICAL PROCESSING                      ##
@@ -373,7 +381,26 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 #Load empirical data
                 tempFilename = 'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS'+dataSampleSize+ '_Run' + str(run).zfill(2) +'.csv'
                 EEGData = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)#[:,1:]
-                
+
+                #Duplicate samples for duplicate analyses
+                if addSyntheticData==2:
+                    
+                    EEGData_c0 = np.where(EEGData[:,1]==0)[0]
+                    EEGData_c1 = np.where(EEGData[:,1]==1)[0]
+
+                    duplicates_c0 = np.random.choice(EEGData_c0,2500,replace=True)
+                    duplicates_c1 = np.random.choice(EEGData_c1,2500,replace=True)
+
+                    dup_participant_ID = 900
+                    for i in range(2500):
+                        EEGData = np.vstack([EEGData, EEGData[duplicates_c0[i],:]])
+                        EEGData[-1,0] = dup_participant_ID
+                        EEGData = np.vstack([EEGData, EEGData[duplicates_c1[i],:]])
+                        EEGData[-1,0] = dup_participant_ID
+
+                        if i > 0 and i % 50 == 0:
+                            dup_participant_ID+=1
+                        
                 #Average data per participant and condition
                 EEGData = averageEEG(EEGData)[:,1:]
                 EEGData = np.delete(EEGData, 2, 1) #Delete electrode column
@@ -394,7 +421,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 X_train = X_train[trainShuffle,:]
                 
                 #Create augmented dataset
-                if addSyntheticData: #If this is augmented analyses
+                if addSyntheticData==1: #If this is augmented analyses
                     Y_train = np.concatenate((Y_train,synOutomes)) #Combine empirical and synthetic outcomes
                     X_train = np.concatenate((X_train,synPredictors)) #Combine empirical and synthetic features
                     
@@ -405,7 +432,12 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
                 #Report current analyses
                 print(classifier)
-                print('Augmented' if addSyntheticData else 'Empirical')
+                if addSyntheticData == 1: 
+                    print('Augmented')
+                elif addSyntheticData == 0:
+                    print('Empirical')
+                else:
+                    print('Duplicated')
                 print('Sample Size: ' + str(int(dataSampleSize)))
                 print('Run: ' + str(run))
             
@@ -433,7 +465,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 ###############################################
                     
                 #Create list of what to write
-                if addSyntheticData:
+                if addSyntheticData==1:
                     toWrite = [str(dataSampleSize),str(run),str(8000),str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
                 else:
                     toWrite = [str(dataSampleSize),str(run),'0',str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
