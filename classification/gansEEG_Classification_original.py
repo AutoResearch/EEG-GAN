@@ -384,22 +384,15 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
                 #Duplicate samples for duplicate analyses
                 if addSyntheticData==2:
-                    
-                    EEGData_c0 = np.where(EEGData[:,1]==0)[0]
-                    EEGData_c1 = np.where(EEGData[:,1]==1)[0]
-
-                    duplicates_c0 = np.random.choice(EEGData_c0,2500,replace=True)
-                    duplicates_c1 = np.random.choice(EEGData_c1,2500,replace=True)
-
-                    dup_participant_ID = 900
-                    for i in range(2500):
-                        EEGData = np.vstack([EEGData, EEGData[duplicates_c0[i],:]])
-                        EEGData[-1,0] = dup_participant_ID
-                        EEGData = np.vstack([EEGData, EEGData[duplicates_c1[i],:]])
-                        EEGData[-1,0] = dup_participant_ID
-
-                        if i > 0 and i % 50 == 0:
-                            dup_participant_ID+=1
+                    num_participant = np.unique(EEGData[:,0]).shape[0]
+                    participant_IDs = np.unique(EEGData[:,0])[:50]
+                    participant_cycle = 1
+                    for pi, participant_ID in enumerate(participant_IDs):
+                        participant_EEGData = EEGData[EEGData[:,0]==participant_ID,:]
+                        participant_EEGData[:,0] = participant_EEGData[:,0]+(1000*participant_cycle)
+                        if pi % num_participant == 0 and pi > 0:
+                            participant_cycle += 1
+                        EEGData = np.vstack([EEGData, participant_EEGData])
                         
                 #Average data per participant and condition
                 EEGData = averageEEG(EEGData)[:,1:]
