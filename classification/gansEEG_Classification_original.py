@@ -19,7 +19,7 @@ import time
 features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [2] #[1, 0, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = duplicated data
+syntheticDataOptions = [2] #[1, 0, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 
 ###############################################
@@ -30,19 +30,19 @@ classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 electrode_number = 2
 augFilename = f'classification/Classification Results/augmentedPredictions_e{electrode_number}_XX.csv'
 empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
-dupFilename = f'classification/Classification Results/duplicatePredictions_e{electrode_number}_XX.csv'
+ovsFilename = f'classification/Classification Results/oversamplingPredictions_e{electrode_number}_XX.csv'
 
 #Add features tag if applied
 if features:
     augFilename = augFilename.split('.csv')[0]+'_Features.csv'
     empFilename = empFilename.split('.csv')[0]+'_Features.csv'
-    dupFilename = dupFilename.split('.csv')[0]+'_Features.csv'
+    ovsFilename = ovsFilename.split('.csv')[0]+'_Features.csv'
 
 #Add test tag if test set being used
 if validationOrTest == 'test':
     augFilename = augFilename.split('.csv')[0]+'_TestClassification.csv'
     empFilename = empFilename.split('.csv')[0]+'_TestClassification.csv'
-    dupFilename = dupFilename.split('.csv')[0]+'_TestClassification.csv'
+    ovsFilename = ovsFilename.split('.csv')[0]+'_TestClassification.csv'
     
 #Display parameters
 print('data Sample Sizes: ' )
@@ -50,7 +50,7 @@ print(dataSampleSizes)
 print('Classification Data: ' + validationOrTest)
 print('Augmented Filename: ' + augFilename)
 print('Empirical Filename: ' + empFilename) 
-print('Duplicate Filename: ' + dupFilename)
+print('Oversampling Filename: ' + ovsFilename)
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -321,7 +321,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
     #Determine current filenames
     currentAugFilename = augFilename.replace('XX',classifier)
     currentEmpFilename = empFilename.replace('XX',classifier)
-    currentDupFilename = dupFilename.replace('XX',classifier)
+    currentOvsFilename = ovsFilename.replace('XX',classifier)
     
     for addSyntheticData in syntheticDataOptions: #Iterate through analyses (empirical, augmented)
         
@@ -331,7 +331,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
         elif addSyntheticData==0:
             f = open(currentEmpFilename, 'a')
         else:
-            f = open(currentDupFilename, 'a')
+            f = open(currentOvsFilename, 'a')
 
         for dataSampleSize in dataSampleSizes: #Iterate through sample sizes   
             for run in range(5): #Conduct analyses 5 times per sample size
@@ -382,7 +382,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 tempFilename = 'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS'+dataSampleSize+ '_Run' + str(run).zfill(2) +'.csv'
                 EEGData = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)#[:,1:]
 
-                #Duplicate samples for duplicate analyses
+                #Oversampling analysis
                 if addSyntheticData==2:
                     num_participant = np.unique(EEGData[:,0]).shape[0]
                     participant_IDs = np.unique(EEGData[:,0])[:50]
@@ -430,7 +430,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 elif addSyntheticData == 0:
                     print('Empirical')
                 else:
-                    print('Duplicated')
+                    print('Oversampling')
                 print('Sample Size: ' + str(int(dataSampleSize)))
                 print('Run: ' + str(run))
             
