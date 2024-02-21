@@ -6,7 +6,6 @@ from os.path import isfile, join
 
 from tqdm import tqdm
 
-
 #RENAME AUTOENCODER
 ae_path = 'trained_ae/Reinforcement Learning'
 if not os.path.isdir(f"{ae_path}/renamed"):
