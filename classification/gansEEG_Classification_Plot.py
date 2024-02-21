@@ -10,7 +10,7 @@ import numpy as np
 
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
-data = np.arange(1,4)
+data = np.arange(1,7)
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -31,14 +31,14 @@ def retrieveData(data):
 
     ##Features
     if data == 4:
-        augData = 'Classification Results/augmentedPredictions_NN_SynP050_Runs8000_Filtered_Features_TestClassification.csv'
-        empData = 'Classification Results/empiricalPredictions_NN_Runs8000_Features_TestClassification.csv'
+        augData = 'classification/Classification Results/augmentedPredictions_e1_NN_Features.csv'
+        empData = 'classification/Classification Results/empiricalPredictions_e1_NN_Features.csv'
     if data == 5:
-        augData = 'Classification Results/augmentedPredictions_SVM_SynP050_Runs8000_Filtered_Features_TestClassification.csv'
-        empData = 'Classification Results/empiricalPredictions_SVM_Runs8000_Features_TestClassification.csv'
+        augData = 'classification/Classification Results/augmentedPredictions_e1_SVM_Features.csv'
+        empData = 'classification/Classification Results/empiricalPredictions_e1_SVM_Features.csv'
     if data == 6:  
-        augData = 'Classification Results/augmentedPredictions_LR_SynP050_Runs8000_Filtered_Features_TestClassification.csv'
-        empData = 'Classification Results/empiricalPredictions_LR_Runs8000_Features_TestClassification.csv'
+        augData = 'classification/Classification Results/augmentedPredictions_e1_LR_Features.csv'
+        empData = 'classification/Classification Results/empiricalPredictions_e1_LR_Features.csv'
         
     return empData, augData
 
@@ -123,24 +123,24 @@ plt.rcParams.update({'font.size': 5})
 for dat in data:
     
     #Signify subplot
-    ax1 = plt.subplot(1,3,dat)
+    ax1 = plt.subplot(2,3,dat)
 
     #Load and plot data while extracting legend names
     legendNames = []
     empData, augData = retrieveData(dat)
-    legendNames.append(loadAndPlot(augData,'#ff7f0e','Augmented'))
-    legendNames.append(loadAndPlot(empData,'#1f77b4','Empirical'))
+    legendNames.append(loadAndPlot(augData,'C0','Augmented'))
+    legendNames.append(loadAndPlot(empData,'C1','Empirical'))
 
     #Create horizontal lines
-    axisLevels = np.arange(50,100,5)
+    axisLevels = np.arange(50,75,5)
     for y in axisLevels:
         plt.axhline(y=y, color='k', linestyle=':', alpha=.1)
         
     #Formal plot
-    plt.ylim(40,105)
+    plt.ylim(40,75)
     plt.xlim(0,105)
     plt.xticks(xLabels)
-    plt.yticks(np.arange(50,100,5))
+    plt.yticks(np.arange(50,75,5))
     plt.xticks(rotation=90)
     ax1.spines[['right', 'top']].set_visible(False)
         
@@ -153,22 +153,22 @@ for dat in data:
         plt.ylabel('Prediction Accuracy (%)')
         
     #Plot x label on bottom subplots
-    if dat <= 3:    
+    if dat > 3:    
         plt.xlabel('Sample Size')
     
     #Add data type titles
     if dat == 1:
-        ax1.annotate('Full Time Series',(3,105), fontsize = 6)
+        ax1.annotate('Full Time Series',(3,75), fontsize = 6)
     elif dat == 4:
-        ax1.annotate('Extracted Features',(3,105), fontsize = 6)
+        ax1.annotate('Extracted Features',(3,75), fontsize = 6)
         
     #Add classifier titles
     if (dat == 1) | (dat == 4):
-        ax1.annotate('Neural Network', (3,102.5), fontsize = 5)
+        ax1.annotate('Neural Network', (3,72.5), fontsize = 5)
     elif (dat == 2) | (dat == 5):
-        ax1.annotate('Support Vector Machine', (3,102.5), fontsize = 5)
+        ax1.annotate('Support Vector Machine', (3,72.5), fontsize = 5)
     else:
-        ax1.annotate('Logistic Regression', (3,102.5), fontsize = 5)
+        ax1.annotate('Logistic Regression', (3,72.5), fontsize = 5)
 
     #Add difference bars
     ax2 = ax1.twinx()  
@@ -183,5 +183,5 @@ for dat in data:
 ## SAVE PLOT                                 ##
 ###############################################
 fig = plt.gcf()
-fig.set_size_inches(8, 2)
+fig.set_size_inches(8, 4)
 fig.savefig('classification/Figures/Figure N - Classification Results.png', dpi=600, facecolor='white', edgecolor='none')
