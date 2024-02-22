@@ -11,6 +11,7 @@ import numpy as np
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
 data = np.arange(1,7)
+electrodes = 1
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -20,14 +21,14 @@ data = np.arange(1,7)
 def retrieveData(data):   
     ##Full Time-Series
     if data == 1:
-        augData = 'classification/Classification Results/augmentedPredictions_e1_NN.csv'
-        empData = 'classification/Classification Results/empiricalPredictions_e1_NN.csv'
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN.csv'
     if data == 2:
-        augData = 'classification/Classification Results/augmentedPredictions_e1_SVM.csv'
-        empData = 'classification/Classification Results/empiricalPredictions_e1_SVM.csv'
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_SVM.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM.csv'
     if data == 3:
-        augData = 'classification/Classification Results/augmentedPredictions_e1_LR.csv'
-        empData = 'classification/Classification Results/empiricalPredictions_e1_LR.csv'
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR.csv'
 
     ##Features
     if data == 4:
@@ -184,4 +185,4 @@ for dat in data:
 ###############################################
 fig = plt.gcf()
 fig.set_size_inches(8, 4)
-fig.savefig('classification/Figures/Figure N - Classification Results.png', dpi=600, facecolor='white', edgecolor='none')
+fig.savefig(f'classification/Figures/Figure N - Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
