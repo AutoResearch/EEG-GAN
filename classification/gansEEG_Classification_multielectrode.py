@@ -21,7 +21,7 @@ from helpers.dataloader import Dataloader
 features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [1] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
+syntheticDataOptions = [0, 1] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 electrode_number = 2
 
