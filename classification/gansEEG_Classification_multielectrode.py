@@ -18,10 +18,10 @@ from helpers.dataloader import Dataloader
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = True #Datatype: False = Full Data, True = Features data
+features = False #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [1, 0] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
+syntheticDataOptions = [2] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 electrode_number = 2
 
@@ -420,15 +420,20 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
                 #Oversampling analysis
                 if addSyntheticData==2:
-                    num_participant = np.unique(EEGData[:,0]).shape[0]
-                    participant_IDs = np.unique(EEGData[:,0])[:50]
+                    num_participant = np.unique(EEGData_metadata[:,0]).shape[0]
+                    participant_IDs = np.unique(EEGData_metadata[:,0])[:50]
                     participant_cycle = 1
                     for pi, participant_ID in enumerate(participant_IDs):
-                        participant_EEGData = EEGData[EEGData[:,0]==participant_ID,:]
-                        participant_EEGData[:,0] = participant_EEGData[:,0]+(1000*participant_cycle)
+                        participant_index = EEGData_metadata_3D[:,0]==participant_ID
+                        participant_EEGData_meta = EEGData_metadata_3D[participant_index,:]
+                        participant_EEGData_meta[:,0] = participant_EEGData_meta[:,0] + (1000*participant_cycle)
+                        EEGData_metadata_3D = np.vstack([EEGData_metadata_3D, participant_EEGData_meta])
+
+                        participant_EEGData = EEGData[participant_index,:,:]
+                        EEGData = np.vstack([EEGData, participant_EEGData])
+
                         if pi % num_participant == 0 and pi > 0:
                             participant_cycle += 1
-                        EEGData = np.vstack([EEGData, participant_EEGData])
                         
                 #Average data per participant and condition
                 EEGData = averageEEG(EEGData_metadata_3D[:,0], EEGData)
