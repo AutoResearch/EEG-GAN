@@ -18,10 +18,10 @@ from helpers.dataloader import Dataloader
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = False #Datatype: False = Full Data, True = Features data
+features = True #Datatype: False = Full Data, True = Features data
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [0, 1] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
+syntheticDataOptions = [1, 0] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 electrode_number = 2
 
@@ -111,9 +111,9 @@ def extractERP(EEG):
     endPoint = round((endTime/12)+17) #Add an extra datapoint so last datapoint is inclusive
     
     #Process
-    extractedERP = [np.mean(EEG[trial,startPoint:endPoint]) for trial in range(len(EEG))]
+    extractedERP = np.array([np.mean(EEG[trial,startPoint:endPoint,:],axis=0) for trial in range(len(EEG))])
 
-    return np.array(extractedERP)
+    return extractedERP.reshape(extractedERP.shape[0],1,extractedERP.shape[1])
 
 #Define Delta and Theta extraction function
 def extractFFT(EEG):
@@ -122,7 +122,7 @@ def extractFFT(EEG):
     def runFFT(EEG):
         
         #Determine parameters
-        numberDataPoints = len(EEG) #Determine how many datapoints will be transformed per trial and channel
+        numberDataPoints = EEG.shape[0] #Determine how many datapoints will be transformed per trial and channel
         SR = 83.3333 #Determine sampling rate
         frequencyResolution = SR/numberDataPoints #Determine frequency resolution
         fftFrequencies = np.arange(frequencyResolution,(SR/2),frequencyResolution) #Determine array of frequencies
@@ -143,12 +143,12 @@ def extractFFT(EEG):
         fftOutput = fftOutput*2 #Double values to account for lost values         
         fftOutput = fftOutput**2 #Convert to power
         fftOutput = fftOutput[1:] #Remove DC Offset
-        extractedFFT = [np.mean(fftOutput[deltaIndex[0]:deltaIndex[1]]),np.mean(fftOutput[thetaIndex[0]:thetaIndex[1]])]
+        extractedFFT = np.array([np.mean(fftOutput[deltaIndex[0]:deltaIndex[1],:],axis=0),np.mean(fftOutput[thetaIndex[0]:thetaIndex[1],:],axis=0)])
         
         return extractedFFT
     
     #Transform and extract across trials
-    fftFeatures = [runFFT(EEG[trial,:]) for trial in range(len(EEG))]
+    fftFeatures = [runFFT(EEG[trial,:,:]) for trial in range(len(EEG))]
     
     return np.array(fftFeatures)
 
@@ -156,7 +156,7 @@ def extractFFT(EEG):
 def extractFeatures(EEG):
     erpFeatures = extractERP(EEG) #Extracts Reward Positivity amplitude
     fftFeatures = extractFFT(EEG) #Extracts Delta and Theta power
-    eegFeatures = np.transpose(np.v((erpFeatures,np.transpose(fftFeatures)))) #Combine features
+    eegFeatures = np.hstack((erpFeatures,fftFeatures))
     
     return eegFeatures
 
@@ -331,7 +331,8 @@ y_test = EEGDataTest[:,0,0]
 
 #Create test variable
 if features:
-    x_test = np.array(extractFeatures(EEGDataTest[:,1:])) #Extract features
+    x_test = np.array(extractFeatures(EEGDataTest[:,1:,:])) #Extract features
+    x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
     x_test = scale(x_test, axis=0) #Scale data within each trial
 else:
     x_test = np.array([test_sample.T.flatten() for test_sample in EEGDataTest[:,1:,:]])
@@ -396,14 +397,15 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                     processedSynData = averageSynthetic(processedSynData)
                     
                     #Extract outcome and feature data
-                    syn_y_train = processedSynData[:,0,0] #Extract outcome
+                    syn_Y_train = processedSynData[:,0,0] #Extract outcome
                     
                     if features: #If extracting features
-                        synPredictors = np.array(extractFeatures(processedSynData[:,1:])) #Extract features
-                        synPredictors = scale(synPredictors, axis=0) #Scale across samples
+                        syn_X_train = np.array(extractFeatures(processedSynData[:,1:,:])) #Extract features
+                        syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in syn_X_train])
+                        syn_X_train = scale(syn_X_train, axis=0) #Scale across samples
                     else:
-                        syn_x_train = np.array([syn_sample.T.flatten() for syn_sample in processedSynData[:,1:,:]])
-                        syn_x_train = scale(syn_x_train, axis=1) #Scale across timeseries within trials                   
+                        syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in processedSynData[:,1:,:]])
+                        syn_X_train = scale(syn_X_train, axis=1) #Scale across timeseries within trials                   
 
                 ###############################################
                 ## EMPIRICAL PROCESSING                      ##
@@ -435,26 +437,22 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 Y_train = EEGData[:,0,0]
                 
                 if features: #If extracting features
-                    X_train = np.array(extractFeatures(EEGData[:,2:])) #Extract features
-                    X_train = scale(X_train, axis=0) #Scale across samples
+                    X_train = np.array(extractFeatures(EEGData[:,1:,:])) #Extract features
+                    X_train = np.array([train_sample.T.flatten() for train_sample in X_train])
+                    X_train = scale(X_train, axis=0) #Scale data within each trial
                 else:
-                    X_train = np.array([emp_sample.T.flatten() for emp_sample in EEGData[:,1:,:]])
+                    X_train = np.array([train_sample.T.flatten() for train_sample in EEGData[:,1:,:]])
                     X_train = scale(X_train, axis=1) #Scale across timeseries within trials
-
-                #Shuffle order of samples
-                trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
-                Y_train = Y_train[trainShuffle]
-                X_train = X_train[trainShuffle,:]
                 
                 #Create augmented dataset
                 if addSyntheticData==1: #If this is augmented analyses
-                    Y_train = np.concatenate((Y_train,syn_y_train)) #Combine empirical and synthetic outcomes
-                    X_train = np.concatenate((X_train,syn_x_train)) #Combine empirical and synthetic features
+                    Y_train = np.concatenate((Y_train,syn_Y_train)) #Combine empirical and synthetic outcomes
+                    X_train = np.concatenate((X_train,syn_X_train)) #Combine empirical and synthetic features
                     
-                    #Shuffle order of samples
-                    trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
-                    X_train = X_train[trainShuffle,:]
-                    Y_train = Y_train[trainShuffle]
+                #Shuffle order of samples
+                trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
+                X_train = X_train[trainShuffle,:]
+                Y_train = Y_train[trainShuffle]
 
                 #Report current analyses
                 print(classifier)
