@@ -23,15 +23,15 @@ validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
 syntheticDataOptions = [0, 1] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
-electrode_number = 2
+electrode_number = 1
 
 ###############################################
 ## SETUP                                     ##
 ###############################################
 
 #Base save file names
-augFilename = f'classification/Classification Results/augmentedPredictions_e{electrode_number}_XX.csv'
-empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
+augFilename = f'classification/Classification Results/test_augmentedPredictions_e{electrode_number}_XX.csv'
+empFilename = f'classification/Classification Results/test_empiricalPredictions_e{electrode_number}_XX.csv'
 ovsFilename = f'classification/Classification Results/oversamplingPredictions_e{electrode_number}_XX.csv'
 
 #Add features tag if applied
