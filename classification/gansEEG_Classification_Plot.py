@@ -3,14 +3,14 @@
 ###############################################
 import matplotlib.pyplot as plt
 import numpy as np
-    
+
 ###############################################
 ## SETUP                                     ##
 ###############################################
 
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
-data = np.arange(1,7)
+data = np.arange(1,10)
 electrodes = 1
 
 ###############################################
@@ -30,7 +30,7 @@ def retrieveData(data):
         augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR.csv'
 
-    ##Features
+    ##Extracted features
     if data == 4:
         augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_Features.csv'
@@ -40,6 +40,17 @@ def retrieveData(data):
     if data == 6:  
         augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_Features.csv'
+
+    ##Autoencoder features
+    if data == 7:
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN_AE.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_AE.csv'
+    if data == 8:
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_SVM_AE.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM_AE.csv'
+    if data == 9:  
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR_AE.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_AE.csv'
         
     return empData, augData
 
@@ -112,7 +123,7 @@ def plotDiffData():
 ## SETUP FIGURE                              ##
 ###############################################
 
-fig = plt.figure(figsize=(24, 2), dpi=600)
+fig = plt.figure(figsize=(24, 3), dpi=600)
 fig.subplots_adjust(hspace=.3)
 plt.rcParams.update({'font.size': 5})  
 
@@ -126,7 +137,7 @@ ylims = 75 if electrodes == 1 else 85
 for dat in data:
     
     #Signify subplot
-    ax1 = plt.subplot(2,3,dat)
+    ax1 = plt.subplot(3,3,dat)
 
     #Load and plot data while extracting legend names
     legendNames = []
@@ -186,5 +197,5 @@ for dat in data:
 ## SAVE PLOT                                 ##
 ###############################################
 fig = plt.gcf()
-fig.set_size_inches(8, 4)
+fig.set_size_inches(8, 6)
 fig.savefig(f'classification/Figures/Figure N - Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
