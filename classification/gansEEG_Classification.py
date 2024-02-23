@@ -10,11 +10,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 from scipy import signal
 import torch
+from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 import scipy
 import random as rnd
 import time
+from tqdm import tqdm
 
 from helpers.dataloader import Dataloader
+from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
 
 ###############################################
 ## USER INPUTS                               ##
@@ -23,7 +26,7 @@ features = False #Datatype: False = Full Data, True = Features data
 autoencoder = True #Whether to use autoencoder feature selection
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [1] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification, 3 = augmented w/ autoencoder
+syntheticDataOptions = [1, 0] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
 electrode_number = 1
 
@@ -35,9 +38,6 @@ electrode_number = 1
 augFilename = f'classification/Classification Results/augmentedPredictions_e{electrode_number}_XX.csv'
 empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
 ovsFilename = f'classification/Classification Results/oversamplingPredictions_e{electrode_number}_XX.csv'
-
-if not autoencoder:
-    augaeFilename = f'classification/Classification Results/augmentedAEPredictions_e{electrode_number}_XX.csv'
 
 #Add features tag if applied
 if features:
@@ -55,7 +55,6 @@ if validationOrTest == 'test':
     augFilename = augFilename.split('.csv')[0]+'_TestClassification.csv'
     empFilename = empFilename.split('.csv')[0]+'_TestClassification.csv'
     ovsFilename = ovsFilename.split('.csv')[0]+'_TestClassification.csv'
-    augaeFilename = augaeFilename.split('.csv')[0]+'_TestClassification.csv'
     
 #Display parameters
 print('data Sample Sizes: ' )
@@ -171,7 +170,7 @@ def extractFeatures(EEG):
     
     return eegFeatures
 
-def load_synthetic(electrode_number, dataSampleSize, run, features):
+def load_synthetic(electrode_number, dataSampleSize, run, features, autoencoder_filename = None):
                         
     #Load Synthetic Data
     #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
@@ -196,13 +195,17 @@ def load_synthetic(electrode_number, dataSampleSize, run, features):
     #Create new array for processed synthetic data
     processedSynData = np.insert(np.asarray(processedSynData),0,synOutcomes.reshape(1,-1,1), axis = 1)
 
+    #Encode data
+    if autoencoder_filename != None:
+        processedSynData = encode_data(autoencoder_filename, processedSynData)
+
     #Average data across trials
     processedSynData = averageSynthetic(processedSynData)
     
     #Extract outcome and feature data
     syn_Y_train = processedSynData[:,0,0] #Extract outcome
     
-    if features: #If extracting features
+    if features and not autoencoder: #If extracting features
         syn_X_train = np.array(extractFeatures(processedSynData[:,1:,:])) #Extract features
         syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in syn_X_train])
         syn_X_train = scale(syn_X_train, axis=0) #Scale across samples
@@ -358,7 +361,42 @@ def logisticRegression(X_train, Y_train, x_test, y_test):
     
     return optimal_params, predictScore
 
-def load_test_data(validationOrTest, electrode_number, features, autoencoder_name = None):
+def encode_data(autoencoder_filename, data):
+    device = torch.device('cpu')
+    ae_dict = torch.load(autoencoder_filename, map_location=device)
+    if ae_dict['configuration']['target'] == 'channels':
+        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
+        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
+    elif ae_dict['configuration']['target'] == 'time':
+        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
+        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
+    elif ae_dict['configuration']['target'] == 'full':
+        autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
+        autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
+    else:
+        raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+    consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
+    autoencoder.load_state_dict(ae_dict['model'])
+    for param in autoencoder.parameters():
+        param.requires_grad = False
+    
+    #Encode data
+    if str(data.dtype) == 'float64': data = np.float32(data)
+    norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
+    data = np.concatenate((data[:,[0],:], norm(data[:,1:,:])), axis=1)
+
+    time_dim = ae_dict['configuration']['timeseries_out']+1 if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_TIMESERIES, TransformerAutoencoder.TARGET_BOTH] else data.shape[1]
+    chan_dim = ae_dict['configuration']['channels_out'] if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_CHANNELS, TransformerAutoencoder.TARGET_BOTH] else data.shape[2]
+    ae_dataset = np.empty((data.shape[0], time_dim, chan_dim))
+    print('Reconstructing dataset with the autoencoder...')
+    for sample in range(data.shape[0]):
+        sample_data = data[[sample],1:,:]
+        ae_data = autoencoder.encode(torch.from_numpy(sample_data)).detach().numpy()
+        ae_dataset[sample,:,:] = np.concatenate((data[sample,0,:].reshape(1,1,-1), ae_data), axis=1)
+    
+    return ae_dataset
+
+def load_test_data(validationOrTest, electrode_number, features, autoencoder_filename = None):
     if validationOrTest == 'validation':
         EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_validation.csv'
     else:
@@ -370,25 +408,24 @@ def load_test_data(validationOrTest, electrode_number, features, autoencoder_nam
     EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, col_label='Condition', channel_label='Electrode')
     EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
 
-    if autoencoder_name == None:
-        EEGDataTest = averageEEG(EEGDataTest_metadata_3D[:,0], EEGDataTest)
+    #Encode data
+    if autoencoder_filename != None:
+        EEGDataTest = encode_data(autoencoder_filename, EEGDataTest)
+        
+    #Average data
+    EEGDataTest = averageEEG(EEGDataTest_metadata_3D[:,0], EEGDataTest)
         
     #Create outcome variable
     y_test = EEGDataTest[:,0,0]
 
     #Create test variable
-    if features:
+    if features and not autoencoder:
         x_test = np.array(extractFeatures(EEGDataTest[:,1:,:])) #Extract features
         x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
         x_test = scale(x_test, axis=0) #Scale data within each trial
     else:
-        if autoencoder_name == None:
-            x_test = np.array([test_sample.T.flatten() for test_sample in EEGDataTest[:,1:,:]])
-            x_test = scale(x_test, axis=1) #Scale data within each trial
-        else:
-
-            #Run through autoencoder = EEGDataTest[:,1:,:]
-            pass
+        x_test = np.array([test_sample.T.flatten() for test_sample in EEGDataTest[:,1:,:]])
+        x_test = scale(x_test, axis=1) #Scale data within each trial
 
     return y_test, x_test
 
@@ -425,17 +462,22 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
             for run in range(5): #Conduct analyses 5 times per sample size
                 
                 ###############################################
-                ## AUTOENCODE TEST DATA PROCESSING           ##
+                ## AUTOENCODE TEST DATA                      ##
                 ###############################################
                 if autoencoder:
-                    autoencoder_name = f'trained_ae/Reinforcement Learning/aug_ae_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
-                    y_test, x_test = load_test_data(validationOrTest, electrode_number, features, autoencoder_name)
+                    if addSyntheticData == 0: #Empirical
+                        autoencoder_filename = f'trained_ae/Reinforcement Learning/Embedded/ae_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
+                    elif addSyntheticData == 1: #Augmented
+                        autoencoder_filename = f'trained_ae/Reinforcement Learning/Post-GAN/post_ae_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
+                    y_test, x_test = load_test_data(validationOrTest, electrode_number, features, autoencoder_filename)
+                else:
+                    autoencoder_filename = None
 
                 ###############################################
                 ## SYNTHETIC PROCESSING                      ##
                 ###############################################
                 if addSyntheticData == 1:
-                    syn_Y_train, syn_X_train = load_synthetic(electrode_number, dataSampleSize, run, features)
+                    syn_Y_train, syn_X_train = load_synthetic(electrode_number, dataSampleSize, run, features, autoencoder_filename)
 
                 ###############################################
                 ## EMPIRICAL PROCESSING                      ##
@@ -464,7 +506,11 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
                         if pi % num_participant == 0 and pi > 0:
                             participant_cycle += 1
-                        
+
+                #Encode data
+                if autoencoder_filename != None:
+                    EEGData = encode_data(autoencoder_filename, EEGData)
+                
                 #Average data per participant and condition
                 EEGData = averageEEG(EEGData_metadata_3D[:,0], EEGData)
 
