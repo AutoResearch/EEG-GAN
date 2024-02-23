@@ -64,6 +64,11 @@ print('Augmented Filename: ' + augFilename)
 print('Empirical Filename: ' + empFilename) 
 print('Oversampling Filename: ' + ovsFilename)
 
+if autoencoder and not features:
+    print('Features: Autoencoder Features')
+elif features and not autoencoder:
+    print('Features: Extracted Features')
+
 ###############################################
 ## FUNCTIONS                                 ##
 ###############################################
@@ -388,7 +393,6 @@ def encode_data(autoencoder_filename, data):
     time_dim = ae_dict['configuration']['timeseries_out']+1 if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_TIMESERIES, TransformerAutoencoder.TARGET_BOTH] else data.shape[1]
     chan_dim = ae_dict['configuration']['channels_out'] if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_CHANNELS, TransformerAutoencoder.TARGET_BOTH] else data.shape[2]
     ae_dataset = np.empty((data.shape[0], time_dim, chan_dim))
-    print('Reconstructing dataset with the autoencoder...')
     for sample in range(data.shape[0]):
         sample_data = data[[sample],1:,:]
         ae_data = autoencoder.encode(torch.from_numpy(sample_data)).detach().numpy()
