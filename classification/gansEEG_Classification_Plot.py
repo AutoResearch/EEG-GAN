@@ -159,15 +159,15 @@ for dat in data:
     ax1.spines[['right', 'top']].set_visible(False)
         
     #Plot legend on last subplot
-    if dat == data[-1]:
-        plt.legend(legendNames, bbox_to_anchor=(1,1.1), frameon=False)
+    if dat == 3:
+        plt.legend(legendNames, bbox_to_anchor=(.95,1.2), frameon=False)
         
     #Plot y label on left subplots
-    if (dat == 1) | (dat == 4):
+    if (dat == 1) | (dat == 4) | (dat == 7):
         plt.ylabel('Prediction Accuracy (%)')
         
     #Plot x label on bottom subplots
-    if dat > 3:    
+    if dat > 6:    
         plt.xlabel('Sample Size')
     
     #Add data type titles
@@ -175,13 +175,15 @@ for dat in data:
         ax1.annotate('Full Time Series',(3,ylims), fontsize = 6)
     elif dat == 4:
         ax1.annotate('Extracted Features',(3,ylims), fontsize = 6)
+    elif dat == 7:
+        ax1.annotate('Autoencoder Features',(3,ylims), fontsize = 6)
         
     #Add classifier titles
-    if (dat == 1) | (dat == 4):
+    if (dat == 1):
         ax1.annotate('Neural Network', (3,ylims-2.5), fontsize = 5)
-    elif (dat == 2) | (dat == 5):
+    elif (dat == 2):
         ax1.annotate('Support Vector Machine', (3,ylims-2.5), fontsize = 5)
-    else:
+    elif (dat == 3):
         ax1.annotate('Logistic Regression', (3,ylims-2.5), fontsize = 5)
 
     #Add difference bars
