@@ -9,6 +9,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 from scipy import signal
+import torch
 import scipy
 import random as rnd
 import time
@@ -19,11 +20,12 @@ from helpers.dataloader import Dataloader
 ## USER INPUTS                               ##
 ###############################################
 features = False #Datatype: False = Full Data, True = Features data
+autoencoder = True #Whether to use autoencoder feature selection
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = [2] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
+syntheticDataOptions = [1] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification, 3 = augmented w/ autoencoder
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
-electrode_number = 2
+electrode_number = 1
 
 ###############################################
 ## SETUP                                     ##
@@ -34,17 +36,26 @@ augFilename = f'classification/Classification Results/augmentedPredictions_e{ele
 empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
 ovsFilename = f'classification/Classification Results/oversamplingPredictions_e{electrode_number}_XX.csv'
 
+if not autoencoder:
+    augaeFilename = f'classification/Classification Results/augmentedAEPredictions_e{electrode_number}_XX.csv'
+
 #Add features tag if applied
 if features:
     augFilename = augFilename.split('.csv')[0]+'_Features.csv'
     empFilename = empFilename.split('.csv')[0]+'_Features.csv'
     ovsFilename = ovsFilename.split('.csv')[0]+'_Features.csv'
 
+if autoencoder:
+    augFilename = augFilename.split('.csv')[0]+'_AE.csv'
+    empFilename = empFilename.split('.csv')[0]+'_AE.csv'
+    ovsFilename = ovsFilename.split('.csv')[0]+'_AE.csv'
+
 #Add test tag if test set being used
 if validationOrTest == 'test':
     augFilename = augFilename.split('.csv')[0]+'_TestClassification.csv'
     empFilename = empFilename.split('.csv')[0]+'_TestClassification.csv'
     ovsFilename = ovsFilename.split('.csv')[0]+'_TestClassification.csv'
+    augaeFilename = augaeFilename.split('.csv')[0]+'_TestClassification.csv'
     
 #Display parameters
 print('data Sample Sizes: ' )
@@ -160,6 +171,48 @@ def extractFeatures(EEG):
     
     return eegFeatures
 
+def load_synthetic(electrode_number, dataSampleSize, run, features):
+                        
+    #Load Synthetic Data
+    #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
+    synFilename_0 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
+    synFilename_1 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
+
+    Syn0_dataloader = Dataloader(synFilename_0, col_label='Condition', channel_label='Electrode')
+    synData_0 = Syn0_dataloader.get_data(shuffle=False).detach().numpy()
+
+    Syn1_dataloader = Dataloader(synFilename_1, col_label='Condition', channel_label='Electrode')
+    synData_1 = Syn1_dataloader.get_data(shuffle=False).detach().numpy()
+
+    synData = np.concatenate((synData_0,synData_1),axis=0)
+    
+    #Extract outcome data
+    synOutcomes = synData[:, 0, 0]
+
+    #Process synthetic data
+    processedSynData = filterSyntheticEEG(synData[:,1:,:]) 
+    processedSynData = baselineCorrect(processedSynData)
+
+    #Create new array for processed synthetic data
+    processedSynData = np.insert(np.asarray(processedSynData),0,synOutcomes.reshape(1,-1,1), axis = 1)
+
+    #Average data across trials
+    processedSynData = averageSynthetic(processedSynData)
+    
+    #Extract outcome and feature data
+    syn_Y_train = processedSynData[:,0,0] #Extract outcome
+    
+    if features: #If extracting features
+        syn_X_train = np.array(extractFeatures(processedSynData[:,1:,:])) #Extract features
+        syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in syn_X_train])
+        syn_X_train = scale(syn_X_train, axis=0) #Scale across samples
+    else:
+        syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in processedSynData[:,1:,:]])
+        syn_X_train = scale(syn_X_train, axis=1) #Scale across timeseries within trials                   
+
+    return syn_Y_train, syn_X_train
+    
+
 #Average synthetic data function
 def averageSynthetic(synData):
     
@@ -185,9 +238,6 @@ def averageEEG(participant_IDs, EEG):
     
     #Determine participant IDs
     participants = np.unique(participant_IDs)
-    
-    #Conditions
-    number_of_conditions = np.unique(EEG[:,0]).shape[0]
 
     #Conduct averaging
     averagedEEG = np.empty((0, EEG.shape[1], EEG.shape[2])) 
@@ -307,36 +357,47 @@ def logisticRegression(X_train, Y_train, x_test, y_test):
     predictScore = round(logRegOutput.score(x_test,y_test)*100)
     
     return optimal_params, predictScore
-    
+
+def load_test_data(validationOrTest, electrode_number, features, autoencoder_name = None):
+    if validationOrTest == 'validation':
+        EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_validation.csv'
+    else:
+        EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_test.csv.csv'
+
+    #Average data
+    EEGDataTest_metadata = np.genfromtxt(EEGDataTest_fn, delimiter=',', skip_header=1)[:,:4]
+    EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
+    EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, col_label='Condition', channel_label='Electrode')
+    EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
+
+    if autoencoder_name == None:
+        EEGDataTest = averageEEG(EEGDataTest_metadata_3D[:,0], EEGDataTest)
+        
+    #Create outcome variable
+    y_test = EEGDataTest[:,0,0]
+
+    #Create test variable
+    if features:
+        x_test = np.array(extractFeatures(EEGDataTest[:,1:,:])) #Extract features
+        x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
+        x_test = scale(x_test, axis=0) #Scale data within each trial
+    else:
+        if autoencoder_name == None:
+            x_test = np.array([test_sample.T.flatten() for test_sample in EEGDataTest[:,1:,:]])
+            x_test = scale(x_test, axis=1) #Scale data within each trial
+        else:
+
+            #Run through autoencoder = EEGDataTest[:,1:,:]
+            pass
+
+    return y_test, x_test
+
 ###############################################
 ## LOAD VALIDATION/TEST DATA                 ##
 ###############################################
 
 #Load data 
-if validationOrTest == 'validation':
-    EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_validation.csv'
-else:
-    EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_test.csv.csv'
-
-#Average data
-EEGDataTest_metadata = np.genfromtxt(EEGDataTest_fn, delimiter=',', skip_header=1)[:,:4]
-EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
-EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, col_label='Condition', channel_label='Electrode')
-EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
-
-EEGDataTest = averageEEG(EEGDataTest_metadata_3D[:,0], EEGDataTest)
-    
-#Create outcome variable
-y_test = EEGDataTest[:,0,0]
-
-#Create test variable
-if features:
-    x_test = np.array(extractFeatures(EEGDataTest[:,1:,:])) #Extract features
-    x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
-    x_test = scale(x_test, axis=0) #Scale data within each trial
-else:
-    x_test = np.array([test_sample.T.flatten() for test_sample in EEGDataTest[:,1:,:]])
-    x_test = scale(x_test, axis=1) #Scale data within each trial
+y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 
 ###############################################
 ## CLASSIFICATION                            ##
@@ -355,57 +416,26 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
             f = open(currentAugFilename, 'a')
         elif addSyntheticData==0:
             f = open(currentEmpFilename, 'a')
-        else:
+        elif addSyntheticData==2:
             f = open(currentOvsFilename, 'a')
+        else:
+            print('Analysis index not recognized.')
 
         for dataSampleSize in dataSampleSizes: #Iterate through sample sizes   
             for run in range(5): #Conduct analyses 5 times per sample size
                 
                 ###############################################
+                ## AUTOENCODE TEST DATA PROCESSING           ##
+                ###############################################
+                if autoencoder:
+                    autoencoder_name = f'trained_ae/Reinforcement Learning/aug_ae_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
+                    y_test, x_test = load_test_data(validationOrTest, electrode_number, features, autoencoder_name)
+
+                ###############################################
                 ## SYNTHETIC PROCESSING                      ##
                 ###############################################
                 if addSyntheticData == 1:
-                    
-                    #Load Synthetic Data
-                    #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
-                    synFilename_0 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
-                    synFilename_1 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
-
-                    Syn0_metadata = np.genfromtxt(synFilename_0, delimiter=',', skip_header=1)[:,:4]
-                    Syn0_metadata_3D = Syn0_metadata[Syn0_metadata[:,3] == np.unique(Syn0_metadata[:,3])[0],:]
-                    Syn0_dataloader = Dataloader(synFilename_0, col_label='Condition', channel_label='Electrode')
-                    synData_0 = Syn0_dataloader.get_data(shuffle=False).detach().numpy()
-
-                    Syn1_metadata = np.genfromtxt(synFilename_1, delimiter=',', skip_header=1)[:,:4]
-                    Syn1_metadata_3D = Syn1_metadata[Syn1_metadata[:,3] == np.unique(Syn1_metadata[:,3])[0],:]
-                    Syn1_dataloader = Dataloader(synFilename_1, col_label='Condition', channel_label='Electrode')
-                    synData_1 = Syn1_dataloader.get_data(shuffle=False).detach().numpy()
-
-                    synData = np.concatenate((synData_0,synData_1),axis=0)
-                    
-                    #Extract outcome data
-                    synOutcomes = synData[:, 0, 0]
-
-                    #Process synthetic data
-                    processedSynData = filterSyntheticEEG(synData[:,1:,:]) 
-                    processedSynData = baselineCorrect(processedSynData)
-
-                    #Create new array for processed synthetic data
-                    processedSynData = np.insert(np.asarray(processedSynData),0,synOutcomes.reshape(1,-1,1), axis = 1)
-
-                    #Average data across trials
-                    processedSynData = averageSynthetic(processedSynData)
-                    
-                    #Extract outcome and feature data
-                    syn_Y_train = processedSynData[:,0,0] #Extract outcome
-                    
-                    if features: #If extracting features
-                        syn_X_train = np.array(extractFeatures(processedSynData[:,1:,:])) #Extract features
-                        syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in syn_X_train])
-                        syn_X_train = scale(syn_X_train, axis=0) #Scale across samples
-                    else:
-                        syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in processedSynData[:,1:,:]])
-                        syn_X_train = scale(syn_X_train, axis=1) #Scale across timeseries within trials                   
+                    syn_Y_train, syn_X_train = load_synthetic(electrode_number, dataSampleSize, run, features)
 
                 ###############################################
                 ## EMPIRICAL PROCESSING                      ##
