@@ -32,14 +32,14 @@ def retrieveData(data):
 
     ##Features
     if data == 4:
-        augData = 'classification/Classification Results/augmentedPredictions_e1_NN_Features.csv'
-        empData = 'classification/Classification Results/empiricalPredictions_e1_NN_Features.csv'
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN_Features.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_Features.csv'
     if data == 5:
-        augData = 'classification/Classification Results/augmentedPredictions_e1_SVM_Features.csv'
-        empData = 'classification/Classification Results/empiricalPredictions_e1_SVM_Features.csv'
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_SVM_Features.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM_Features.csv'
     if data == 6:  
-        augData = 'classification/Classification Results/augmentedPredictions_e1_LR_Features.csv'
-        empData = 'classification/Classification Results/empiricalPredictions_e1_LR_Features.csv'
+        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR_Features.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_Features.csv'
         
     return empData, augData
 
@@ -116,6 +116,8 @@ fig = plt.figure(figsize=(24, 2), dpi=600)
 fig.subplots_adjust(hspace=.3)
 plt.rcParams.update({'font.size': 5})  
 
+ylims = 75 if electrodes == 1 else 85
+
 ###############################################
 ## PLOT NEURAL NETWORK                       ##
 ###############################################
@@ -133,15 +135,15 @@ for dat in data:
     legendNames.append(loadAndPlot(empData,'C1','Empirical'))
 
     #Create horizontal lines
-    axisLevels = np.arange(50,75,5)
+    axisLevels = np.arange(50,ylims,5)
     for y in axisLevels:
         plt.axhline(y=y, color='k', linestyle=':', alpha=.1)
         
     #Formal plot
-    plt.ylim(40,75)
+    plt.ylim(40,ylims)
     plt.xlim(0,105)
     plt.xticks(xLabels)
-    plt.yticks(np.arange(50,75,5))
+    plt.yticks(np.arange(50,ylims,5))
     plt.xticks(rotation=90)
     ax1.spines[['right', 'top']].set_visible(False)
         
@@ -159,17 +161,17 @@ for dat in data:
     
     #Add data type titles
     if dat == 1:
-        ax1.annotate('Full Time Series',(3,75), fontsize = 6)
+        ax1.annotate('Full Time Series',(3,ylims), fontsize = 6)
     elif dat == 4:
-        ax1.annotate('Extracted Features',(3,75), fontsize = 6)
+        ax1.annotate('Extracted Features',(3,ylims), fontsize = 6)
         
     #Add classifier titles
     if (dat == 1) | (dat == 4):
-        ax1.annotate('Neural Network', (3,72.5), fontsize = 5)
+        ax1.annotate('Neural Network', (3,ylims-2.5), fontsize = 5)
     elif (dat == 2) | (dat == 5):
-        ax1.annotate('Support Vector Machine', (3,72.5), fontsize = 5)
+        ax1.annotate('Support Vector Machine', (3,ylims-2.5), fontsize = 5)
     else:
-        ax1.annotate('Logistic Regression', (3,72.5), fontsize = 5)
+        ax1.annotate('Logistic Regression', (3,ylims-2.5), fontsize = 5)
 
     #Add difference bars
     ax2 = ax1.twinx()  
