@@ -470,9 +470,9 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 ###############################################
                 if autoencoder:
                     if addSyntheticData == 0: #Empirical
-                        autoencoder_filename = f'trained_ae/Reinforcement Learning/Embedded/ae_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
+                        autoencoder_filename = f'trained_ae/Reinforcement Learning/Features Empirical/feat_emp_ae_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
                     elif addSyntheticData == 1: #Augmented
-                        autoencoder_filename = f'trained_ae/Reinforcement Learning/Post-GAN/post_ae_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
+                        autoencoder_filename = f'trained_ae/Reinforcement Learning/Features Augmented/feat_aug_ae_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
                     y_test, x_test = load_test_data(validationOrTest, electrode_number, features, autoencoder_filename)
                 else:
                     autoencoder_filename = None
