@@ -127,7 +127,7 @@ fig = plt.figure(figsize=(24, 3), dpi=600)
 fig.subplots_adjust(hspace=.3)
 plt.rcParams.update({'font.size': 5})  
 
-ylims = 75 if electrodes == 1 else 85
+ylims = 80 if electrodes == 1 else 85
 
 ###############################################
 ## PLOT NEURAL NETWORK                       ##
