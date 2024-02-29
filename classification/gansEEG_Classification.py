@@ -28,7 +28,7 @@ validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
 syntheticDataOptions = [1, 0] #[0, 1, 2] #The code will iterate through this list. 0 = empirical classifications, 1 = augmented classifications, 2 = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
-electrode_number = 1
+electrode_number = 2
 
 ###############################################
 ## SETUP                                     ##
@@ -390,13 +390,13 @@ def encode_data(autoencoder_filename, data):
     norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
     data = np.concatenate((data[:,[0],:], norm(data[:,1:,:])), axis=1)
 
-    time_dim = ae_dict['configuration']['timeseries_out']+1 if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_TIMESERIES, TransformerAutoencoder.TARGET_BOTH] else data.shape[1]
-    chan_dim = ae_dict['configuration']['channels_out'] if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_CHANNELS, TransformerAutoencoder.TARGET_BOTH] else data.shape[2]
+    time_dim = ae_dict['configuration']['timeseries_out']+1 if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_TIMESERIES, 'full'] else data.shape[1]
+    chan_dim = ae_dict['configuration']['channels_out'] if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_CHANNELS, 'full'] else data.shape[2]
     ae_dataset = np.empty((data.shape[0], time_dim, chan_dim))
     for sample in range(data.shape[0]):
         sample_data = data[[sample],1:,:]
         ae_data = autoencoder.encode(torch.from_numpy(sample_data)).detach().numpy()
-        ae_dataset[sample,:,:] = np.concatenate((data[sample,0,:].reshape(1,1,-1), ae_data), axis=1)
+        ae_dataset[sample,:,:] = np.concatenate((data[sample,0,:chan_dim].reshape(1,1,-1), ae_data), axis=1)
     
     return ae_dataset
 
