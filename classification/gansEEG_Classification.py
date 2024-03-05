@@ -466,9 +466,10 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
         loop_data = tqdm(dataSampleSizes)
         for dataSampleSize in loop_data: #Iterate through sample sizes
+            loop_data.set_description(f'Sample Size: {dataSampleSize}')
             loop_run = tqdm(range(5))  
             for run in loop_run: #Conduct analyses 5 times per sample size
-                loop_run.set_description(f'Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
+                loop_run.set_description(f'Analysis: {"Augmented" if addSyntheticData else "Empirical"}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
                 
                 ###############################################
                 ## AUTOENCODE TEST DATA                      ##
@@ -545,6 +546,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 Y_train = Y_train[trainShuffle]
 
                 #Report current analyses
+                '''
                 print(classifier)
                 if addSyntheticData == 1: 
                     print('Augmented')
@@ -554,7 +556,8 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                     print('Oversampling')
                 print('Sample Size: ' + str(int(dataSampleSize)))
                 print('Run: ' + str(run))
-            
+                '''
+
                 ###############################################
                 ## CLASSIFIER                                ##
                 ###############################################
