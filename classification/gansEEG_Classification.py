@@ -19,6 +19,10 @@ from tqdm import tqdm
 from helpers.dataloader import Dataloader
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
 
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore")
+
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
