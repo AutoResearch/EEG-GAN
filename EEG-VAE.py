@@ -104,7 +104,7 @@ class VariationalAutoencoder(nn.Module):
     
     def sample(self, mu, sigma):
         std = torch.exp(0.5 * sigma)
-        z = torch.randn_like(std)
+        z = torch.randn(std.size(0),std.size(1))
         z = z*std + mu
 
         return z
@@ -237,10 +237,10 @@ if __name__ == '__main__':
     z_dim = 25
     
     batch_size = 128
-    n_epochs = 4000
+    n_epochs = 1000
     learning_rate = 3e-3
-    kl_alpha = 5e-5
-
+    kl_alpha = .00001
+    
     #Reset sample storage folder
     shutil.rmtree('generated_images')
     os.mkdir('generated_images')
