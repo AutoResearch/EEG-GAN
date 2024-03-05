@@ -23,11 +23,12 @@ import matplotlib.pyplot as plt
 
 class VariationalAutoencoder(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim=256, z_dim=20, refactor_dim=2, num_layers=3, num_heads=4, dropout=0.1, activation='tanh', **kwargs):
+    def __init__(self, input_dim, hidden_dim=256, z_dim=20, num_layers=3, num_heads=4, dropout=0.1, activation='tanh', **kwargs):
         super().__init__()
 
         #Variables
         self.input_dim = input_dim
+        self.z_dim= z_dim
 
         #Other
         if activation == 'relu':
@@ -61,21 +62,21 @@ class VariationalAutoencoder(nn.Module):
         #Distributions
         self.mu_refactor = nn.Sequential(
             nn.Linear(hidden_dim, z_dim),
-            nn.Tanh(),
-            nn.Linear(z_dim, refactor_dim)
+            #nn.Tanh(),
+            #nn.Linear(z_dim, refactor_dim)
         )
 
         self.sigma_refactor = nn.Sequential(
             nn.Linear(hidden_dim, z_dim),
-            nn.Tanh(),
-            nn.Linear(z_dim, refactor_dim)
+            #nn.Tanh(),
+            #nn.Linear(z_dim, refactor_dim)
         )
 
         self.decoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         #Decoder
         self._decode = nn.Sequential(
-            nn.Linear(refactor_dim, z_dim),
-            nn.Tanh(),
+            #nn.Linear(refactor_dim, z_dim),
+            #nn.Tanh(),
             nn.Linear(z_dim, hidden_dim),
             nn.Tanh(),
             #nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers),
@@ -147,28 +148,66 @@ class VariationalAutoencoder(nn.Module):
 
         plt.savefig(f'generated_images/recon_ep{index}.png')
 
-    def generate_samples(self, loader, epoch):
-        generated_samples = np.empty((0,101,1))
+    def generate_samples(self, loader, epoch, num_samples=2500):
+        
+        #generated_samples = np.empty((0,101,1))
+        empirical_samples = np.empty((0,101,1))
         for i, x in enumerate(loader):
-                   
-           y = x[:,[0],:].to(device)
+           
+           empirical_sample = x        
+           #y = x[:,[0],:].to(device)
+           #x = x[:,1:,:].to(device)
+           #mu, sigma = model.encode(x)
+           #z = mu + sigma * torch.randn_like(sigma)
+           #generated_sample = torch.concat((y,model.decode(z)), dim=1)
+           #generated_samples = np.vstack((generated_samples, generated_sample.detach().numpy()))  
+           empirical_samples = np.vstack((empirical_samples, empirical_sample.detach().numpy())) 
+        
+        mus = np.empty((0,z_dim+1))
+        sigmas = np.empty((0,z_dim+1))
+        for i, x in enumerate(loader):
+           
+           empirical_sample = x        
+           y = x[:,[0],0].to(device)
            x = x[:,1:,:].to(device)
            mu, sigma = model.encode(x)
-           z = mu + sigma * torch.randn_like(sigma)
-           generated_sample = torch.concat((y,model.decode(z)), dim=1)
-           generated_samples = np.vstack((generated_samples, generated_sample.detach().numpy()))  
+           mu_with_label = torch.concat((y,mu), dim=1)
+           sigma_with_label = torch.concat((y,sigma), dim=1)
 
-        c0 = generated_samples[generated_samples[:,0,0]==0,1:,0] #TODO: Right now, it only looks at first electrode
-        c1 = generated_samples[generated_samples[:,0,0]==1,1:,0] #TODO: Right now, it only looks at first electrode
+           mus = np.vstack((mus, mu_with_label.detach().numpy())) 
+           sigmas = np.vstack((sigmas, sigma_with_label.detach().numpy())) 
 
-        plt.plot(np.mean(c0,axis=0), alpha=.5)
-        plt.plot(np.mean(c1,axis=0), alpha=.5)
+        mu0 = torch.Tensor(np.mean(mus[mus[:,0]==0,1:], axis=0)) #TODO: Right now, it only looks at first electrode
+        mu1 = torch.Tensor(np.mean(mus[mus[:,0]==1,1:], axis=0)) #TODO: Right now, it only looks at first electrode
+        sigma0 = torch.Tensor(np.mean(sigmas[sigmas[:,0]==0,1:], axis=0)) #TODO: Right now, it only looks at first electrode
+        sigma1 = torch.Tensor(np.mean(sigmas[sigmas[:,0]==1,1:], axis=0)) #TODO: Right now, it only looks at first electrode
+
+        generated_samples = np.empty((0,101,1))
+        for sample_index in range(num_samples):
+            z0 = mu0 + sigma0 * torch.randn_like(sigma0)
+            z1 = mu1 + sigma1 * torch.randn_like(sigma1)
+            generated_sample0 = torch.concat((torch.Tensor([0]).reshape(1, -1, 1), model.decode(z0.reshape(1,-1))), dim=1) #TODO: Right now, it only assumes one electrode
+            generated_sample1 = torch.concat((torch.Tensor([1]).reshape(1, -1, 1), model.decode(z1.reshape(1,-1))), dim=1) #TODO: Right now, it only assumes one electrode
+            generated_sample = torch.concat((generated_sample0,generated_sample1), dim=0)
+            generated_samples = np.vstack((generated_samples, generated_sample.detach().numpy())) 
+
+        syn0 = generated_samples[generated_samples[:,0,0]==0,1:,0] #TODO: Right now, it only looks at first electrode
+        syn1 = generated_samples[generated_samples[:,0,0]==1,1:,0]
+        emp0 = empirical_samples[empirical_samples[:,0,0]==0,1:,0]
+        emp1 = empirical_samples[empirical_samples[:,0,0]==1,1:,0]
+
+        fig, ax = plt.subplots(1,2)
+        ax[1].plot(np.mean(syn0, axis=0), alpha=.5)
+        ax[1].plot(np.mean(syn1,axis=0), alpha=.5)
+        ax[0].plot(np.mean(emp0,axis=0), alpha=.5)
+        ax[0].plot(np.mean(emp1,axis=0), alpha=.5)
+
         plt.savefig(f'generated_images/generated_average_ep{epoch-1}.png')
         plt.close()
 
         for _ in range(200):
-            c0_sample = c0[np.random.randint(0,len(c0)+1),:]
-            c1_sample = c1[np.random.randint(0,len(c1)+1),:]
+            c0_sample = syn0[np.random.randint(0,len(syn0)),:]
+            c1_sample = syn1[np.random.randint(0,len(syn1)),:]
             plt.plot(c0_sample, alpha=.1, label='c0', color='C0')
             plt.plot(c1_sample, alpha=.1, label='c1', color='C1')
         plt.savefig(f'generated_images/generated_trials_ep{epoch-1}.png')
@@ -193,29 +232,27 @@ if __name__ == '__main__':
     
     #Set hyper-parameters
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    input_dim = 100 #28x28 (image) -> 100 for EEG
+    input_dim = 100
     hidden_dim = 200
-    z_dim = 20
-    refactor_dim = 10
+    z_dim = 25
     
     batch_size = 128
-    n_epochs = 100
+    n_epochs = 4000
     learning_rate = 3e-3
-    #kl_alpha = .00001
-    kl_alpha = .00001
+    kl_alpha = 5e-5
 
     #Reset sample storage folder
     shutil.rmtree('generated_images')
     os.mkdir('generated_images')
 
     #Load Data
-    dataloader = Dataloader('data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', col_label='Condition', channel_label='Electrode')
+    dataloader = Dataloader('data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', col_label='Condition', channel_label='Electrode')
     dataset = dataloader.get_data()
     norm = lambda data: (data - torch.min(data)) / (torch.max(data) - torch.min(data))
     dataset[:,1:,:] = norm(dataset[:,1:,:]) 
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     
-    model = VariationalAutoencoder(input_dim=input_dim, hidden_dim=hidden_dim, z_dim=z_dim, refactor_dim=refactor_dim).to(device)
+    model = VariationalAutoencoder(input_dim=input_dim, hidden_dim=hidden_dim, z_dim=z_dim).to(device)
     model.num_electrodes = dataset.shape[-1]
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.MSELoss()
