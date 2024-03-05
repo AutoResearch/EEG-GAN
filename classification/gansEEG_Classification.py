@@ -291,7 +291,7 @@ def neuralNetwork(X_train, Y_train, x_test, y_test):
     optimal_params = GridSearchCV(
         MLPClassifier(), 
         param_grid, 
-        verbose = True,
+        verbose = 0,
         n_jobs = -1)
 
     optimal_params.fit(X_train, Y_train)
