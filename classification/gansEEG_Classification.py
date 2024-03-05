@@ -449,8 +449,10 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
     currentAugFilename = augFilename.replace('XX',classifier)
     currentEmpFilename = empFilename.replace('XX',classifier)
     currentOvsFilename = ovsFilename.replace('XX',classifier)
-    
-    for addSyntheticData in syntheticDataOptions: #Iterate through analyses (empirical, augmented)
+
+    loop_analysis = tqdm(syntheticDataOptions)
+    for addSyntheticData in loop_analysis: #Iterate through analyses (empirical, augmented)
+        loop_analysis.set_description(f'Analysis: {"Augmented" if addSyntheticData else "Empirical"}')
         
         #Open corresponding file to write to
         if addSyntheticData==1:
@@ -462,8 +464,11 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
         else:
             print('Analysis index not recognized.')
 
-        for dataSampleSize in dataSampleSizes: #Iterate through sample sizes   
-            for run in range(5): #Conduct analyses 5 times per sample size
+        loop_data = tqdm(dataSampleSizes)
+        for dataSampleSize in loop_data: #Iterate through sample sizes
+            loop_run = tqdm(range(5))  
+            for run in loop_run: #Conduct analyses 5 times per sample size
+                loop_run.set_description(f'Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
                 
                 ###############################################
                 ## AUTOENCODE TEST DATA                      ##
