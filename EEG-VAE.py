@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from torch import nn
 
 #VAE Training:
+import os
+import shutil
+import numpy as np
 import torch
 import torchvision.datasets as datasets
 from tqdm import tqdm
@@ -20,7 +23,7 @@ import matplotlib.pyplot as plt
 
 class VariationalAutoencoder(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim=256, output_dim=128, z_dim=20, refactor_dim=2, num_layers=3, num_heads=4, dropout=0.1, activation='tanh', **kwargs):
+    def __init__(self, input_dim, hidden_dim=256, z_dim=20, refactor_dim=2, num_layers=3, num_heads=4, dropout=0.1, activation='tanh', **kwargs):
         super().__init__()
 
         #Variables
@@ -40,13 +43,14 @@ class VariationalAutoencoder(nn.Module):
         else:
             raise ValueError(f"Activation function of type '{activation}' was not recognized.")
 
-
         #Encoder
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
+
         self._encode = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.Tanh(),
-            nn.Linear(hidden_dim, output_dim),
-            nn.Tanh(),
+            #nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers),
+            #nn.Tanh(),
         )
 
         #self.linear_enc_in = nn.Linear(input_dim, hidden_dim)
@@ -56,27 +60,28 @@ class VariationalAutoencoder(nn.Module):
 
         #Distributions
         self.mu_refactor = nn.Sequential(
-            nn.Linear(output_dim, z_dim),
+            nn.Linear(hidden_dim, z_dim),
             nn.Tanh(),
             nn.Linear(z_dim, refactor_dim)
         )
 
         self.sigma_refactor = nn.Sequential(
-            nn.Linear(output_dim, z_dim),
+            nn.Linear(hidden_dim, z_dim),
             nn.Tanh(),
             nn.Linear(z_dim, refactor_dim)
         )
 
+        self.decoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         #Decoder
         self._decode = nn.Sequential(
             nn.Linear(refactor_dim, z_dim),
             nn.Tanh(),
-            nn.Linear(z_dim, output_dim),
+            nn.Linear(z_dim, hidden_dim),
             nn.Tanh(),
-            nn.Linear(output_dim, hidden_dim),
-            nn.Tanh(),
+            #nn.TransformerEncoder(self.decoder_layer, num_layers=num_layers),
+            #nn.Tanh(),
             nn.Linear(hidden_dim, input_dim),
-            nn.Tanh()
+            nn.Sigmoid()
         )
 
         #self.linear_dec_in = nn.Linear(z_dim/2, hidden_dim)
@@ -142,6 +147,48 @@ class VariationalAutoencoder(nn.Module):
 
         plt.savefig(f'generated_images/recon_ep{index}.png')
 
+    def generate_samples(self, loader, epoch):
+        generated_samples = np.empty((0,101,1))
+        for i, x in enumerate(loader):
+                   
+           y = x[:,[0],:].to(device)
+           x = x[:,1:,:].to(device)
+           mu, sigma = model.encode(x)
+           z = mu + sigma * torch.randn_like(sigma)
+           generated_sample = torch.concat((y,model.decode(z)), dim=1)
+           generated_samples = np.vstack((generated_samples, generated_sample.detach().numpy()))  
+
+        c0 = generated_samples[generated_samples[:,0,0]==0,1:,0] #TODO: Right now, it only looks at first electrode
+        c1 = generated_samples[generated_samples[:,0,0]==1,1:,0] #TODO: Right now, it only looks at first electrode
+
+        plt.plot(np.mean(c0,axis=0), alpha=.5)
+        plt.plot(np.mean(c1,axis=0), alpha=.5)
+        plt.savefig(f'generated_images/generated_average_ep{epoch-1}.png')
+        plt.close()
+
+        for _ in range(200):
+            c0_sample = c0[np.random.randint(0,len(c0)+1),:]
+            c1_sample = c1[np.random.randint(0,len(c1)+1),:]
+            plt.plot(c0_sample, alpha=.1, label='c0', color='C0')
+            plt.plot(c1_sample, alpha=.1, label='c1', color='C1')
+        plt.savefig(f'generated_images/generated_trials_ep{epoch-1}.png')
+        plt.close()
+
+    def plot_losses(self, recon_losses, kl_losses, losses):
+
+        fig, ax = plt.subplots(3)
+        ax[0].plot(recon_losses)
+        ax[0].set_title('Reconstruction Losses')
+
+        ax[1].plot(kl_losses)
+        ax[1].set_title('KL Losses')
+
+        ax[2].plot(losses)
+        ax[2].set_title('Losses')
+
+        plt.savefig(f'generated_images/vae_loss.png')
+        plt.close()
+
 if __name__ == '__main__':
     
     #Set hyper-parameters
@@ -149,16 +196,23 @@ if __name__ == '__main__':
     input_dim = 100 #28x28 (image) -> 100 for EEG
     hidden_dim = 200
     z_dim = 20
-    refactor_dim = 2
+    refactor_dim = 10
     
     batch_size = 128
-    n_epochs = 200
-    learning_rate = 1e-3
+    n_epochs = 100
+    learning_rate = 3e-3
+    #kl_alpha = .00001
     kl_alpha = .00001
 
+    #Reset sample storage folder
+    shutil.rmtree('generated_images')
+    os.mkdir('generated_images')
+
     #Load Data
-    dataloader = Dataloader('data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', col_label='Condition', channel_label='Electrode', norm_data=True)
+    dataloader = Dataloader('data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', col_label='Condition', channel_label='Electrode')
     dataset = dataloader.get_data()
+    norm = lambda data: (data - torch.min(data)) / (torch.max(data) - torch.min(data))
+    dataset[:,1:,:] = norm(dataset[:,1:,:]) 
     train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     
     model = VariationalAutoencoder(input_dim=input_dim, hidden_dim=hidden_dim, z_dim=z_dim, refactor_dim=refactor_dim).to(device)
@@ -167,23 +221,42 @@ if __name__ == '__main__':
     loss_fn = nn.MSELoss()
 
     #Training
+    recon_losses=[]
+    kl_losses=[]
+    losses=[]
+
     loop = tqdm(range(n_epochs))
     for epoch in loop:
         for i, x in enumerate(train_loader):
            
-           y = x[:,0,:]
-           x = x[:,1:,:].to(device)
-           x_reconstruction, mu, sigma = model(x)
+            #Extract and reconstruct data
+            y = x[:,0,:]
+            x = x[:,1:,:].to(device)
+            x_reconstruction, mu, sigma = model(x)
 
-           #Loss
-           reconstruction_loss = loss_fn(x_reconstruction, x)
-           kl_div = torch.mean(0.5 * torch.sum(torch.exp(sigma) + mu.pow(2) - 1 - sigma, dim=-1))
-           loss = reconstruction_loss + kl_div*kl_alpha
-           optimizer.zero_grad()
-           loss.backward()
-           optimizer.step()
-           
+            #Loss
+            reconstruction_loss = loss_fn(x_reconstruction, x)
+            kl_div = torch.mean(-0.5 * torch.sum(1 + sigma - mu**2 - torch.exp(sigma), axis=1), dim=0)
+            loss = reconstruction_loss + kl_div*kl_alpha
+            
+            #Update
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        #Track losses
+        recon_losses.append(reconstruction_loss.detach().tolist())
+        kl_losses.append(kl_div.detach().tolist())
+        losses.append(loss.detach().tolist())
+
         loop.set_postfix(loss=loss.item())
 
         if  epoch % int(n_epochs*.1) == 0:
-            model.inference(dataset=dataset, index = epoch)
+        #    model.inference(dataset=dataset, index = epoch)
+            model.generate_samples(loader=train_loader, epoch=epoch+1)
+            model.plot_losses(recon_losses=recon_losses, kl_losses=kl_losses, losses=losses)
+
+#model.inference(dataset=dataset, index = epoch+1)
+        
+model.generate_samples(loader=train_loader, epoch=epoch+2)
+model.plot_losses(recon_losses=recon_losses, kl_losses=kl_losses, losses=losses)
