@@ -10,8 +10,9 @@ import numpy as np
 
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
-data = np.arange(1,10)
-electrodes = 1
+electrodes = 8
+
+data = np.arange(1,10) if electrodes < 8 else np.arange(1,7)
 
 ###############################################
 ## FUNCTIONS                                 ##
