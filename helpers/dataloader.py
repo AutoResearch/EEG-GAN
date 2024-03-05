@@ -5,9 +5,6 @@ import pandas as pd
 import torch
 from typing import Union, List
 
-from matplotlib import pyplot as plt
-
-
 class Dataloader:
     """class of Dataloader, which is responisble for:
     - loading data from csv file
