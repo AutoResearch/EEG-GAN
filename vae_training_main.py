@@ -41,6 +41,7 @@ def main():
         'hidden_dim': default_args['hidden_dim'],
         'encoded_dim': default_args['encoded_dim'],
         'activation': default_args['activation'],
+        'kl_alpha': default_args['kl_alpha'],
         'ddp': default_args['ddp'],
         'ddp_backend': default_args['ddp_backend'],
         'norm_data': True,
@@ -60,7 +61,6 @@ def main():
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
-    opt['path_dataset'] = 'data/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv' #TODO: Remove this
     data = Dataloader(path=opt['path_dataset'],
                       channel_label=opt['channel_label'], 
                       col_label=opt['conditions'],

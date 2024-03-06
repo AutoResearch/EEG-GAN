@@ -712,7 +712,7 @@ class VAETrainer(Trainer):
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.kl_alpha = opt['kl_alpha'] if 'kl_alpha' in opt else .00001
-        self.n_conditions = len(opt['conditions'])
+        self.n_conditions = len(opt['conditions']) if 'conditions' in opt else 0
 
         # model
         self.model = model
@@ -771,26 +771,27 @@ class VAETrainer(Trainer):
                 self.epoch = epoch
                 epoch_loss = self.batch_train(dataset)
                 self.train_loss.append(epoch_loss)
+                loop.set_postfix(loss=self.batch_loss.item())
 
                 #Generate samples on interval
                 if self.epoch % self.sample_interval == 0:
                     plot = True #TODO: change plot to False
-                    generated_samples = torch.Tensor(self.model.generate_samples(dataset, epoch=self.epoch, num_samples=self.batch_size, plot=plot)).to(self.device) 
+                    #self.model.generate_samples(dataset, epoch=self.epoch)
+                    generated_samples = torch.Tensor(self.model.generate_samples(dataset, epoch=self.epoch, plot=plot)).to(self.device) 
                     if plot:
                         self.model.plot_losses(self.recon_losses, self.kl_losses, self.losses)
-                    gen_samples.append(generated_samples.detach().cpu().numpy())
-
-                    #gen_samples.append(generated_samples[np.random.randint(0, gen_samples_batch.shape[0])])
+                    gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist())
 
                     # save models and optimizer states as checkpoints
                     # toggle between checkpoint files to avoid corrupted file during training
+                    
                     if trigger_checkpoint_01:
                         self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=gen_samples)
                         trigger_checkpoint_01 = False
                     else:
                         self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), samples=gen_samples)
                         trigger_checkpoint_01 = True
-
+                    
                 self.trained_epochs += 1
 
             self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=gen_samples)
