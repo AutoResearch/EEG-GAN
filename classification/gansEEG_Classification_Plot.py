@@ -12,7 +12,7 @@ import numpy as np
 xLabels = [5,10,15,20,30,60,100]
 electrodes = 1
 augmentation_type = 'gan'
-combined = False #Whether to add multiple augmented data to a single plot
+combined = True #Whether to add multiple augmented data to a single plot
 
 data = np.arange(1,10) if electrodes < 8 else np.arange(1,7)
 
@@ -67,7 +67,7 @@ def retrieveData(data, augmentation_type):
 
 
 #Define function to load and plot data
-def loadAndPlot(filename, plotColor, legendName):
+def loadAndPlot(filename, plotColor, legendName, alpha=1):
     
     #Load data
     data = []
@@ -84,9 +84,11 @@ def loadAndPlot(filename, plotColor, legendName):
         semData.append((np.std(data[ssIndex,3]))/np.sqrt(len(data[ssIndex,3]))) #Standard error of the mean
         
     #Plot Data
-    plt.plot(np.unique(data[:,0]),meanData, color = plotColor, linewidth = 1)
-    plt.scatter(np.unique(data[:,0]),meanData,label='_nolegend_', color = plotColor, s = 10)
-    plt.errorbar(np.unique(data[:,0]),meanData,semData,label='_nolegend_', color = plotColor, linewidth = 1)
+    plt.plot(np.unique(data[:,0]), meanData, color = plotColor, linewidth = 1, alpha=alpha)
+    plt.scatter(np.unique(data[:,0]),meanData,label='_nolegend_', color = plotColor, s = 10, alpha=alpha, linewidths=0)
+    markers, caps, bars = plt.errorbar(np.unique(data[:,0]), meanData, semData, label='_nolegend_', color = plotColor, fmt=' ', linewidth = 1, alpha=alpha)
+    [bar.set_alpha(alpha) for bar in bars]
+    [cap.set_alpha(alpha) for cap in caps]
         
     return legendName
 
@@ -139,6 +141,7 @@ fig.subplots_adjust(hspace=.3)
 plt.rcParams.update({'font.size': 5})  
 
 ylims = 80 if electrodes == 1 else 85
+alpha = 0.6 if combined else 1
 
 ###############################################
 ## PLOT NEURAL NETWORK                       ##
@@ -153,13 +156,13 @@ for dat in data:
     #Load and plot data while extracting legend names
     legendNames = []
     empData, augData = retrieveData(dat, augmentation_type)
-    legendNames.append(loadAndPlot(augData,'C0',f'{augmentation_type.upper()}-Augmented'))
-    legendNames.append(loadAndPlot(empData,'C1','Empirical'))
+    legendNames.append(loadAndPlot(augData,'C0',f'{augmentation_type.upper()}-Augmented',alpha=alpha))
+    legendNames.append(loadAndPlot(empData,'C1','Empirical',alpha=alpha))
 
-    if combined and dat < 4: #DAT < 4 temporary for VAE
+    if combined and dat < 7: #DAT < 7 temporary for VAE
         aug_type = 'vae' if augmentation_type == 'gan' else 'gan'
         _, augData2 = retrieveData(dat, aug_type)
-        legendNames.append(loadAndPlot(augData2,'C2',f'{aug_type.upper()}-Augmented'))
+        legendNames.append(loadAndPlot(augData2,'C2',f'{aug_type.upper()}-Augmented',alpha=alpha))
 
     #Create horizontal lines
     axisLevels = np.arange(50,ylims,5)
