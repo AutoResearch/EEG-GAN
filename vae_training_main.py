@@ -132,10 +132,14 @@ def main():
         gen_samples = trainer.training(dataset)
 
         # save final models, optimizer states, generated samples, losses and configuration as final result
-        path = 'trained_vae'
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'vae_{trainer.epochs}ep_' + timestamp + '.pt'
-        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples, update_history=True)
+        if not opt['save_name']:
+            path = 'trained_vae'
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'vae_{trainer.epochs}ep_' + timestamp + '.pt'
+            save_filename = os.path.join(path, filename)
+        else:
+            save_filename = opt['save_name']
+        trainer.save_checkpoint(path_checkpoint=save_filename, samples=gen_samples, update_history=True)
 
         print(f"Checkpoint saved to {default_args['path_checkpoint']}.")
 
