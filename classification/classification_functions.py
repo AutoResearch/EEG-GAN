@@ -365,7 +365,7 @@ def load_test_data(validationOrTest, electrode_number, features, autoencoder_fil
     y_test = EEGDataTest[:,0,0]
 
     #Create test variable
-    if features and not autoencoder:
+    if features and not autoencoder_filename:
         x_test = np.array(extractFeatures(EEGDataTest[:,1:,:])) #Extract features
         x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
         x_test = scale(x_test, axis=0) #Scale data within each trial
