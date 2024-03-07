@@ -11,46 +11,55 @@ import numpy as np
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
 electrodes = 8
+augmentation_type = 'gan'
 
 data = np.arange(1,10) if electrodes < 8 else np.arange(1,7)
+
+if augmentation_type == 'vae': #Temporary
+    data = np.arange(1,4)
 
 ###############################################
 ## FUNCTIONS                                 ##
 ###############################################
 
 #Define function to determine filenames
-def retrieveData(data):   
+def retrieveData(data, augmentation_type): 
+    if augmentation_type == 'gan':  
+        aug_prefix = 'augmented'
+    elif augmentation_type == 'vae':
+        aug_prefix = 'vae'
+
     ##Full Time-Series
     if data == 1:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_NN.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN.csv'
     if data == 2:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_SVM.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_SVM.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM.csv'
     if data == 3:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_LR.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR.csv'
 
     ##Extracted features
     if data == 4:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN_Features.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_NN_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_Features.csv'
     if data == 5:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_SVM_Features.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_SVM_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM_Features.csv'
     if data == 6:  
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR_Features.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_LR_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_Features.csv'
 
     ##Autoencoder features
     if data == 7:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_NN_AE.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_NN_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_AE.csv'
     if data == 8:
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_SVM_AE.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_SVM_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM_AE.csv'
     if data == 9:  
-        augData = f'classification/Classification Results/augmentedPredictions_e{electrodes}_LR_AE.csv'
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_LR_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_AE.csv'
         
     return empData, augData
@@ -142,8 +151,8 @@ for dat in data:
 
     #Load and plot data while extracting legend names
     legendNames = []
-    empData, augData = retrieveData(dat)
-    legendNames.append(loadAndPlot(augData,'C0','Augmented'))
+    empData, augData = retrieveData(dat, augmentation_type)
+    legendNames.append(loadAndPlot(augData,'C0',f'{augmentation_type.upper()}-Augmented'))
     legendNames.append(loadAndPlot(empData,'C1','Empirical'))
 
     #Create horizontal lines
@@ -201,4 +210,4 @@ for dat in data:
 ###############################################
 fig = plt.gcf()
 fig.set_size_inches(8, 6)
-fig.savefig(f'classification/Figures/Figure N - Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
+fig.savefig(f'classification/Figures/Figure N - {augmentation_type.upper()} Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
