@@ -101,26 +101,6 @@ class VariationalAutoencoder(nn.Module):
 
         return x_reconstructed, mu, sigma
 
-    def inference(self, dataset, index, num_samples=5):
-
-        idxs = torch.randint(0, len(dataset)-1, (num_samples, ))
-        samples = torch.cat([dataset[idx,1:,:].reshape(1,self.input_dim,dataset.shape[-1]) for idx in idxs], dim=0).float()
-
-        generated_samples, _, _ = model(samples)
-        samples = (samples+1)/2
-        generated_samples = 1 - (generated_samples + 1)/2
-
-        fig, ax = plt.subplots(num_samples, 2)
-
-        for sample_i in range(num_samples):
-            ax[sample_i,0].plot(samples[sample_i,:,0].detach().numpy())
-            ax[sample_i,1].plot(generated_samples[sample_i,:,0].detach().numpy())
-
-        ax[0,0].set_title('Original')
-        ax[0,1].set_title('Reconstructed')
-
-        plt.savefig(f'generated_images/recon_ep{index}.png')
-
     def generate_samples(self, loader, condition=0, num_samples=2500):
 
         self.num_electrodes = next(iter(loader)).shape[-1]
