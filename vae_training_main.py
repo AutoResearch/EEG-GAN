@@ -48,11 +48,13 @@ def main():
         'std_data': False,
         'diff_data': False,
         'kw_timestep': default_args['kw_timestep'],
-        'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
         'history': None,
         'trained_epochs': 0
     }
+
+    opt['device'] = torch.device("cuda" if torch.cuda.is_available() and opt['ddp'] else "cpu")
+
 
     # raise warning if no normalization and standardization is used at the same time
     if opt['std_data'] and opt['norm_data']:
@@ -103,7 +105,8 @@ def main():
     model = VariationalAutoencoder(input_dim=opt['input_dim'], 
                                    hidden_dim=opt['hidden_dim'], 
                                    encoded_dim=opt['encoded_dim'], 
-                                   activation=opt['activation']).to(opt['device'])
+                                   activation=opt['activation'],
+                                   device=opt['device']).to(opt['device'])
     
     print('Variational autoencoder initialized')
 

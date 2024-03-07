@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class VariationalAutoencoder(nn.Module):
 
-    def __init__(self, input_dim, hidden_dim=256, encoded_dim=25, activation='tanh', **kwargs):
+    def __init__(self, input_dim, hidden_dim=256, encoded_dim=25, activation='tanh', device=None, **kwargs):
         super().__init__()
 
         #Variables
@@ -16,7 +16,10 @@ class VariationalAutoencoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.encoded_dim = encoded_dim
         self.num_electrodes = None
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        if device:
+            self.device = device
+        else:
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         #Activation: Although we have options, tanh and linear are the only ones that works effectively
         if activation == 'relu':
@@ -70,8 +73,8 @@ class VariationalAutoencoder(nn.Module):
         return mu, sigma
     
     def sample(self, mu, sigma):
-        std = torch.exp(0.5 * sigma).to(self.device)
-        z = torch.randn(std.size(0),std.size(1)).to(self.device)
+        std = torch.exp(0.5 * sigma)
+        z = torch.randn(std.size(0),std.size(1))
         z = z*std + mu
 
         return z
