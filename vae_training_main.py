@@ -149,7 +149,7 @@ def main():
         model = trainer.model
 
         print("VAE training finished.")
-        print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
+        print(f"Model states and generated samples saved to file {save_filename}.")
 
         return model, opt, gen_samples
 
