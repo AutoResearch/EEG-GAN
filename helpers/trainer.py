@@ -779,9 +779,9 @@ class VAETrainer(Trainer):
 
                 #Generate samples on interval
                 if self.epoch % self.sample_interval == 0:
-                    plot = True #TODO: change plot to False
-                    generated_samples = torch.Tensor(self.model.generate_samples(loader=dataset,condition=0,num_samples=1000)).to(self.device) 
-                    if plot:
+                    generated_samples = torch.Tensor(self.model.generate_samples(loader=dataset,condition=0,num_samples=1000)).to(self.device)
+                    if True: #TODO: This is to display progress as part of debugging, but should (might want to?) be removed later
+                        self.model.plot_samples(loader=dataset,epoch=self.epoch+1)
                         self.model.plot_losses(self.recon_losses, self.kl_losses, self.losses)
                     gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist()) #TODO: Not sure if this is the same as the GAN
 
