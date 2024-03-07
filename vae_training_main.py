@@ -105,7 +105,8 @@ def main():
     model = VariationalAutoencoder(input_dim=opt['input_dim'], 
                                    hidden_dim=opt['hidden_dim'], 
                                    encoded_dim=opt['encoded_dim'], 
-                                   activation=opt['activation']).to(opt['device'])
+                                   activation=opt['activation'],
+                                   device=opt['device']).to(opt['device'])
     
     print('Variational autoencoder initialized')
 
