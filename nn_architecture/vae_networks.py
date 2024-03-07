@@ -195,8 +195,8 @@ class VariationalAutoencoder(nn.Module):
            mu_with_label = torch.concat((y,mu), dim=1)
            sigma_with_label = torch.concat((y,sigma), dim=1)
 
-           mus = np.vstack((mus, mu_with_label.detach().numpy())) 
-           sigmas = np.vstack((sigmas, sigma_with_label.detach().numpy())) 
+           mus = np.vstack((mus, mu_with_label.cpu().detach().numpy())) 
+           sigmas = np.vstack((sigmas, sigma_with_label.cpu().detach().numpy())) 
 
         mu = torch.Tensor(np.mean(mus[mus[:,0]==condition,1:], axis=0)) #TODO: Right now, it only looks at first electrode
         sigma = torch.Tensor(np.mean(sigmas[sigmas[:,0]==condition,1:], axis=0)) #TODO: Right now, it only looks at first electrode
