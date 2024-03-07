@@ -334,7 +334,7 @@ def default_inputs_training_vae():
         'hidden_dim': [int, 'Hidden dimension of the network', 256, 'Hidden dimension: '],
         'encoded_dim': [int, 'Encoded dimension of mu and sigma', 25, 'Encoded dimension: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
-        'learning_rate': [float, 'Learning rate of the VAE', 0.0001, 'Learning rate: '],
+        'learning_rate': [float, 'Learning rate of the VAE', 3e-4, 'Learning rate: '],
         'kl_alpha': [float, 'Weight of the KL divergence in loss', 0.00005, 'KL alpha: '],
         }
     return kw_dict

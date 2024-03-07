@@ -776,15 +776,13 @@ class VAETrainer(Trainer):
                 #Generate samples on interval
                 if self.epoch % self.sample_interval == 0:
                     plot = True #TODO: change plot to False
-                    #self.model.generate_samples(dataset, epoch=self.epoch)
                     generated_samples = torch.Tensor(self.model.generate_samples(dataset, epoch=self.epoch, plot=plot)).to(self.device) 
                     if plot:
                         self.model.plot_losses(self.recon_losses, self.kl_losses, self.losses)
-                    gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist())
+                    gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist()) #TODO: Not sure if this is the same as the GAN
 
                     # save models and optimizer states as checkpoints
                     # toggle between checkpoint files to avoid corrupted file during training
-                    
                     if trigger_checkpoint_01:
                         self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=gen_samples)
                         trigger_checkpoint_01 = False
@@ -809,6 +807,7 @@ class VAETrainer(Trainer):
         total_loss = 0
         for batch in data:
 
+            #Run data through model
             inputs = batch[:,self.n_conditions:,:].to(self.model.device)
             x_reconstruction, mu, sigma = self.model(inputs)
             
