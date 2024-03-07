@@ -152,7 +152,7 @@ def load_synthetic(synFilename_0, synFilename_1, features, autoencoder_filename 
     #Extract outcome and feature data
     syn_Y_train = processedSynData[:,0,0] #Extract outcome
     
-    if features and not autoencoder: #If extracting features
+    if features and not autoencoder_filename: #If extracting features
         syn_X_train = np.array(extractFeatures(processedSynData[:,1:,:])) #Extract features
         syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in syn_X_train])
         syn_X_train = scale(syn_X_train, axis=0) #Scale across samples
