@@ -100,33 +100,24 @@ class VariationalAutoencoder(nn.Module):
         x_reconstructed = self.decode(z_reparametrized)
 
         return x_reconstructed, mu, sigma
-
+  
     def generate_samples(self, loader, condition=0, num_samples=2500):
 
         self.num_electrodes = next(iter(loader)).shape[-1]
         
-        mus = np.empty((0,self.encoded_dim+1))
-        sigmas = np.empty((0,self.encoded_dim+1))
-        for i, x in enumerate(loader):
-           y = x[:,[0],0].to(self.device)
-           x = x[:,1:,:].to(self.device)
-           mu, sigma = self.encode(x)
-           mu_with_label = torch.concat((y,mu), dim=1)
-           sigma_with_label = torch.concat((y,sigma), dim=1)
-
-           mus = np.vstack((mus, mu_with_label.detach().numpy())) 
-           sigmas = np.vstack((sigmas, sigma_with_label.detach().numpy())) 
-
-        mu = torch.Tensor(np.mean(mus[mus[:,0]==condition,1:], axis=0)) #TODO: Right now, it only looks at first electrode
-        sigma = torch.Tensor(np.mean(sigmas[sigmas[:,0]==condition,1:], axis=0)) #TODO: Right now, it only looks at first electrode
-
         generated_samples = np.empty((0,self.input_dim+1,1))
-        for sample_index in range(num_samples):
+        for i, x in enumerate(loader):
+            y = x[:,[0],0].to(self.device)
+            x = x[:,1:,:].to(self.device)
+            mu, sigma = self.encode(x)
             z = mu + sigma * torch.randn_like(sigma)
-            generated_sample = torch.concat((torch.Tensor([condition]).reshape(1, -1, self.num_electrodes), self.decode(z.reshape(1,-1))), dim=1)
-            generated_samples = np.vstack((generated_samples, generated_sample.detach().numpy())) 
+            sample_y = y.reshape(y.shape[0], y.shape[1], self.num_electrodes)
+            sample_decoded = self.decode(z)
+            gen_sample = torch.concat((sample_y, sample_decoded), dim=1)
+            gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
+            generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
 
-        return generated_samples
+        return generated_samples[:num_samples,:]
     
     def plot_samples(self, loader, epoch):
 
@@ -143,8 +134,10 @@ class VariationalAutoencoder(nn.Module):
         fig, ax = plt.subplots(1,2)
         ax[1].plot(np.mean(syn0, axis=0), alpha=.5)
         ax[1].plot(np.mean(syn1,axis=0), alpha=.5)
+        ax[1].set_title('VAE-Generated')
         ax[0].plot(np.mean(emp0,axis=0), alpha=.5)
         ax[0].plot(np.mean(emp1,axis=0), alpha=.5)
+        ax[0].set_title('Empirical')
 
         plt.savefig(f'generated_images/generated_average_ep{epoch}.png')
         plt.close()
