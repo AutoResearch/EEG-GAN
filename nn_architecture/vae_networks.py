@@ -120,7 +120,7 @@ class VariationalAutoencoder(nn.Module):
         return generated_samples[:num_samples,:]
     
     def plot_samples(self, loader, epoch):
-
+    
         empirical_samples = np.empty((0,self.input_dim+1,1))
         for i, x in enumerate(loader):
            empirical_samples = np.vstack((empirical_samples, x.detach().numpy())) 
