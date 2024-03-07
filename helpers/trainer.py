@@ -738,9 +738,12 @@ class VAETrainer(Trainer):
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
             'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
             'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+            'conditions': opt['conditions'] if 'conditions' in opt else None,
+            'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'activation': opt['activation'],
+            
             'dataloader': {
                 'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
@@ -748,6 +751,7 @@ class VAETrainer(Trainer):
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
                 'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
                 'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+                'conditions': opt['conditions'] if 'conditions' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else None,
         }
@@ -776,7 +780,7 @@ class VAETrainer(Trainer):
                 #Generate samples on interval
                 if self.epoch % self.sample_interval == 0:
                     plot = True #TODO: change plot to False
-                    generated_samples = torch.Tensor(self.model.generate_samples(dataset, epoch=self.epoch, plot=plot)).to(self.device) 
+                    generated_samples = torch.Tensor(self.model.generate_samples(loader=dataset,condition=0,num_samples=1000)).to(self.device) 
                     if plot:
                         self.model.plot_losses(self.recon_losses, self.kl_losses, self.losses)
                     gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist()) #TODO: Not sure if this is the same as the GAN
