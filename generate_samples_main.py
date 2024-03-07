@@ -55,7 +55,7 @@ def main():
     state_dict = torch.load(file, map_location='cpu')
 
     # define device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     # check given conditions that they are numeric
     for i, x in enumerate(condition):
