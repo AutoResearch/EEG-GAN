@@ -6,75 +6,90 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from tqdm import tqdm
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, ReversedTransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
+import os
 
 #### User input ####
-data_checkpoint = 'data/ganTrialElectrodeERP_p100_e2_len100.csv'
-ae_checkpoint = 'trained_ae/ae_ddp_5000ep_p100_e8_enc50-4.pt'
+ae_path = 'trained_ae/Reinforcement Learning/renamed'
+files = [f for f in os.listdir(ae_path) if os.path.isfile(os.path.join(ae_path, f)) and '_e2_' in f]
 
-#### Load data ####
-dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
-dataset = dataloader.get_data().detach().numpy()
-norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
-dataset = np.concatenate((dataset[:,[0],:], norm(dataset[:,1:,:])), axis=1)
+for file in files:
+    data_path = 'data/Reinforcement Learning/Training Datasets'
+    data_checkpoint = f"{data_path}/{file.replace('ae_ep2000','ganTrialElectrodeERP').replace('.pt','.csv')}"
+    ae_checkpoint = f"{ae_path}/{file}"
 
-#### Initiate autoencoder ####
-device = torch.device('cpu')
-ae_dict = torch.load(ae_checkpoint, map_location=device)
-if ae_dict['configuration']['target'] == 'channels':
-    ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
-    autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
-elif ae_dict['configuration']['target'] == 'time':
-    ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
-    autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
-elif ae_dict['configuration']['target'] == 'full':
-    autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
-    autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
-    #autoencoder = ReversedTransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
-    #autoencoder.model_1 = ReversedTransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
-else:
-    raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
-autoencoder.load_state_dict(ae_dict['model'])
-for param in autoencoder.parameters():
-    param.requires_grad = False
+    #### Load data ####
+    dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
+    dataset = dataloader.get_data().detach().numpy()
+    norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
+    dataset = np.concatenate((dataset[:,[0],:], norm(dataset[:,1:,:])), axis=1)
 
-#### Plot losses ####
-plt.figure()
-plt.plot(ae_dict['train_loss'], label='Train Loss')
-plt.plot(ae_dict['test_loss'], label = 'Test Loss')
-plt.title('Losses')
-plt.xlabel('Epoch')
-plt.legend()
-plt.show()
+    #### Initiate autoencoder ####
+    device = torch.device('cpu')
+    ae_dict = torch.load(ae_checkpoint, map_location=device)
+    if ae_dict['configuration']['target'] == 'channels':
+        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
+        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
+    elif ae_dict['configuration']['target'] == 'time':
+        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
+        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
+    elif ae_dict['configuration']['target'] == 'full':
+        autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
+        autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
+    else:
+        raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
+    consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
+    autoencoder.load_state_dict(ae_dict['model'])
+    for param in autoencoder.parameters():
+        param.requires_grad = False
 
-#### Plot trial level samples ####
-fig, axs = plt.subplots(5,1)
-for i in range(5):
-    sample = np.random.choice(len(dataset), 1)
-    data = dataset[sample,1:,:]
-    axs[i].plot(data[0,:,0], label='Original')
-    axs[i].plot(autoencoder.decode(autoencoder.encode(torch.from_numpy(data)))[0,:,0].detach().numpy(), label='Reconstructed')
-    axs[i].legend()
-plt.show()
+    #### Plot losses ####
+    plt.figure()
+    plt.plot(ae_dict['train_loss'], label='Train Loss')
+    plt.plot(ae_dict['test_loss'], label = 'Test Loss')
+    plt.title('Losses')
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.show()
 
-#### Plot encoded-decoded averages ####
+    #### Plot trial level samples ####
+    fig, axs = plt.subplots(5,1)
+    for i in range(5):
+        sample = np.random.choice(len(dataset), 1)
+        data = dataset[sample,1:,:]
+        axs[i].plot(data[0,:,0], label='Original')
+        axs[i].plot(autoencoder.decode(autoencoder.encode(torch.from_numpy(data)))[0,:,0].detach().numpy(), label='Reconstructed')
+        axs[i].legend()
+    plt.show()
 
-#Create reconstructed datasaet
-ae_dataset = np.empty(dataset.shape)
-print('Reconstructing dataset with the autoencoder...')
-for sample in tqdm(range(dataset.shape[0])):
-    data = dataset[[sample],1:,:]
-    ae_data = autoencoder.decode(autoencoder.encode(torch.from_numpy(data))).detach().numpy()
-    ae_dataset[sample,:,:] = np.concatenate((dataset[sample,0,:].reshape(1,1,-1), ae_data), axis=1)
+    #### Plot encoded-decoded averages ####
 
-fig, ax = plt.subplots(2,dataset.shape[-1])
-for electrode in range(dataset.shape[-1]):
-    ax[0,electrode].plot(np.mean(dataset[dataset[:,0,0]==0,1:,electrode],axis=0))
-    ax[0,electrode].plot(np.mean(dataset[dataset[:,0,0]==1,1:,electrode],axis=0))
+    #Create reconstructed datasaet
+    ae_dataset = np.empty(dataset.shape)
+    print('Reconstructing dataset with the autoencoder...')
+    for sample in tqdm(range(dataset.shape[0])):
+        data = dataset[[sample],1:,:]
+        ae_data = autoencoder.decode(autoencoder.encode(torch.from_numpy(data))).detach().numpy()
+        ae_dataset[sample,:,:] = np.concatenate((dataset[sample,0,:].reshape(1,1,-1), ae_data), axis=1)
 
-    ax[1,electrode].plot(np.mean(ae_dataset[ae_dataset[:,0,0]==0,1:,electrode],axis=0))
-    ax[1,electrode].plot(np.mean(ae_dataset[ae_dataset[:,0,0]==1,1:,electrode],axis=0))
-plt.show()
+    fig, ax = plt.subplots(2,dataset.shape[-1])
+    for electrode in range(dataset.shape[-1]):
+
+        if '_e1_' in ae_checkpoint:
+            ax[0].plot(np.mean(dataset[dataset[:,0,0]==0,1:,electrode],axis=0))
+            ax[0].plot(np.mean(dataset[dataset[:,0,0]==1,1:,electrode],axis=0))
+
+            ax[1].plot(np.mean(ae_dataset[ae_dataset[:,0,0]==0,1:,electrode],axis=0))
+            ax[1].plot(np.mean(ae_dataset[ae_dataset[:,0,0]==1,1:,electrode],axis=0))
+            ax[0].set_title(ae_checkpoint.split('/')[-1])
+
+        else:
+            ax[0,electrode].plot(np.mean(dataset[dataset[:,0,0]==0,1:,electrode],axis=0))
+            ax[0,electrode].plot(np.mean(dataset[dataset[:,0,0]==1,1:,electrode],axis=0))
+            ax[0, 0].set_title(ae_checkpoint.split('/')[-1])
+
+            ax[1,electrode].plot(np.mean(ae_dataset[ae_dataset[:,0,0]==0,1:,electrode],axis=0))
+            ax[1,electrode].plot(np.mean(ae_dataset[ae_dataset[:,0,0]==1,1:,electrode],axis=0))
+    plt.show()
 
 
 

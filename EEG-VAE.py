@@ -21,7 +21,6 @@ from nn_architecture.vae_networks import VariationalAutoencoder
 
 import matplotlib.pyplot as plt
 
-
 if __name__ == '__main__':
     
     #Set hyper-parameters
@@ -35,13 +34,15 @@ if __name__ == '__main__':
     learning_rate = .0001
     kl_alpha = .00005
     activation = 'tanh'
+
     
     #Reset sample storage folder
     shutil.rmtree('generated_images')
     os.mkdir('generated_images')
 
     #Load Data
-    dataloader = Dataloader('data/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', col_label='Condition', channel_label='Electrode')
+
+    dataloader = Dataloader('data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', col_label='Condition', channel_label='Electrode')
     dataset = dataloader.get_data()
     norm = lambda data: (data - torch.min(data)) / (torch.max(data) - torch.min(data))
     dataset[:,1:,:] = norm(dataset[:,1:,:]) 
