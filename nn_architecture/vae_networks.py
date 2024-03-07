@@ -106,19 +106,20 @@ class VariationalAutoencoder(nn.Module):
         self.num_electrodes = next(iter(loader)).shape[-1]
         
         generated_samples = np.empty((0,self.input_dim+1,1))
-        for i, x in enumerate(loader):
-            y = x[:,[0],0].to(self.device)
-            x = x[:,1:,:].to(self.device)
-            mu, sigma = self.encode(x)
-            z = mu + sigma * torch.randn_like(sigma)
-            sample_y = y.reshape(y.shape[0], y.shape[1], self.num_electrodes)
-            sample_decoded = self.decode(z)
-            gen_sample = torch.concat((sample_y, sample_decoded), dim=1)
-            gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
-            generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
+        while generated_samples.shape[0] < num_samples:
+            for i, x in enumerate(loader):
+                y = x[:,[0],0].to(self.device)
+                x = x[:,1:,:].to(self.device)
+                mu, sigma = self.encode(x)
+                z = mu + sigma * torch.randn_like(sigma)
+                sample_y = y.reshape(y.shape[0], y.shape[1], self.num_electrodes)
+                sample_decoded = self.decode(z)
+                gen_sample = torch.concat((sample_y, sample_decoded), dim=1)
+                gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
+                generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
 
         return generated_samples[:num_samples,:]
-    
+        
     def plot_samples(self, loader, epoch):
 
         empirical_samples = np.empty((0,self.input_dim+1,1))
