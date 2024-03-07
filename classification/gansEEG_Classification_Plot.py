@@ -10,13 +10,14 @@ import numpy as np
 
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
-electrodes = 8
+electrodes = 1
 augmentation_type = 'gan'
+combined = False #Whether to add multiple augmented data to a single plot
 
 data = np.arange(1,10) if electrodes < 8 else np.arange(1,7)
 
 if augmentation_type == 'vae': #Temporary
-    data = np.arange(1,4)
+    data = np.arange(1,7)
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -155,6 +156,11 @@ for dat in data:
     legendNames.append(loadAndPlot(augData,'C0',f'{augmentation_type.upper()}-Augmented'))
     legendNames.append(loadAndPlot(empData,'C1','Empirical'))
 
+    if combined and dat < 4: #DAT < 4 temporary for VAE
+        aug_type = 'vae' if augmentation_type == 'gan' else 'gan'
+        _, augData2 = retrieveData(dat, aug_type)
+        legendNames.append(loadAndPlot(augData2,'C2',f'{aug_type.upper()}-Augmented'))
+
     #Create horizontal lines
     axisLevels = np.arange(50,ylims,5)
     for y in axisLevels:
@@ -210,4 +216,7 @@ for dat in data:
 ###############################################
 fig = plt.gcf()
 fig.set_size_inches(8, 6)
-fig.savefig(f'classification/Figures/Figure N - {augmentation_type.upper()} Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
+if combined:
+    fig.savefig(f'classification/Figures/Figure N - Combined Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
+else:
+    fig.savefig(f'classification/Figures/Figure N - {augmentation_type.upper()} Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
