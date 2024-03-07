@@ -70,8 +70,8 @@ class VariationalAutoencoder(nn.Module):
         return mu, sigma
     
     def sample(self, mu, sigma):
-        std = torch.exp(0.5 * sigma).to(self.device)
-        z = torch.randn(std.size(0),std.size(1)).to(self.device)
+        std = torch.exp(0.5 * sigma)
+        z = torch.randn(std.size(0),std.size(1))
         z = z*std + mu
 
         return z
