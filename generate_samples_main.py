@@ -216,7 +216,7 @@ def main():
         dataset = dataloader.get_data()
         dataset = DataLoader(dataset, batch_size=state_dict['configuration']['batch_size'], shuffle=True)
 
-        sequence_length = state_dict['configuration']['input_dim']
+        sequence_length = int(state_dict['configuration']['input_dim']/dataset.dataset.shape[-1])
         channel_names = dataloader.channels
         n_conditions = len(default_args['conditions'])
         cond_labels = torch.zeros((num_samples_total, state_dict['configuration']['input_dim'], len(default_args['conditions']))).to(device) + torch.tensor(condition).to(device)
