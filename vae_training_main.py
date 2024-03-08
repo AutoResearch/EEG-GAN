@@ -36,7 +36,6 @@ def main():
         'conditions': default_args['conditions'],
         'n_epochs': default_args['n_epochs'],
         'batch_size': default_args['batch_size'],
-        'train_ratio': default_args['train_ratio'],
         'learning_rate': default_args['learning_rate'],
         'hidden_dim': default_args['hidden_dim'],
         'encoded_dim': default_args['encoded_dim'],
