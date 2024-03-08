@@ -320,7 +320,6 @@ def default_inputs_training_vae():
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
-        #'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '], #TODO: REPLACE THIS
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganTrialElectrodeERP_p500_e1_SS100_Run00.csv'), 'Dataset: '], #TODO: REMOVE THIS
         'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
         'save_name': [str, 'Name to save model', None, 'Model save name: '],
@@ -333,7 +332,6 @@ def default_inputs_training_vae():
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'hidden_dim': [int, 'Hidden dimension of the network', 256, 'Hidden dimension: '],
         'encoded_dim': [int, 'Encoded dimension of mu and sigma', 25, 'Encoded dimension: '],
-        'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the VAE', 3e-4, 'Learning rate: '],
         'kl_alpha': [float, 'Weight of the KL divergence in loss', 0.00005, 'KL alpha: '],
         }
