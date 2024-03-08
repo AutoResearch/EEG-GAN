@@ -87,7 +87,7 @@ class VariationalAutoencoder(nn.Module):
         #x = self.linear_dec_out(x)
         #x = torch.sigmoid(x)
 
-        x = x.reshape((x.shape[0], self.input_dim, self.num_electrodes))
+        x = x.reshape((x.shape[0], int(self.input_dim/self.num_electrodes), self.num_electrodes))
 
         return x
 
@@ -104,41 +104,52 @@ class VariationalAutoencoder(nn.Module):
     def generate_samples(self, loader, condition=0, num_samples=2500):
 
         self.num_electrodes = next(iter(loader)).shape[-1]
-        
-        generated_samples = np.empty((0,self.input_dim+1,1))
-        while generated_samples.shape[0] < num_samples:
-            for i, x in enumerate(loader):
-                y = x[:,[0],0].to(self.device)
-                x = x[:,1:,:].to(self.device)
-                mu, sigma = self.encode(x)
-                z = mu + sigma * torch.randn_like(sigma)
-                sample_y = y.reshape(y.shape[0], y.shape[1], self.num_electrodes)
-                sample_decoded = self.decode(z)
-                gen_sample = torch.concat((sample_y, sample_decoded), dim=1)
-                gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
-                generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
+                        
+        with torch.no_grad():
+            generated_samples = np.empty((0,int(self.input_dim/self.num_electrodes)+1,self.num_electrodes))
+            while generated_samples.shape[0] < num_samples:
+                for i, x in enumerate(loader):
+                    y = x[:,[0],:].to(self.device)
+                    x = x[:,1:,:].to(self.device)
+                    mu, sigma = self.encode(x)
+                    z = mu + sigma * torch.randn_like(sigma)
+                    sample_decoded = self.decode(z)
+                    gen_sample = torch.concat((y, sample_decoded), dim=1)
+                    gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
+                    generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
 
         return generated_samples[:num_samples,:]
         
     def plot_samples(self, loader, epoch):
 
-        empirical_samples = np.empty((0,self.input_dim+1,1))
+        empirical_samples = np.empty((0,int(self.input_dim/self.num_electrodes)+1,self.num_electrodes))
         for i, x in enumerate(loader):
-           empirical_samples = np.vstack((empirical_samples, x.detach().numpy())) 
-
+            empirical_samples = np.vstack((empirical_samples, x.detach().numpy())) 
+        
         syn0 = self.generate_samples(loader, condition=0, num_samples=2500)[:,1:,:]
         syn1 = self.generate_samples(loader, condition=1, num_samples=2500)[:,1:,:]
+        emp0 = empirical_samples[empirical_samples[:,0,0]==0,1:,:]
+        emp1 = empirical_samples[empirical_samples[:,0,0]==1,1:,:]
 
-        emp0 = empirical_samples[empirical_samples[:,0,0]==0,1:,0]
-        emp1 = empirical_samples[empirical_samples[:,0,0]==1,1:,0]
+        if self.num_electrodes == 1:
+            fig, ax = plt.subplots(1,2)
+            ax[1].plot(np.mean(syn0, axis=0), alpha=.5)
+            ax[1].plot(np.mean(syn1,axis=0), alpha=.5)
+            ax[1].set_title('VAE-Generated')
+            ax[0].plot(np.mean(emp0,axis=0), alpha=.5)
+            ax[0].plot(np.mean(emp1,axis=0), alpha=.5)
+            ax[0].set_title('Empirical')
+        else:
+            fig, ax = plt.subplots(2,self.num_electrodes)
+            for electrode_index in range(self.num_electrodes):
+                ax[1, electrode_index].plot(np.mean(syn0[:,:,electrode_index], axis=0), alpha=.5)
+                ax[1, electrode_index].plot(np.mean(syn1[:,:,electrode_index],axis=0), alpha=.5)
+                
+                ax[0, electrode_index].plot(np.mean(emp0[:,:,electrode_index],axis=0), alpha=.5)
+                ax[0, electrode_index].plot(np.mean(emp1[:,:,electrode_index],axis=0), alpha=.5)
 
-        fig, ax = plt.subplots(1,2)
-        ax[1].plot(np.mean(syn0, axis=0), alpha=.5)
-        ax[1].plot(np.mean(syn1,axis=0), alpha=.5)
-        ax[1].set_title('VAE-Generated')
-        ax[0].plot(np.mean(emp0,axis=0), alpha=.5)
-        ax[0].plot(np.mean(emp1,axis=0), alpha=.5)
-        ax[0].set_title('Empirical')
+                ax[1,0].set_title('VAE-Generated')
+                ax[0,0].set_title('Empirical')
 
         plt.savefig(f'generated_images/generated_average_ep{epoch}.png')
         plt.close()

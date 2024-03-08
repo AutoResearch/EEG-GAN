@@ -71,7 +71,7 @@ def main():
                       diff_data=opt['diff_data'])
     dataset = data.get_data()
 
-    opt['input_dim'] = dataset.shape[1] - len(opt['conditions'])
+    opt['input_dim'] = (dataset.shape[1] - len(opt['conditions'])) * dataset.shape[-1]
 
     # ------------------------------------------------------------------------------------------------------------------
     # Load VAE checkpoint and populate configuration
