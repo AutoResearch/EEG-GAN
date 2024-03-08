@@ -55,7 +55,7 @@ def main():
     state_dict = torch.load(file, map_location='cpu')
 
     # define device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     # check given conditions that they are numeric
     for i, x in enumerate(condition):
@@ -82,7 +82,7 @@ def main():
     if state_dict['configuration']['dataloader']['channel_label']:
         channel_label = [state_dict['configuration']['dataloader']['channel_label']]
     else:
-        channel_label = ['Channel']
+        channel_label = ['Electrode']
 
     # get keyword for time step labels
     if state_dict['configuration']['dataloader']['kw_timestep']:
