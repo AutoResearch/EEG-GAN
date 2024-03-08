@@ -104,7 +104,7 @@ class VariationalAutoencoder(nn.Module):
     def generate_samples(self, loader, condition=0, num_samples=2500):
 
         self.num_electrodes = next(iter(loader)).shape[-1]
-                        
+        
         with torch.no_grad():
             generated_samples = np.empty((0,int(self.input_dim/self.num_electrodes)+1,self.num_electrodes))
             while generated_samples.shape[0] < num_samples:
