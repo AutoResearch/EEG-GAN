@@ -169,10 +169,14 @@ def main():
         gen_samples = trainer.training(dataset)
 
         # save final models, optimizer states, generated samples, losses and configuration as final result
-        path = 'trained_models'
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples, update_history=True)
+        if not opt['save_name']:
+            path = 'trained_models'
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
+            save_filename = os.path.join(path, filename)
+        else:
+            save_filename = opt['save_name']
+            trainer.save_checkpoint(path_checkpoint=save_filename, samples=gen_samples, update_history=True)
 
         print(f"Checkpoint saved to {path_checkpoint}.")
         
@@ -180,7 +184,7 @@ def main():
         discriminator = trainer.discriminator
 
         print("GAN training finished.")
-        print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
+        print(f"Model states and generated samples saved to file {save_filename)}.")
 
         return generator, discriminator, opt, gen_samples
 
