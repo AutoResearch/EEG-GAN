@@ -184,7 +184,7 @@ def main():
         discriminator = trainer.discriminator
 
         print("GAN training finished.")
-        print(f"Model states and generated samples saved to file {save_filename)}.")
+        print(f"Model states and generated samples saved to file {save_filename}.")
 
         return generator, discriminator, opt, gen_samples
 
