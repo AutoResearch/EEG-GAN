@@ -10,9 +10,9 @@ sample_sizes = ['005', '010', '015', '020', '030', '060', '100']
 runs = [0, 1, 2, 3, 4]
 
 loop = tqdm(total=len(electrodes)*len(sample_sizes)*len(runs))
-for electrode in electrodes:
+for run in runs:
     for sample_size in sample_sizes:
-        for run in runs:
+        for electrode in electrodes:
             loop.update(1)
             empirical_filename = f'{data_path}/ganTrialElectrodeERP_p500_e{electrode}_SS{sample_size}_Run0{run}.csv'
             empirical_data = pd.read_csv(empirical_filename)
@@ -29,6 +29,6 @@ for electrode in electrodes:
                 generated_data = generated_data.rename(columns={f'Time{timepoint}': f'Time{timepoint+1}'})
 
             augmented_data = pd.concat([empirical_data, generated_data])
-            augmented_data.to_csv(f'{augmented_path}/vae_augmentedData_p500_e{electrode}_SS{sample_size}_Run0{run}.csv', index=False)
+            augmented_data.to_csv(f'{augmented_path}/vae_augmentedData_e{electrode}_SS{sample_size}_Run0{run}.csv', index=False)
 
 
