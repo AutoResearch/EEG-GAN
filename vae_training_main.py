@@ -11,7 +11,7 @@ from helpers import system_inputs
 from helpers.dataloader import Dataloader
 from helpers.trainer import VAETrainer
 from helpers.get_master import find_free_port
-from helpers.ddp_training import run#, VAEDDPTrainer
+from helpers.ddp_training import run, VAEDDPTrainer
 from nn_architecture.vae_networks import VariationalAutoencoder
 
 def main():
