@@ -82,7 +82,7 @@ def main():
     if state_dict['configuration']['dataloader']['channel_label']:
         channel_label = [state_dict['configuration']['dataloader']['channel_label']]
     else:
-        channel_label = 'Electrode'
+        channel_label = ['Electrode']
 
     # get keyword for time step labels
     if state_dict['configuration']['dataloader']['kw_timestep']:
@@ -207,7 +207,7 @@ def main():
 
         # load data
         dataloader = Dataloader(path=state_dict['configuration']['dataloader']['path_dataset'],
-                        channel_label=channel_label, 
+                        channel_label=channel_label[0], 
                         col_label=state_dict['configuration']['dataloader']['conditions'],
                         kw_timestep=state_dict['configuration']['dataloader']['kw_timestep'],
                         norm_data=state_dict['configuration']['dataloader']['norm_data'], 
