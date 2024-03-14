@@ -14,12 +14,12 @@ from classification_functions import *
 ## USER INPUTS                               ##
 ###############################################
 features = False #Datatype: False = Full Data, True = Features data
-autoencoder = False #Whether to use autoencoder feature selection
+autoencoder = True #Whether to use autoencoder feature selection
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = ['vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+syntheticDataOptions = ['gan'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
 classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
-electrode_number = 1
+electrode_number = 8
 
 ###############################################
 ## SETUP                                     ##
@@ -75,6 +75,7 @@ y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 ###############################################
 ## CLASSIFICATION                            ##
 ###############################################
+loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
 for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
     
     #Determine current filenames
@@ -83,10 +84,8 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
     currentOvsFilename = ovsFilename.replace('XX',classifier)
     currentVaeFilename = vaeFilename.replace('XX',classifier)
 
-    loop_analysis = tqdm(syntheticDataOptions)
-    for addSyntheticData in loop_analysis: #Iterate through analyses (empirical, augmented)
-        loop_analysis.set_description(f'Analysis: {"Augmented" if addSyntheticData else "Empirical"}')
-        
+    for addSyntheticData in syntheticDataOptions: #Iterate through analyses (empirical, augmented)
+
         #Open corresponding file to write to
         if addSyntheticData=='gan':
             f = open(currentAugFilename, 'a')
@@ -99,13 +98,10 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
         else:
             raise NotImplementedError('Analysis index not recognized.')
 
-        loop_data = tqdm(dataSampleSizes)
-        for dataSampleSize in loop_data: #Iterate through sample sizes
-            loop_data.set_description(f'Sample Size: {dataSampleSize}')
-            loop_run = tqdm(range(5))  
-            for run in loop_run: #Conduct analyses 5 times per sample size
-                loop_run.set_description(f'Analysis: {addSyntheticData}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
-                
+        for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
+            for run in range(5): #Conduct analyses 5 times per sample size
+                loop.set_description(f'Analysis: {addSyntheticData}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
+
                 ###############################################
                 ## AUTOENCODE TEST DATA                      ##
                 ###############################################
@@ -133,7 +129,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
                 ###############################################
                 ## EMPIRICAL PROCESSING                      ##
-                ###############################################
+                ###############################################s
                 
                 #Load empirical data
                 tempFilename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.csv'
@@ -220,5 +216,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                         f.write(',') #Add comma
                 f.write('\n') #Creates new line
                 f.flush() #Clears the internal buffer
+                
+                loop.update(1)
 
         f.close() #Close file
