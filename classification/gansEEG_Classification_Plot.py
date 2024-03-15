@@ -43,34 +43,43 @@ def retrieveData(data, augmentation_type):
     if data == 4:
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_RF.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_RF.csv'
+    if data == 5:
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_KNN.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_KNN.csv'
 
     ##Extracted features
-    if data == 5:
+    if data == 6:
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_NN_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_Features.csv'
-    if data == 6:
+    if data == 7:
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_SVM_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM_Features.csv'
-    if data == 7:  
+    if data == 8:  
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_LR_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_Features.csv'
-    if data == 8:  
+    if data == 9:  
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_RF_Features.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_RF_Features.csv'
+    if data == 10:  
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_KNN_Features.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_KNN_Features.csv'
 
     ##Autoencoder features
-    if data == 9:
+    if data == 11:
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_NN_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_NN_AE.csv'
-    if data == 10:
+    if data == 12:
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_SVM_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_SVM_AE.csv'
-    if data == 11:  
+    if data == 13:  
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_LR_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_LR_AE.csv'
-    if data == 12:
+    if data == 14:
         augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_RF_AE.csv'
         empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_RF_AE.csv'
+    if data == 15:
+        augData = f'classification/Classification Results/{aug_prefix}Predictions_e{electrodes}_KNN_AE.csv'
+        empData = f'classification/Classification Results/empiricalPredictions_e{electrodes}_KNN_AE.csv'
         
     return empData, augData
 
@@ -160,7 +169,7 @@ alpha = 0.6 if combined else 1
 for dat in data:
     
     #Signify subplot
-    ax1 = plt.subplot(3,4,dat)
+    ax1 = plt.subplot(3,5,dat)
 
     #Load and plot data while extracting legend names
     legendNames = []
@@ -187,23 +196,23 @@ for dat in data:
     ax1.spines[['right', 'top']].set_visible(False)
         
     #Plot legend on last subplot
-    if dat == 3:
+    if dat == 5:
         plt.legend(legendNames, bbox_to_anchor=(.95,1.2), frameon=False)
         
     #Plot y label on left subplots
-    if (dat == 1) | (dat == 5) | (dat == 9):
+    if (dat == 1) | (dat == 6) | (dat == 11):
         plt.ylabel('Prediction Accuracy (%)')
         
     #Plot x label on bottom subplots
-    if dat > 8:    
+    if dat > 10:    
         plt.xlabel('Sample Size')
     
     #Add data type titles
     if dat == 1:
         ax1.annotate('Full Time Series',(3,ylims), fontsize = 6)
-    elif dat == 5:
+    elif dat == 6:
         ax1.annotate('Extracted Features',(3,ylims), fontsize = 6)
-    elif dat == 9:
+    elif dat == 11:
         ax1.annotate('Autoencoder Features',(3,ylims), fontsize = 6)
         
     #Add classifier titles
@@ -215,6 +224,8 @@ for dat in data:
         ax1.annotate('Logistic Regression', (3,ylims-2.5), fontsize = 5)
     elif (dat == 4):
         ax1.annotate('Random Forest', (3,ylims-2.5), fontsize = 5)
+    elif (dat == 5):
+        ax1.annotate('K-Nearest Neighbors', (3,ylims-2.5), fontsize = 5)
 
     #Add difference bars
     ax2 = ax1.twinx()  
@@ -229,7 +240,7 @@ for dat in data:
 ## SAVE PLOT                                 ##
 ###############################################
 fig = plt.gcf()
-fig.set_size_inches(12, 6)
+fig.set_size_inches(16, 6)
 if combined:
     fig.savefig(f'classification/Figures/Figure N - Combined Classification Results (e{electrodes}).png', dpi=600, facecolor='white', edgecolor='none')
 else:
