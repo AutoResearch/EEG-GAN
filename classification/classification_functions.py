@@ -343,7 +343,7 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test):
     param_grid = [
         {'n_neighbors': np.linspace(start=5, stop=30, num=6),
         'weights': ['uniform','distance'],
-        'metric': [['euclidean', 'manhattan', 'minkowski']],
+        'metric': ['euclidean', 'manhattan', 'minkowski'],
         'leaf_size': [5, 10, 20, 30, 40, 50]
         }]
 
