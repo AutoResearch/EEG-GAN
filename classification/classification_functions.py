@@ -5,6 +5,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from scipy import signal
 import torch
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
@@ -308,6 +310,59 @@ def logisticRegression(X_train, Y_train, x_test, y_test):
     
     return optimal_params, predictScore
 
+#Determine random forest classifier function
+def randomForest(X_train, Y_train, x_test, y_test):
+
+    # defining parameter range
+    param_grid = [
+        {'n_estimators': [int(x) for x in np.linspace(start=15, stop=150, num=10)],
+        'max_features': ['sqrt', 'log2'],
+        'max_depth': [3, 5, 7],
+        'criterion': ['gini','entropy']}]
+
+    #Search over search space
+    optimal_params = GridSearchCV(
+        RandomForestClassifier(), 
+        param_grid, 
+        refit = True, 
+        verbose = False)
+    
+    optimal_params.fit(X_train, Y_train)
+    
+    #Determine predictability
+    RFOutput = optimal_params.predict(x_test)
+    predictResults = classification_report(y_test, RFOutput, output_dict=True)
+    predictScore = round(predictResults['accuracy']*100)
+    
+    return optimal_params, predictScore
+    
+#Determine support vector machine classifier function
+def kNearestNeighbor(X_train, Y_train, x_test, y_test):
+
+    # defining parameter range
+    param_grid = [
+        {'n_neighbors': range(1, 30, 2),
+        'weights': ['uniform','distance'],
+        'metric': [['euclidean', 'manhattan', 'minkowski']],
+        'leaf_size': range(1, 50, 5)
+        }]
+
+    #Search over search space
+    optimal_params = GridSearchCV(
+        KNeighborsClassifier(), 
+        param_grid, 
+        refit = True, 
+        verbose = False)
+    
+    optimal_params.fit(X_train, Y_train)
+    
+    #Determine predictability
+    SVMOutput = optimal_params.predict(x_test)
+    predictResults = classification_report(y_test, SVMOutput, output_dict=True)
+    predictScore = round(predictResults['accuracy']*100)
+    
+    return optimal_params, predictScore
+    
 def encode_data(autoencoder_filename, data):
     device = torch.device('cpu')
     ae_dict = torch.load(autoencoder_filename, map_location=device)
