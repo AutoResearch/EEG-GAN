@@ -13,12 +13,12 @@ from classification_functions import *
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = True #Datatype: False = Full Data, True = Features data
+features = False #Datatype: False = Full Data, True = Features data
 autoencoder = False #Whether to use autoencoder feature selection
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
 syntheticDataOptions = ['emp','gan','vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-classifiers = ['RF'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
+classifiers = ['RF', 'KNN'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
 electrode_number = 1
 
 '''

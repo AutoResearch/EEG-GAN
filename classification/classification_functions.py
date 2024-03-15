@@ -315,7 +315,7 @@ def randomForest(X_train, Y_train, x_test, y_test):
 
     # defining parameter range
     param_grid = [
-        {'n_estimators': [int(x) for x in np.linspace(start=15, stop=150, num=10)],
+        {'n_estimators': [int(x) for x in np.linspace(start=25, stop=150, num=6)],
         'max_features': ['sqrt', 'log2'],
         'max_depth': [3, 5, 7],
         'criterion': ['gini','entropy']}]
@@ -341,10 +341,10 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test):
 
     # defining parameter range
     param_grid = [
-        {'n_neighbors': range(1, 30, 2),
+        {'n_neighbors': np.linspace(start=5, stop=30, num=6),
         'weights': ['uniform','distance'],
         'metric': [['euclidean', 'manhattan', 'minkowski']],
-        'leaf_size': range(1, 50, 5)
+        'leaf_size': [5, 10, 20, 30, 40, 50]
         }]
 
     #Search over search space
