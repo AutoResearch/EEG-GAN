@@ -18,7 +18,7 @@ autoencoder = False #Whether to use autoencoder feature selection
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
 syntheticDataOptions = ['emp','gan','vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-classifiers = ['RF'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
+classifiers = ['KNN', 'RF'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
 electrode_number = 1
 
 '''
@@ -86,7 +86,7 @@ y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 ## CLASSIFICATION                            ##
 ###############################################
 for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
-    loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
+    #loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
 
     #Determine current filenames
     currentAugFilename = augFilename.replace('XX',classifier)
@@ -110,7 +110,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
         for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
             for run in range(5): #Conduct analyses 5 times per sample size
-                loop.set_description(f'Analysis: {addSyntheticData}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
+                #loop.set_description(f'Analysis: {addSyntheticData}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
 
                 ###############################################
                 ## AUTOENCODE TEST DATA                      ##
@@ -210,7 +210,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                 elif classifier == 'RF':
                     optimal_params, predictScore = randomForest(X_train, Y_train, x_test, y_test)
                 elif classifier == 'KNN':
-                    optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test)
+                    optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test, X_train.shape[0])
                 else:
                     print('Unknown classifier')
                     optimal_params = []

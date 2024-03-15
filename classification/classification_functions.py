@@ -337,11 +337,11 @@ def randomForest(X_train, Y_train, x_test, y_test):
     return optimal_params, predictScore
     
 #Determine support vector machine classifier function
-def kNearestNeighbor(X_train, Y_train, x_test, y_test):
+def kNearestNeighbor(X_train, Y_train, x_test, y_test, num_samples):
 
     # defining parameter range
     param_grid = [
-        {'n_neighbors': [int(x) for x in np.linspace(start=5, stop=30, num=6)],
+        {'n_neighbors': [int(num_samples*.1), int(num_samples*.3), int(num_samples*.5), int(num_samples*.7), int(num_samples*.9)],
         'weights': ['uniform','distance'],
         'metric': ['euclidean', 'manhattan', 'minkowski'],
         'leaf_size': [5, 10, 20, 30, 40, 50]
