@@ -1,0 +1,17 @@
+005,0,0,62,3.329801559448242,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 3, 'weights': 'uniform'}
+005,0,0,62,3.4799551963806152,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 4, 'weights': 'distance'}
+005,0,0,56,3.465165138244629,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 2, 'weights': 'uniform'}
+005,1,0,62,2.925320863723755,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 3, 'weights': 'uniform'}
+005,2,0,56,2.650259494781494,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 5, 'weights': 'uniform'}
+005,3,0,55,2.68943190574646,{'leaf_size': 5, 'metric': 'manhattan', 'n_neighbors': 5, 'weights': 'uniform'}
+005,4,0,66,2.6323561668395996,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 3, 'weights': 'uniform'}
+010,0,0,54,2.7063746452331543,{'leaf_size': 5, 'metric': 'manhattan', 'n_neighbors': 10, 'weights': 'uniform'}
+010,1,0,59,2.677243232727051,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 6, 'weights': 'uniform'}
+010,2,0,58,2.685837507247925,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 6, 'weights': 'uniform'}
+010,3,0,57,2.8000729084014893,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 6, 'weights': 'uniform'}
+010,4,0,63,3.2409238815307617,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 6, 'weights': 'uniform'}
+015,0,0,67,2.8730008602142334,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 15, 'weights': 'uniform'}
+015,1,0,63,2.7251102924346924,{'leaf_size': 5, 'metric': 'manhattan', 'n_neighbors': 12, 'weights': 'uniform'}
+015,2,0,63,3.0359816551208496,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 15, 'weights': 'uniform'}
+015,3,0,63,2.9113011360168457,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 3, 'weights': 'uniform'}
+015,4,0,66,3.1499154567718506,{'leaf_size': 5, 'metric': 'euclidean', 'n_neighbors': 12, 'weights': 'uniform'}

@@ -86,7 +86,7 @@ y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 ## CLASSIFICATION                            ##
 ###############################################
 for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
-    #loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
+    loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
 
     #Determine current filenames
     currentAugFilename = augFilename.replace('XX',classifier)
@@ -110,7 +110,7 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
 
         for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
             for run in range(5): #Conduct analyses 5 times per sample size
-                #loop.set_description(f'Analysis: {addSyntheticData}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
+                loop.set_description(f'Analysis: {addSyntheticData}, Class: {classifier}, SS: {dataSampleSize}, Run: {run}')
 
                 ###############################################
                 ## AUTOENCODE TEST DATA                      ##
