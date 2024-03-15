@@ -13,13 +13,23 @@ from classification_functions import *
 ###############################################
 ## USER INPUTS                               ##
 ###############################################
-features = False #Datatype: False = Full Data, True = Features data
-autoencoder = True #Whether to use autoencoder feature selection
+features = True #Datatype: False = Full Data, True = Features data
+autoencoder = False #Whether to use autoencoder feature selection
 validationOrTest = 'validation' #'validation' or 'test' set to predict
 dataSampleSizes = ['005','010','015','020','030','060','100'] #Which sample sizes to include
-syntheticDataOptions = ['gan'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-classifiers = ['NN', 'SVM', 'LR'] #The code will iterate through this list
-electrode_number = 8
+syntheticDataOptions = ['emp','gan','vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+classifiers = ['RF'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
+electrode_number = 1
+
+'''
+Classifiers:
+NN: Vanilla Neural Network
+SVM: Support Vector Machines
+LR: Logistic Regression
+RF: Random Forest
+KNN: K-Nearest Neighbours
+
+'''
 
 ###############################################
 ## SETUP                                     ##
@@ -75,9 +85,9 @@ y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 ###############################################
 ## CLASSIFICATION                            ##
 ###############################################
-loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
 for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
-    
+    loop = tqdm(total=len(syntheticDataOptions)*len(dataSampleSizes)*5)
+
     #Determine current filenames
     currentAugFilename = augFilename.replace('XX',classifier)
     currentEmpFilename = empFilename.replace('XX',classifier)
@@ -197,6 +207,10 @@ for classifier in classifiers: #Iterate through classifiers (neural network, sup
                     optimal_params, predictScore = supportVectorMachine(X_train, Y_train, x_test, y_test)
                 elif classifier == 'LR':
                     optimal_params, predictScore = logisticRegression(X_train, Y_train, x_test, y_test)
+                elif classifier == 'RF':
+                    optimal_params, predictScore = randomForest(X_train, Y_train, x_test, y_test)
+                elif classifier == 'KNN':
+                    optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test)
                 else:
                     print('Unknown classifier')
                     optimal_params = []
