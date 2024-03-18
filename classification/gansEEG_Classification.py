@@ -33,7 +33,6 @@ def main():
     ## USER INPUTS                               ##
     ###############################################
     features = False #Datatype: False = Full Data, True = Features data
-    autoencoder = False #Whether to use autoencoder feature selection
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
     syntheticDataOptions = ['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
@@ -59,9 +58,7 @@ def main():
     print(dataSampleSizes)
     print('Classification Data: ' + validationOrTest)
 
-    if autoencoder and not features:
-        print('Features: Autoencoder Features')
-    elif features and not autoencoder:
+    if features:
         print('Features: Extracted Features')
 
     ###############################################
@@ -77,7 +74,6 @@ def main():
                     for run in range(5): #Conduct analyses 5 times per sample size
                         job = pool.apply_async(run_classification, args=(q,
                                                                         validationOrTest, 
-                                                                        autoencoder, 
                                                                         features, 
                                                                         electrode_number, 
                                                                         classifier, 
@@ -95,7 +91,7 @@ def main():
     pool.close()
     pool.join()
 
-def run_classification(q, validationOrTest, autoencoder, features, electrode_number, classifier, addSyntheticData, dataSampleSize, run, y_test, x_test):
+def run_classification(q, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, run, y_test, x_test):
 
     print(f'ANALYSIS STARTED: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
@@ -112,12 +108,6 @@ def run_classification(q, validationOrTest, autoencoder, features, electrode_num
         ovsFilename = ovsFilename.split('.csv')[0]+'_Features.csv'
         vaeFilename = vaeFilename.split('.csv')[0]+'_Features.csv'
 
-    if autoencoder:
-        augFilename = augFilename.split('.csv')[0]+'_AE.csv'
-        empFilename = empFilename.split('.csv')[0]+'_AE.csv'
-        ovsFilename = ovsFilename.split('.csv')[0]+'_AE.csv'
-        vaeFilename = vaeFilename.split('.csv')[0]+'_AE.csv'
-
     #Add test tag if test set being used
     if validationOrTest == 'test':
         augFilename = augFilename.split('.csv')[0]+'_TestClassification.csv'
@@ -132,29 +122,17 @@ def run_classification(q, validationOrTest, autoencoder, features, electrode_num
     currentVaeFilename = vaeFilename.replace('XX',classifier)
 
     ###############################################
-    ## AUTOENCODE TEST DATA                      ##
-    ###############################################
-    if autoencoder:
-        if addSyntheticData == 'emp': #Empirical
-            autoencoder_filename = f'trained_ae/Reinforcement Learning/Features Empirical/feat_emp_ae_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
-        elif addSyntheticData == 'gan': #Augmented
-            autoencoder_filename = f'trained_ae/Reinforcement Learning/Features Augmented/feat_aug_ae_e{electrode_number}_SS{dataSampleSize}_Run0{run}.pt'
-        y_test, x_test = load_test_data(validationOrTest, electrode_number, features, autoencoder_filename)
-    else:
-        autoencoder_filename = None
-
-    ###############################################
     ## SYNTHETIC PROCESSING                      ##
     ###############################################
     if addSyntheticData == 'gan':
         synFilename_0 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
         synFilename_1 = f"generated_samples/Reinforcement Learning/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
-        syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, autoencoder_filename)
+        syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features)
 
     elif addSyntheticData == 'vae':
         synFilename_0 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
         synFilename_1 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
-        syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, autoencoder_filename)
+        syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features)
 
     ###############################################
     ## EMPIRICAL PROCESSING                      ##
@@ -183,10 +161,6 @@ def run_classification(q, validationOrTest, autoencoder, features, electrode_num
 
             if pi % num_participant == 0 and pi > 0:
                 participant_cycle += 1
-
-    #Encode data
-    if autoencoder_filename != None:
-        EEGData = encode_data(autoencoder_filename, EEGData)
     
     #Average data per participant and condition
     EEGData = averageEEG(EEGData_metadata_3D[:,0], EEGData)

@@ -121,7 +121,7 @@ def extractFeatures(EEG):
     
     return eegFeatures
 
-def load_synthetic(synFilename_0, synFilename_1, features, autoencoder_filename = None):
+def load_synthetic(synFilename_0, synFilename_1, features):
                         
     #Load Synthetic Data
     #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
@@ -144,17 +144,13 @@ def load_synthetic(synFilename_0, synFilename_1, features, autoencoder_filename 
     #Create new array for processed synthetic data
     processedSynData = np.insert(np.asarray(processedSynData),0,synOutcomes.reshape(1,-1,1), axis = 1)
 
-    #Encode data
-    if autoencoder_filename != None:
-        processedSynData = encode_data(autoencoder_filename, processedSynData)
-
     #Average data across trials
     processedSynData = averageSynthetic(processedSynData)
     
     #Extract outcome and feature data
     syn_Y_train = processedSynData[:,0,0] #Extract outcome
     
-    if features and not autoencoder_filename: #If extracting features
+    if features: #If extracting features
         syn_X_train = np.array(extractFeatures(processedSynData[:,1:,:])) #Extract features
         syn_X_train = np.array([syn_sample.T.flatten() for syn_sample in syn_X_train])
         syn_X_train = scale(syn_X_train, axis=0) #Scale across samples
@@ -164,7 +160,6 @@ def load_synthetic(synFilename_0, synFilename_1, features, autoencoder_filename 
 
     return syn_Y_train, syn_X_train
     
-
 #Average synthetic data function
 def averageSynthetic(synData):
     
@@ -363,41 +358,7 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test, num_samples):
     
     return optimal_params, predictScore
     
-def encode_data(autoencoder_filename, data):
-    device = torch.device('cpu')
-    ae_dict = torch.load(autoencoder_filename, map_location=device)
-    if ae_dict['configuration']['target'] == 'channels':
-        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
-        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
-    elif ae_dict['configuration']['target'] == 'time':
-        ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_TIMESERIES
-        autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)
-    elif ae_dict['configuration']['target'] == 'full':
-        autoencoder = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=2).to(device)
-        autoencoder.model_1 = TransformerDoubleAutoencoder(**ae_dict['configuration'], training_level=1).to(device)
-    else:
-        raise ValueError(f"Autoencoder class {ae_dict['configuration']['model_class']} not recognized.")
-    consume_prefix_in_state_dict_if_present(ae_dict['model'], 'module.')
-    autoencoder.load_state_dict(ae_dict['model'])
-    for param in autoencoder.parameters():
-        param.requires_grad = False
-    
-    #Encode data
-    if str(data.dtype) == 'float64': data = np.float32(data)
-    norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
-    data = np.concatenate((data[:,[0],:], norm(data[:,1:,:])), axis=1)
-
-    time_dim = ae_dict['configuration']['timeseries_out']+1 if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_TIMESERIES, 'full'] else data.shape[1]
-    chan_dim = ae_dict['configuration']['channels_out'] if ae_dict['configuration']['target'] in [TransformerAutoencoder.TARGET_CHANNELS, 'full'] else data.shape[2]
-    ae_dataset = np.empty((data.shape[0], time_dim, chan_dim))
-    for sample in range(data.shape[0]):
-        sample_data = data[[sample],1:,:]
-        ae_data = autoencoder.encode(torch.from_numpy(sample_data)).detach().numpy()
-        ae_dataset[sample,:,:] = np.concatenate((data[sample,0,:chan_dim].reshape(1,1,-1), ae_data), axis=1)
-    
-    return ae_dataset
-
-def load_test_data(validationOrTest, electrode_number, features, autoencoder_filename = None):
+def load_test_data(validationOrTest, electrode_number, features):
     if validationOrTest == 'validation':
         EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_validation.csv'
     else:
@@ -408,10 +369,6 @@ def load_test_data(validationOrTest, electrode_number, features, autoencoder_fil
     EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
     EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, col_label='Condition', channel_label='Electrode')
     EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
-
-    #Encode data
-    if autoencoder_filename != None:
-        EEGDataTest = encode_data(autoencoder_filename, EEGDataTest)
         
     #Average data
     EEGDataTest = averageEEG(EEGDataTest_metadata_3D[:,0], EEGDataTest)
@@ -420,7 +377,7 @@ def load_test_data(validationOrTest, electrode_number, features, autoencoder_fil
     y_test = EEGDataTest[:,0,0]
 
     #Create test variable
-    if features and not autoencoder_filename:
+    if features:
         x_test = np.array(extractFeatures(EEGDataTest[:,1:,:])) #Extract features
         x_test = np.array([test_sample.T.flatten() for test_sample in x_test])
         x_test = scale(x_test, axis=0) #Scale data within each trial
