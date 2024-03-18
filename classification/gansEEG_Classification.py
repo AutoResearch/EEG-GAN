@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.preprocessing import scale
 import random as rnd
 import time
-from tqdm import tqdm
 
 import multiprocessing as mp
 
@@ -25,7 +24,7 @@ def main():
     #Initiate multiprocessing manager
     manager = mp.Manager()
     q = manager.Queue()
-    pool = mp.Pool(mp.cpu_count() + 2) #TODO: Why +2?
+    pool = mp.Pool(mp.cpu_count() + 2)
 
     #Initiate writer
     writer = pool.apply_async(write_classification, (q,))
@@ -39,7 +38,7 @@ def main():
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
     syntheticDataOptions = ['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['KNN'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
-    electrode_number = 1
+    electrode_numbers = [1, 2, 8]
 
     '''
     Classifiers:
@@ -76,23 +75,24 @@ def main():
     ## CLASSIFICATION                            ##
     ###############################################
     jobs = []
-    for classifier in classifiers: #Iterate through classifiers (neural network, support vector machine, logistic regression)
-        for addSyntheticData in syntheticDataOptions: #Iterate through analyses (empirical, augmented)
-            for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
-                for run in range(5): #Conduct analyses 5 times per sample size
-                    job = pool.apply_async(run_classification, args=(q,
-                                                                    validationOrTest, 
-                                                                    autoencoder, 
-                                                                    features, 
-                                                                    electrode_number, 
-                                                                    classifier, 
-                                                                    addSyntheticData, 
-                                                                    dataSampleSize, 
-                                                                    run, 
-                                                                    y_test, 
-                                                                    x_test))
-                    jobs.append(job)
-    
+    for electrode_number in electrode_numbers: #Iterate through the electrodes
+        for classifier in classifiers: #Iterate through classifiers
+            for addSyntheticData in syntheticDataOptions: #Iterate through analyses
+                for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
+                    for run in range(5): #Conduct analyses 5 times per sample size
+                        job = pool.apply_async(run_classification, args=(q,
+                                                                        validationOrTest, 
+                                                                        autoencoder, 
+                                                                        features, 
+                                                                        electrode_number, 
+                                                                        classifier, 
+                                                                        addSyntheticData, 
+                                                                        dataSampleSize, 
+                                                                        run, 
+                                                                        y_test, 
+                                                                        x_test))
+                        jobs.append(job)
+        
     for job in jobs:
         job.get()
 
