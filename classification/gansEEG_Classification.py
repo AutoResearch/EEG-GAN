@@ -65,17 +65,12 @@ def main():
         print('Features: Extracted Features')
 
     ###############################################
-    ## LOAD VALIDATION/TEST DATA                 ##
-    ###############################################
-
-    #Load data 
-    y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
-
-    ###############################################
     ## CLASSIFICATION                            ##
     ###############################################
     jobs = []
     for electrode_number in electrode_numbers: #Iterate through the electrodes
+        y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
+
         for classifier in classifiers: #Iterate through classifiers
             for addSyntheticData in syntheticDataOptions: #Iterate through analyses
                 for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
