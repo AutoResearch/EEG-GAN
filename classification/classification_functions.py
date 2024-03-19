@@ -336,10 +336,10 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test, num_samples):
 
     # defining parameter range
     param_grid = [
-        {'n_neighbors': [int(num_samples*.1), int(num_samples*.2), int(num_samples*.3), int(num_samples*.4), int(num_samples*.5)],
+        {'n_neighbors': [int(num_samples*.1), int(num_samples*.3), int(num_samples*.5)],
         'weights': ['uniform','distance'],
         'metric': ['euclidean', 'manhattan', 'minkowski'],
-        'leaf_size': [5, 10, 20, 30, 40, 50]
+        'leaf_size': [5]
         }]
 
     #Search over search space
