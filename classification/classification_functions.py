@@ -334,9 +334,18 @@ def randomForest(X_train, Y_train, x_test, y_test):
 #Determine support vector machine classifier function
 def kNearestNeighbor(X_train, Y_train, x_test, y_test, num_samples):
 
+    if num_samples < 11:
+        ks = [3, 5, 7]
+    elif num_samples < 21:
+        ks = [6, 10, 14]
+    elif num_samples < 31:
+        ks = [9, 15, 21]
+    else:
+        ks = [12, 18, 28]
+
     # defining parameter range
     param_grid = [
-        {'n_neighbors': [3, 5, 7],
+        {'n_neighbors': ks,
         'weights': ['uniform','distance'],
         'metric': ['euclidean', 'manhattan', 'minkowski'],
         'leaf_size': [5]
