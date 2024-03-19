@@ -336,7 +336,7 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test, num_samples):
 
     # defining parameter range
     param_grid = [
-        {'n_neighbors': [int(num_samples*.1), int(num_samples*.3), int(num_samples*.5)],
+        {'n_neighbors': [3, 5, 7],
         'weights': ['uniform','distance'],
         'metric': ['euclidean', 'manhattan', 'minkowski'],
         'leaf_size': [5]
