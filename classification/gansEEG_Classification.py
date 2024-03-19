@@ -193,44 +193,52 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
     #Begin timer
     startTime = time.time()
     
-    #Run classifier
-    if classifier == 'NN':
-        optimal_params, predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
-    elif classifier == 'SVM':
-        optimal_params, predictScore = supportVectorMachine(X_train, Y_train, x_test, y_test)
-    elif classifier == 'LR':
-        optimal_params, predictScore = logisticRegression(X_train, Y_train, x_test, y_test)
-    elif classifier == 'RF':
-        optimal_params, predictScore = randomForest(X_train, Y_train, x_test, y_test)
-    elif classifier == 'KNN':
-        optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test, X_train.shape[0])
-    else:
-        print('Unknown classifier')
-        optimal_params = []
-        predictScore = []
+    try:
+        #Run classifier
+        if classifier == 'NN':
+            optimal_params, predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
+        elif classifier == 'SVM':
+            optimal_params, predictScore = supportVectorMachine(X_train, Y_train, x_test, y_test)
+        elif classifier == 'LR':
+            optimal_params, predictScore = logisticRegression(X_train, Y_train, x_test, y_test)
+        elif classifier == 'RF':
+            optimal_params, predictScore = randomForest(X_train, Y_train, x_test, y_test)
+        elif classifier == 'KNN':
+            optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test, X_train.shape[0])
+        else:
+            print('Unknown classifier')
+            optimal_params = []
+            predictScore = []
 
-    print(f'ANALYSIS COMPLETE: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
-                
-    ###############################################
-    ## SAVE DATA                                 ##
-    ###############################################
+        print(f'ANALYSIS COMPLETE: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
+                    
+        ###############################################
+        ## SAVE DATA                                 ##
+        ###############################################
+            
+        #Create list of what to write
+        toWrite = [str(dataSampleSize),str(run),'0',str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
+
+        #Write data to file
+        if addSyntheticData=='gan':
+            currentFilename = currentAugFilename
+        elif addSyntheticData=='emp':
+            currentFilename = currentEmpFilename
+        elif addSyntheticData=='over':
+            currentFilename = currentOvsFilename
+        elif addSyntheticData=='vae':
+            currentFilename = currentVaeFilename
+        else:
+            raise NotImplementedError('Analysis not recognized.')
         
-    #Create list of what to write
-    toWrite = [str(dataSampleSize),str(run),'0',str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
-
-    #Write data to file
-    if addSyntheticData=='gan':
-        currentFilename = currentAugFilename
-    elif addSyntheticData=='emp':
-        currentFilename = currentEmpFilename
-    elif addSyntheticData=='over':
-        currentFilename = currentOvsFilename
-    elif addSyntheticData=='vae':
-        currentFilename = currentVaeFilename
-    else:
-        raise NotImplementedError('Analysis not recognized.')
+        q.put([currentFilename, toWrite])
     
-    q.put([currentFilename, toWrite])
+    except:
+        currentFilename = 'FAILED'
+        toWrite = ''
+        q.put(['FAILED', ''])
+        print(f'ANALYSIS FAILED: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
+
     return currentFilename, toWrite
 
 #def write_classification(q, currentFilename, toWrite):
@@ -244,15 +252,16 @@ def write_classification(q):
             print('killed')
             break 
 
-        with open(currentFilename, 'a') as f:
-            for currentWrite in toWrite: #Iterate through write list
-                f.write(str(currentWrite)) #Write current item
-                if not currentWrite==toWrite[-1]: #If not the last item
-                    f.write(',') #Add comma
-            f.write('\n') #Creates new line
-            f.flush() #Clears the internal buffer
+        if currentFilename != 'FAILED':
+            with open(currentFilename, 'a') as f:
+                for currentWrite in toWrite: #Iterate through write list
+                    f.write(str(currentWrite)) #Write current item
+                    if not currentWrite==toWrite[-1]: #If not the last item
+                        f.write(',') #Add comma
+                f.write('\n') #Creates new line
+                f.flush() #Clears the internal buffer
 
-        print(f'ANALYSIS PRINTED TO: {currentFilename}')
+            print(f'ANALYSIS PRINTED TO: {currentFilename}')
 
 if __name__ == '__main__':
     main()
