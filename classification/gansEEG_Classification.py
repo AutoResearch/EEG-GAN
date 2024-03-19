@@ -36,7 +36,7 @@ def main():
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
     syntheticDataOptions = ['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['KNN'] #['NN', 'SVM', 'LR', 'RF'] #The code will iterate through this list
+    classifiers = ['KNN'] #['NN', 'SVM', 'LR', 'RF', 'KNN] #The code will iterate through this list
     electrode_numbers = [1, 2, 8]
 
     '''
@@ -260,8 +260,6 @@ def write_classification(q):
                         f.write(',') #Add comma
                 f.write('\n') #Creates new line
                 f.flush() #Clears the internal buffer
-
-            print(f'ANALYSIS PRINTED TO: {currentFilename}')
 
 if __name__ == '__main__':
     main()
