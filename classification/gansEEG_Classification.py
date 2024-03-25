@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.preprocessing import scale
 import random as rnd
 import time
-
 import multiprocessing as mp
 
 from helpers.dataloader import Dataloader
@@ -35,11 +34,19 @@ def main():
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['KNN'] #['NN', 'SVM', 'LR', 'RF', 'KNN] #The code will iterate through this list
-    electrode_numbers = [1, 2, 8]
+    syntheticDataOptions = ['gaus']#['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    classifiers = ['NN', 'SVM', 'LR', 'RF', 'KNN'] #The code will iterate through this list
+    electrode_numbers = [1]
 
     '''
+
+    Analyses:
+    emp: empirical
+    gan: GAN-augmented
+    vae: VAE-Augmented
+
+    gaus: Guassian Noise augmentation
+
     Classifiers:
     NN: Vanilla Neural Network
     SVM: Support Vector Machines
@@ -100,6 +107,7 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
     empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
     ovsFilename = f'classification/Classification Results/oversamplingPredictions_e{electrode_number}_XX.csv'
     vaeFilename = f'classification/Classification Results/vaePredictions_e{electrode_number}_XX.csv'
+    gausFilename = f'classification/Classification Results/gaussianPredictions_e{electrode_number}_XX.csv'
 
     #Add features tag if applied
     if features:
@@ -107,6 +115,7 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
         empFilename = empFilename.split('.csv')[0]+'_Features.csv'
         ovsFilename = ovsFilename.split('.csv')[0]+'_Features.csv'
         vaeFilename = vaeFilename.split('.csv')[0]+'_Features.csv'
+        gausFilename = gausFilename.split('.csv')[0]+'_Features.csv'
 
     #Add test tag if test set being used
     if validationOrTest == 'test':
@@ -114,12 +123,14 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
         empFilename = empFilename.split('.csv')[0]+'_TestClassification.csv'
         ovsFilename = ovsFilename.split('.csv')[0]+'_TestClassification.csv'
         vaeFilename = vaeFilename.split('.csv')[0]+'_TestClassification.csv'
+        gausFilename = gausFilename.split('.csv')[0]+'_TestClassification.csv'
 
     #Determine current filenames
     currentAugFilename = augFilename.replace('XX',classifier)
     currentEmpFilename = empFilename.replace('XX',classifier)
     currentOvsFilename = ovsFilename.replace('XX',classifier)
     currentVaeFilename = vaeFilename.replace('XX',classifier)
+    currentGausFilename = gausFilename.replace('XX',classifier)
 
     ###############################################
     ## SYNTHETIC PROCESSING                      ##
@@ -161,6 +172,14 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
 
             if pi % num_participant == 0 and pi > 0:
                 participant_cycle += 1
+
+    if addSyntheticData == 'gaus':
+        for sample_idx in range(EEGData.shape[0]):
+            x_ = torch.as_tensor(EEGData[[sample_idx],1:,:])
+            if np.random.rand() < .5: #Only half are transformed
+                for e in range(x_.shape[-1]):
+                    X_tr = x_[0,:,e] + np.random.normal(0, .1, 100) #TODO: This is a diff augmentation (Mean = 0, STD = .1, size = 100)
+                    EEGData[sample_idx,1:,e] = X_tr
     
     #Average data per participant and condition
     EEGData = averageEEG(EEGData_metadata_3D[:,0], EEGData)
@@ -192,7 +211,7 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
     
     #Begin timer
     startTime = time.time()
-    
+
     try:
         #Run classifier
         if classifier == 'NN':
@@ -228,6 +247,8 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
             currentFilename = currentOvsFilename
         elif addSyntheticData=='vae':
             currentFilename = currentVaeFilename
+        elif addSyntheticData=='gaus':
+            currentFilename = currentGausFilename
         else:
             raise NotImplementedError('Analysis not recognized.')
         
