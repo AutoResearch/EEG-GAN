@@ -35,7 +35,7 @@ def main():
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
     syntheticDataOptions = ['gaus'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['SVM', 'LR', 'RF', 'KNN'] #The code will iterate through this list
+    classifiers = ['SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1, 2, 8]
 
     num_series = 10 #Number of times to run all classifications
