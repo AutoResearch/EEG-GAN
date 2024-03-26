@@ -166,7 +166,7 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
                     if addSyntheticData == 'gaus':
                         X_tr = x_[0,:,e] + np.random.normal(0, .1, 100)
                     elif addSyntheticData == 'rev':
-                        X_tr = torch.flip(x_[0,:,e]) 
+                        X_tr = torch.flip(x_[0,:,e], -1) 
                     else:
                         X_tr = x_[0,:,e]
                     EEGData[sample_idx,1:,e] = X_tr
