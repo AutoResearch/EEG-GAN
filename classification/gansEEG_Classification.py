@@ -76,7 +76,7 @@ def main():
     ## CLASSIFICATION                            ##
     ###############################################
     jobs = []
-    for serie in range(num_series):
+    for series in range(num_series):
         for electrode_number in electrode_numbers: #Iterate through the electrodes
             y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 
@@ -90,9 +90,9 @@ def main():
                                                                             electrode_number, 
                                                                             classifier, 
                                                                             addSyntheticData, 
-                                                                            dataSampleSize, 
-                                                                            run, 
-                                                                            serie,
+                                                                            dataSampleSize,  
+                                                                            series,
+                                                                            run,
                                                                             y_test, 
                                                                             x_test))
                             jobs.append(job)
