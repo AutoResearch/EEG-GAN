@@ -34,7 +34,7 @@ def main():
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['gaus'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['neg', 'rev', 'gaus', 'over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1, 2, 8]
 
@@ -49,6 +49,7 @@ def main():
 
     gaus: Guassian Noise augmentation
     rev: Time Reverse
+    neg: Polarity reverse
 
     Classifiers:
     NN: Vanilla Neural Network
@@ -162,7 +163,7 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
             if pi % num_participant == 0 and pi > 0:
                 participant_cycle += 1
 
-    if addSyntheticData == 'gaus' or addSyntheticData == 'rev':
+    if addSyntheticData == 'gaus' or addSyntheticData == 'rev' or addSyntheticData == 'neg':
         for sample_idx in range(EEGData.shape[0]):
             x_ = torch.as_tensor(EEGData[[sample_idx],1:,:])
             if np.random.rand() < .5: #Only half are transformed
@@ -171,6 +172,8 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
                         X_tr = x_[0,:,e] + np.random.normal(0, .1, 100)
                     elif addSyntheticData == 'rev':
                         X_tr = torch.flip(x_[0,:,e], (0,)) 
+                    elif addSyntheticData == 'neg':
+                        X_tr = -x_[0,:,e]
                     else:
                         X_tr = x_[0,:,e]
                     EEGData[sample_idx,1:,e] = X_tr
