@@ -91,7 +91,7 @@ def main():
                                                                             addSyntheticData, 
                                                                             dataSampleSize, 
                                                                             run, 
-                                                                            series,
+                                                                            serie,
                                                                             y_test, 
                                                                             x_test))
                             jobs.append(job)
