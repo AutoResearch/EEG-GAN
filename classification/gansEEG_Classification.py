@@ -91,6 +91,7 @@ def main():
                                                                             addSyntheticData, 
                                                                             dataSampleSize, 
                                                                             run, 
+                                                                            series,
                                                                             y_test, 
                                                                             x_test))
                             jobs.append(job)
@@ -102,9 +103,9 @@ def main():
     pool.close()
     pool.join()
 
-def run_classification(q, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, run, y_test, x_test):
+def run_classification(q, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, series, run, y_test, x_test):
 
-    print(f'ANALYSIS STARTED: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
+    print(f'ANALYSIS STARTED: Series = {series}, Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
     #Base save file names
     generic_filename = f'classification/Classification Results/XXANALYSISXXPredictions_e{electrode_number}_XXCLASSXX.csv'
@@ -222,7 +223,7 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
             optimal_params = []
             predictScore = []
 
-        print(f'ANALYSIS COMPLETE: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
+        print(f'ANALYSIS COMPLETE: Series = {series}, Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
                     
         ###############################################
         ## SAVE DATA                                 ##
