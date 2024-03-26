@@ -38,6 +38,8 @@ def main():
     classifiers = ['SVM', 'LR', 'RF', 'KNN'] #The code will iterate through this list
     electrode_numbers = [1, 2, 8]
 
+    num_series = 10 #Number of times to run all classifications
+
     '''
 
     Analyses:
@@ -73,24 +75,25 @@ def main():
     ## CLASSIFICATION                            ##
     ###############################################
     jobs = []
-    for electrode_number in electrode_numbers: #Iterate through the electrodes
-        y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
+    for serie in range(num_series):
+        for electrode_number in electrode_numbers: #Iterate through the electrodes
+            y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 
-        for classifier in classifiers: #Iterate through classifiers
-            for addSyntheticData in syntheticDataOptions: #Iterate through analyses
-                for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
-                    for run in range(5): #Conduct analyses 5 times per sample size
-                        job = pool.apply_async(run_classification, args=(q,
-                                                                        validationOrTest, 
-                                                                        features, 
-                                                                        electrode_number, 
-                                                                        classifier, 
-                                                                        addSyntheticData, 
-                                                                        dataSampleSize, 
-                                                                        run, 
-                                                                        y_test, 
-                                                                        x_test))
-                        jobs.append(job)
+            for classifier in classifiers: #Iterate through classifiers
+                for addSyntheticData in syntheticDataOptions: #Iterate through analyses
+                    for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
+                        for run in range(5): #Conduct analyses 5 times per sample size
+                            job = pool.apply_async(run_classification, args=(q,
+                                                                            validationOrTest, 
+                                                                            features, 
+                                                                            electrode_number, 
+                                                                            classifier, 
+                                                                            addSyntheticData, 
+                                                                            dataSampleSize, 
+                                                                            run, 
+                                                                            y_test, 
+                                                                            x_test))
+                            jobs.append(job)
         
     for job in jobs:
         job.get()
