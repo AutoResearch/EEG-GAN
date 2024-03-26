@@ -34,7 +34,7 @@ def main():
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['gaus']#['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['rev'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['NN', 'SVM', 'LR', 'RF', 'KNN'] #The code will iterate through this list
     electrode_numbers = [1]
 
@@ -46,6 +46,7 @@ def main():
     vae: VAE-Augmented
 
     gaus: Guassian Noise augmentation
+    rev: Time Reverse
 
     Classifiers:
     NN: Vanilla Neural Network
@@ -103,34 +104,18 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
     print(f'ANALYSIS STARTED: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
     #Base save file names
-    augFilename = f'classification/Classification Results/augmentedPredictions_e{electrode_number}_XX.csv'
-    empFilename = f'classification/Classification Results/empiricalPredictions_e{electrode_number}_XX.csv'
-    ovsFilename = f'classification/Classification Results/oversamplingPredictions_e{electrode_number}_XX.csv'
-    vaeFilename = f'classification/Classification Results/vaePredictions_e{electrode_number}_XX.csv'
-    gausFilename = f'classification/Classification Results/gaussianPredictions_e{electrode_number}_XX.csv'
+    generic_filename = f'classification/Classification Results/XXANALYSISXXPredictions_e{electrode_number}_XXCLASSXX.csv'
 
     #Add features tag if applied
     if features:
-        augFilename = augFilename.split('.csv')[0]+'_Features.csv'
-        empFilename = empFilename.split('.csv')[0]+'_Features.csv'
-        ovsFilename = ovsFilename.split('.csv')[0]+'_Features.csv'
-        vaeFilename = vaeFilename.split('.csv')[0]+'_Features.csv'
-        gausFilename = gausFilename.split('.csv')[0]+'_Features.csv'
+        generic_filename = generic_filename.split('.csv')[0]+'_Features.csv'
 
     #Add test tag if test set being used
     if validationOrTest == 'test':
-        augFilename = augFilename.split('.csv')[0]+'_TestClassification.csv'
-        empFilename = empFilename.split('.csv')[0]+'_TestClassification.csv'
-        ovsFilename = ovsFilename.split('.csv')[0]+'_TestClassification.csv'
-        vaeFilename = vaeFilename.split('.csv')[0]+'_TestClassification.csv'
-        gausFilename = gausFilename.split('.csv')[0]+'_TestClassification.csv'
+        generic_filename = generic_filename.split('.csv')[0]+'_TestClassification.csv'
 
     #Determine current filenames
-    currentAugFilename = augFilename.replace('XX',classifier)
-    currentEmpFilename = empFilename.replace('XX',classifier)
-    currentOvsFilename = ovsFilename.replace('XX',classifier)
-    currentVaeFilename = vaeFilename.replace('XX',classifier)
-    currentGausFilename = gausFilename.replace('XX',classifier)
+    generic_filename = generic_filename.replace('XXCLASSXX', classifier).replace('XXANALYSISXX', addSyntheticData)
 
     ###############################################
     ## SYNTHETIC PROCESSING                      ##
@@ -173,12 +158,17 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
             if pi % num_participant == 0 and pi > 0:
                 participant_cycle += 1
 
-    if addSyntheticData == 'gaus':
+    if addSyntheticData == 'gaus' or addSyntheticData == 'rev':
         for sample_idx in range(EEGData.shape[0]):
             x_ = torch.as_tensor(EEGData[[sample_idx],1:,:])
             if np.random.rand() < .5: #Only half are transformed
                 for e in range(x_.shape[-1]):
-                    X_tr = x_[0,:,e] + np.random.normal(0, .1, 100) #TODO: This is a diff augmentation (Mean = 0, STD = .1, size = 100)
+                    if addSyntheticData == 'gaus':
+                        X_tr = x_[0,:,e] + np.random.normal(0, .1, 100)
+                    elif addSyntheticData == 'rev':
+                        X_tr = torch.flip(x_[0,:,e]) 
+                    else:
+                        X_tr = x_[0,:,e]
                     EEGData[sample_idx,1:,e] = X_tr
     
     #Average data per participant and condition
@@ -239,19 +229,8 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
         toWrite = [str(dataSampleSize),str(run),'0',str(predictScore),str(time.time()-startTime),optimal_params.best_params_]
 
         #Write data to file
-        if addSyntheticData=='gan':
-            currentFilename = currentAugFilename
-        elif addSyntheticData=='emp':
-            currentFilename = currentEmpFilename
-        elif addSyntheticData=='over':
-            currentFilename = currentOvsFilename
-        elif addSyntheticData=='vae':
-            currentFilename = currentVaeFilename
-        elif addSyntheticData=='gaus':
-            currentFilename = currentGausFilename
-        else:
-            raise NotImplementedError('Analysis not recognized.')
-        
+        currentFilename = generic_filename
+
         q.put([currentFilename, toWrite])
     
     except:
