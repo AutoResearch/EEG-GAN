@@ -153,7 +153,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
             if pi % num_participant == 0 and pi > 0:
                 participant_cycle += 1
 
-    if addSyntheticData == 'gaus' or addSyntheticData == 'rev' or addSyntheticData == 'neg':
+    if addSyntheticData == 'gaus' or addSyntheticData == 'rev' or addSyntheticData == 'neg' or addSyntheticData == 'smooth':
         for sample_idx in range(EEGData.shape[0]):
             x_ = torch.as_tensor(EEGData[[sample_idx],1:,:])
             if np.random.rand() < .5: #Only half are transformed
@@ -168,16 +168,19 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
                     elif addSyntheticData == 'smooth':
 
                         #Taken from braindecode
-                        batch_size, n_channels, seq_len = x_sample.shape
+                        mask_len_samples = 30 #Default
+                        batch_size = 1 #Currently just one sample
+                        n_channels = 1 #One electrode at a time
+                        seq_len = x_sample.shape[0]
                         t = torch.arange(seq_len).float()
                         t = t.repeat(batch_size, n_channels, 1)
-                        mask_start_per_sample = mask_start_per_sample.view(-1, 1, 1)
+                        mask_start_per_sample = torch.tensor([30]).reshape(1,1,-1) #TODO: Randomize the 10
                         s = 1000 / seq_len
                         mask = (torch.sigmoid(s * -(t - mask_start_per_sample)) +
-                                torch.sigmoid(s * (t - mask_start_per_sample - mask_len_samples))
-                                ).float().to(X.device)
+                                torch.sigmoid(s * (t - mask_start_per_sample - mask_len_samples))).float()[0,0,:]
+                        X_tr = x_sample * mask
                     else:
-                        X_tr = x_[0,:,e]
+                        X_tr = x_sample
                     EEGData[sample_idx,1:,e] = X_tr
     
     #Average data per participant and condition
@@ -265,6 +268,10 @@ def write_classification(q, multiprocessing=True, currentFilename=None, toWrite=
                 break 
 
         if currentFilename != 'FAILED':
+            print(currentFilename)
+            print('******')
+            print(toWrite)
+            print('*******')
             with open(currentFilename, 'a') as f:
                 for currentWrite in toWrite: #Iterate through write list
                     f.write(str(currentWrite)) #Write current item
@@ -286,7 +293,7 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['neg', 'rev', 'gaus', 'over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['smooth'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['NN', 'LR', 'SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1, 2, 8]
     num_series = 10 #Number of times to run all classifications
@@ -308,6 +315,7 @@ if __name__ == '__main__':
     for i, current_classifiers in enumerate([mp_classifiers, nmp_classifiers]):
         if current_classifiers: 
             multiprocessing = True if i == 0 else False
+            multiprocessing = False #TODO: TEMPORARY
             main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, current_classifiers, electrode_numbers, num_series)
 
     '''
