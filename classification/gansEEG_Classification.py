@@ -136,6 +136,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     EEGData = EEGData_dataloader.get_data(shuffle=False).detach().numpy()
 
     #Oversampling analysis
+    #TODO: Make this section a function
     if addSyntheticData == 'over':
         num_participant = np.unique(EEGData_metadata[:,0]).shape[0]
         participant_IDs = np.unique(EEGData_metadata[:,0])[:50]
@@ -157,12 +158,24 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
             x_ = torch.as_tensor(EEGData[[sample_idx],1:,:])
             if np.random.rand() < .5: #Only half are transformed
                 for e in range(x_.shape[-1]):
+                    x_sample = x_[0,:,e]
                     if addSyntheticData == 'gaus':
-                        X_tr = x_[0,:,e] + np.random.normal(0, .1, 100)
+                        X_tr = x_sample + np.random.normal(0, .1, 100)
                     elif addSyntheticData == 'rev':
-                        X_tr = torch.flip(x_[0,:,e], (0,)) 
+                        X_tr = torch.flip(x_sample, (0,)) 
                     elif addSyntheticData == 'neg':
-                        X_tr = -x_[0,:,e]
+                        X_tr = -x_sample
+                    elif addSyntheticData == 'smooth':
+
+                        #Taken from braindecode
+                        batch_size, n_channels, seq_len = x_sample.shape
+                        t = torch.arange(seq_len).float()
+                        t = t.repeat(batch_size, n_channels, 1)
+                        mask_start_per_sample = mask_start_per_sample.view(-1, 1, 1)
+                        s = 1000 / seq_len
+                        mask = (torch.sigmoid(s * -(t - mask_start_per_sample)) +
+                                torch.sigmoid(s * (t - mask_start_per_sample - mask_len_samples))
+                                ).float().to(X.device)
                     else:
                         X_tr = x_[0,:,e]
                     EEGData[sample_idx,1:,e] = X_tr
@@ -209,7 +222,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
         elif classifier == 'RF':
             optimal_params, predictScore = randomForest(X_train, Y_train, x_test, y_test)
         elif classifier == 'KNN':
-            optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test, X_train.shape[0])
+            optimal_params, predictScore = kNearestNeighbor(X_train, Y_train, x_test, y_test)
         else:
             print('Unknown classifier')
             optimal_params = []
@@ -240,7 +253,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     return currentFilename, toWrite
 
 #def write_classification(q, currentFilename, toWrite):
-def write_classification(q, multiprocessing, currentFilename=None, toWrite=None):
+def write_classification(q, multiprocessing=True, currentFilename=None, toWrite=None):
 
     while True:
         if multiprocessing:
@@ -248,7 +261,7 @@ def write_classification(q, multiprocessing, currentFilename=None, toWrite=None)
             currentFilename, toWrite = q.get()
             
             if currentFilename == 'kill':
-                print('killed')
+                print('All classifications complete.')
                 break 
 
         if currentFilename != 'FAILED':
@@ -272,11 +285,11 @@ if __name__ == '__main__':
     #Determine inputs
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
-    dataSampleSizes = ['005'] #Which sample sizes to include
+    dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
     syntheticDataOptions = ['neg', 'rev', 'gaus', 'over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['LR', 'SVM'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
-    electrode_numbers = [1]
-    num_series = 1 #Number of times to run all classifications
+    classifiers = ['NN', 'LR', 'SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
+    electrode_numbers = [1, 2, 8]
+    num_series = 10 #Number of times to run all classifications
 
     #Split classifiers to multiprocessing vs not
     mp_classifiers = [c for c in classifiers if c != 'NN' and c != 'LR']

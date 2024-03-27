@@ -332,8 +332,9 @@ def randomForest(X_train, Y_train, x_test, y_test):
     return optimal_params, predictScore
     
 #Determine support vector machine classifier function
-def kNearestNeighbor(X_train, Y_train, x_test, y_test, num_samples):
+def kNearestNeighbor(X_train, Y_train, x_test, y_test):
 
+    num_samples = X_train.shape[0]
     if num_samples < 11:
         ks = [3, 5, 7]
     elif num_samples < 21:
