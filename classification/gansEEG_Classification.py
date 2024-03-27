@@ -182,7 +182,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
                         mask = (torch.sigmoid(s * -(t - mask_start_per_sample)) +
                                 torch.sigmoid(s * (t - mask_start_per_sample - mask_len_samples))).float()[0,0,:]
                         X_tr = x_sample * mask
-                        
+
                     else:
                         X_tr = x_sample
                     EEGData[sample_idx,1:,e] = X_tr
@@ -315,7 +315,6 @@ if __name__ == '__main__':
     for i, current_classifiers in enumerate([mp_classifiers, nmp_classifiers]):
         if current_classifiers: 
             multiprocessing = True if i == 0 else False
-            multiprocessing = False #TODO: TEMPORARY
             main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, current_classifiers, electrode_numbers, num_series)
 
     '''
