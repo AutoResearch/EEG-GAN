@@ -293,7 +293,7 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['smooth'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['NN', 'LR', 'SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1, 2, 8]
     num_series = 10 #Number of times to run all classifications
@@ -315,7 +315,6 @@ if __name__ == '__main__':
     for i, current_classifiers in enumerate([mp_classifiers, nmp_classifiers]):
         if current_classifiers: 
             multiprocessing = True if i == 0 else False
-            multiprocessing = False #TODO: TEMPORARY
             main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, current_classifiers, electrode_numbers, num_series)
 
     '''
