@@ -83,7 +83,7 @@ def main(multiprocessing, features, validationOrTest, dataSampleSizes, synthetic
                                                                               y_test, 
                                                                               x_test)
                                 
-                                write_classification(0, multiprocessing, currentFilename, toWrite)
+                                write_classification(None, multiprocessing, currentFilename, toWrite)
         
     if multiprocessing:
         for job in jobs:
