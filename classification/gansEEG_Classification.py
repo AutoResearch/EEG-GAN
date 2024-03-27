@@ -139,7 +139,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     #TODO: Make this section a function
     if addSyntheticData == 'over':
         num_participant = np.unique(EEGData_metadata[:,0]).shape[0]
-        participant_IDs = np.unique(EEGData_metadata[:,0])[:50]
+        participant_IDs = np.tile(np.unique(EEGData_metadata[:,0]),50)[:50]
         participant_cycle = 1
         for pi, participant_ID in enumerate(participant_IDs):
             participant_index = EEGData_metadata_3D[:,0]==participant_ID
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['emp', 'gan', 'vae', 'over', 'gaus', 'neg', 'rev', 'smooth'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['NN', 'LR', 'SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1, 2, 8]
     num_series = 10 #Number of times to run all classifications
