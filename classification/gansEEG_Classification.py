@@ -14,51 +14,21 @@ from classification_functions import *
 ## DEFINE FUNCTIONS                          ##
 ###############################################
 
-def main():
+def main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, classifiers, electrode_numbers, num_series):
     
     ###############################################
     ## SETUP                                     ##
     ###############################################
 
-    #Initiate multiprocessing manager
-    manager = mp.Manager()
-    q = manager.Queue()
-    pool = mp.Pool(mp.cpu_count() + 2)
+    #Determine multiprocessing
+    if multiprocessing:
+        #Initiate multiprocessing manager
+        manager = mp.Manager()
+        q = manager.Queue()
+        pool = mp.Pool(mp.cpu_count() + 2)
 
-    #Initiate writer
-    writer = pool.apply_async(write_classification, (q,))
-
-    ###############################################
-    ## USER INPUTS                               ##
-    ###############################################
-    features = False #Datatype: False = Full Data, True = Features data
-    validationOrTest = 'validation' #'validation' or 'test' set to predict
-    dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
-    syntheticDataOptions = ['neg', 'rev', 'gaus', 'over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['SVM', 'RF', 'KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
-    electrode_numbers = [1, 2, 8]
-
-    num_series = 10 #Number of times to run all classifications
-
-    '''
-
-    Analyses:
-    emp: empirical
-    gan: GAN-augmented
-    vae: VAE-Augmented
-
-    gaus: Guassian Noise augmentation
-    rev: Time Reverse
-    neg: Polarity reverse
-
-    Classifiers:
-    NN: Vanilla Neural Network
-    SVM: Support Vector Machines
-    LR: Logistic Regression
-    RF: Random Forest
-    KNN: K-Nearest Neighbours
-
-    '''
+        #Initiate writer
+        writer = pool.apply_async(write_classification, (q,))
 
     ###############################################
     ## SETUP                                     ##
@@ -68,6 +38,7 @@ def main():
     print('data Sample Sizes: ' )
     print(dataSampleSizes)
     print('Classification Data: ' + validationOrTest)
+    print('Classifiers: ' + str(classifiers))
 
     if features:
         print('Features: Extracted Features')
@@ -84,27 +55,45 @@ def main():
                 for addSyntheticData in syntheticDataOptions: #Iterate through analyses
                     for dataSampleSize in dataSampleSizes: #Iterate through sample sizes
                         for run in range(5): #Conduct analyses 5 times per sample size
-                            job = pool.apply_async(run_classification, args=(q,
-                                                                            validationOrTest, 
-                                                                            features, 
-                                                                            electrode_number, 
-                                                                            classifier, 
-                                                                            addSyntheticData, 
-                                                                            dataSampleSize,  
-                                                                            series,
-                                                                            run,
-                                                                            y_test, 
-                                                                            x_test))
-                            jobs.append(job)
+                            if multiprocessing:
+                                job = pool.apply_async(run_classification, args=(q,
+                                                                                multiprocessing,
+                                                                                validationOrTest, 
+                                                                                features, 
+                                                                                electrode_number, 
+                                                                                classifier, 
+                                                                                addSyntheticData, 
+                                                                                dataSampleSize,  
+                                                                                series,
+                                                                                run,
+                                                                                y_test, 
+                                                                                x_test))
+                                jobs.append(job)
+                            else:
+                                currentFilename, toWrite = run_classification(None,
+                                                                              multiprocessing,
+                                                                              validationOrTest, 
+                                                                              features, 
+                                                                              electrode_number, 
+                                                                              classifier, 
+                                                                              addSyntheticData, 
+                                                                              dataSampleSize,  
+                                                                              series,
+                                                                              run,
+                                                                              y_test, 
+                                                                              x_test)
+                                
+                                write_classification(0, multiprocessing, currentFilename, toWrite)
         
-    for job in jobs:
-        job.get()
+    if multiprocessing:
+        for job in jobs:
+            job.get()
 
-    q.put(['kill',''])
-    pool.close()
-    pool.join()
+        q.put(['kill',''])
+        pool.close()
+        pool.join()
 
-def run_classification(q, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, series, run, y_test, x_test):
+def run_classification(q, multiprocessing, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, series, run, y_test, x_test):
 
     print(f'ANALYSIS STARTED: Series = {series}, Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
@@ -238,26 +227,29 @@ def run_classification(q, validationOrTest, features, electrode_number, classifi
         #Write data to file
         currentFilename = generic_filename
 
-        q.put([currentFilename, toWrite])
+        if multiprocessing:
+            q.put([currentFilename, toWrite])
     
     except:
         currentFilename = 'FAILED'
         toWrite = ''
-        q.put(['FAILED', ''])
+        if multiprocessing:
+            q.put(['FAILED', ''])
         print(f'ANALYSIS FAILED: Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
     return currentFilename, toWrite
 
 #def write_classification(q, currentFilename, toWrite):
-def write_classification(q):
+def write_classification(q, multiprocessing, currentFilename=None, toWrite=None):
 
     while True:
-        #Receive data from classification function
-        currentFilename, toWrite = q.get()
-        
-        if currentFilename == 'kill':
-            print('killed')
-            break 
+        if multiprocessing:
+            #Receive data from classification function
+            currentFilename, toWrite = q.get()
+            
+            if currentFilename == 'kill':
+                print('killed')
+                break 
 
         if currentFilename != 'FAILED':
             with open(currentFilename, 'a') as f:
@@ -268,5 +260,61 @@ def write_classification(q):
                 f.write('\n') #Creates new line
                 f.flush() #Clears the internal buffer
 
+        if not multiprocessing:
+            break
+
 if __name__ == '__main__':
-    main()
+
+    ###############################################
+    ## USER INPUTS                               ##
+    ###############################################
+    
+    #Determine inputs
+    features = False #Datatype: False = Full Data, True = Features data
+    validationOrTest = 'validation' #'validation' or 'test' set to predict
+    dataSampleSizes = ['005'] #Which sample sizes to include
+    syntheticDataOptions = ['neg', 'rev', 'gaus', 'over'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    classifiers = ['LR', 'SVM'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
+    electrode_numbers = [1]
+    num_series = 1 #Number of times to run all classifications
+
+    #Split classifiers to multiprocessing vs not
+    mp_classifiers = [c for c in classifiers if c != 'NN' and c != 'LR']
+    nmp_classifiers = [c for c in classifiers if c == 'NN' or c == 'LR']
+
+    ###############################################
+    ## RUN CLASSIFICATION                        ##
+    ###############################################
+
+    if len(nmp_classifiers) > 0:
+        print(f'Some classifiers you chose are not compatible with multiprocessing. \
+              The classifers will be split into multiprocessing compatible versus not and run sequentially. \
+              First we will run classifiers {mp_classifiers} using mutliprocessing, \
+              then we will run classifiers {nmp_classifiers} without multiprocessing.')
+
+    for i, current_classifiers in enumerate([mp_classifiers, nmp_classifiers]):
+        if current_classifiers: 
+            multiprocessing = True if i == 0 else False
+            main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, current_classifiers, electrode_numbers, num_series)
+
+    '''
+
+    Analyses:
+    emp: empirical
+    gan: GAN-augmented
+    vae: VAE-Augmented
+
+    gaus: Guassian Noise augmentation
+    rev: Time Reverse
+    neg: Polarity reverse
+
+    Classifiers:
+    NN: Vanilla Neural Network
+    SVM: Support Vector Machines
+    LR: Logistic Regression
+    RF: Random Forest
+    KNN: K-Nearest Neighbours
+
+    '''
+
+ 
