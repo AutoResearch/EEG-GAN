@@ -35,7 +35,7 @@ def retrieveData(data, electrodes):
 
 
 #Define function to load and plot data
-def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, selected_alpha=1, offset=0):
+def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, selected_alpha=1, offset=0, center_toggle=True):
     
     #Load data
     data = []
@@ -53,8 +53,9 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
         
     #Plot Data
     if selected:
-        plt.plot(np.arange(1,8), meanData, color = plotColor, linewidth = 1, alpha=selected_alpha, label='_nolegend_')
-        plt.scatter(np.arange(1,8), meanData, label='_nolegend_', color = plotColor, s = 10, alpha=selected_alpha, linewidths=0)
+        selected_offset = offset * center_toggle
+        plt.plot(np.arange(1,8)+selected_offset, meanData, color = plotColor, linewidth = 1, alpha=selected_alpha, label='_nolegend_')
+        plt.scatter(np.arange(1,8)+selected_offset, meanData, label='_nolegend_', color = plotColor, s = 10, alpha=selected_alpha, linewidths=0)
     
     plt.bar(np.arange(1,8)+offset, meanData, color = plotColor, linewidth = 1, alpha=alpha, width=.1, label = legendName)
     markers, caps, bars = plt.errorbar(np.arange(1,8)+offset, meanData, semData, label='_nolegend_', color = plotColor, fmt=' ', linewidth = 1, alpha=alpha)
@@ -105,7 +106,7 @@ def plotDiffData():
 
 
 #Main plotting function
-def plot_main(targets=None):
+def plot_main(targets=None, center_toggle=True):
     ###############################################
     ## SETUP                                     ##
     ###############################################
@@ -159,7 +160,7 @@ def plot_main(targets=None):
         for i, filename in enumerate(filenames):
             if targets:
                 if analysis_names[i] in targets:
-                    legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_targets, selected_alpha=alpha_selected, offset=offsets[i], selected=True))
+                    legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_targets, selected_alpha=alpha_selected, offset=offsets[i], center_toggle=center_toggle, selected=True))
                 else:
                     legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_nontargets, offset=offsets[i], selected=False))
             else:
