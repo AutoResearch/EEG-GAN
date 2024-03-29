@@ -105,7 +105,7 @@ def plotDiffData():
 
 
 #Main plotting function
-def plot_main(target=None, referent=None):
+def plot_main(targets=None):
     ###############################################
     ## SETUP                                     ##
     ###############################################
@@ -157,8 +157,8 @@ def plot_main(target=None, referent=None):
         colors = [f'C{i}' for i in range(10)]
         offsets = (np.arange(len(analysis_names)) - ((len(analysis_names)/2)-.5))/10
         for i, filename in enumerate(filenames):
-            if target or referent:
-                if analysis_names[i] == target or analysis_names[i] == referent:
+            if targets:
+                if analysis_names[i] in targets:
                     legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_targets, selected_alpha=alpha_selected, offset=offsets[i], selected=True))
                 else:
                     legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_nontargets, offset=offsets[i], selected=False))
