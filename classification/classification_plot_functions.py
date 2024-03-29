@@ -35,7 +35,7 @@ def retrieveData(data, electrodes):
 
 
 #Define function to load and plot data
-def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, selected_alpha=1, offset=0, center_toggle=True):
+def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, selected_alpha=1, offset=0, center_toggle=True, axis_toggle=True):
     
     #Load data
     data = []
@@ -52,13 +52,14 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
         semData.append((np.std(data[ssIndex,3]))/np.sqrt(len(data[ssIndex,3]))) #Standard error of the mean
         
     #Plot Data
+    x_axis_scale = np.arange(1,8) if axis_toggle else [5, 10, 15, 20, 30, 60, 100]
     if selected:
         selected_offset = offset * center_toggle
-        plt.plot(np.arange(1,8)+selected_offset, meanData, color = plotColor, linewidth = 1, alpha=selected_alpha, label='_nolegend_')
-        plt.scatter(np.arange(1,8)+selected_offset, meanData, label='_nolegend_', color = plotColor, s = 10, alpha=selected_alpha, linewidths=0)
+        plt.plot(x_axis_scale+selected_offset, meanData, color = plotColor, linewidth = 1, alpha=selected_alpha, label='_nolegend_')
+        plt.scatter(x_axis_scale+selected_offset, meanData, label='_nolegend_', color = plotColor, s = 10, alpha=selected_alpha, linewidths=0)
     
-    plt.bar(np.arange(1,8)+offset, meanData, color = plotColor, linewidth = 1, alpha=alpha, width=.1, label = legendName)
-    markers, caps, bars = plt.errorbar(np.arange(1,8)+offset, meanData, semData, label='_nolegend_', color = plotColor, fmt=' ', linewidth = 1, alpha=alpha)
+    plt.bar(x_axis_scale+offset, meanData, color = plotColor, linewidth = 1, alpha=alpha, width=.1, label = legendName)
+    markers, caps, bars = plt.errorbar(x_axis_scale+offset, meanData, semData, label='_nolegend_', color = plotColor, fmt=' ', linewidth = 1, alpha=alpha)
     [bar.set_alpha(alpha) for bar in bars]
     [cap.set_alpha(alpha) for cap in caps]
         
@@ -106,7 +107,7 @@ def plotDiffData():
 
 
 #Main plotting function
-def plot_main(targets=None, center_toggle=True):
+def plot_main(targets=None, center_toggle=True, axis_toggle=True):
     ###############################################
     ## SETUP                                     ##
     ###############################################
@@ -123,6 +124,7 @@ def plot_main(targets=None, center_toggle=True):
 
     #Figure Parameters
     ylims = 80
+    xlims = 7.5 if axis_toggle else 105
     alpha = .6
     alpha_selected = .8
     alpha_targets = .1
@@ -160,16 +162,37 @@ def plot_main(targets=None, center_toggle=True):
         for i, filename in enumerate(filenames):
             if targets:
                 if analysis_names[i] in targets:
-                    legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_targets, selected_alpha=alpha_selected, offset=offsets[i], center_toggle=center_toggle, selected=True))
+                    legendNames.append(loadAndPlot(filename, 
+                                                   colors[i], 
+                                                   analysis_names[i], 
+                                                   alpha=alpha_targets, 
+                                                   selected_alpha=alpha_selected, 
+                                                   offset=offsets[i], 
+                                                   center_toggle=center_toggle, 
+                                                   axis_toggle=axis_toggle, 
+                                                   selected=True))
                 else:
-                    legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha_nontargets, offset=offsets[i], selected=False))
+                    legendNames.append(loadAndPlot(filename, 
+                                                   colors[i], 
+                                                   analysis_names[i], 
+                                                   alpha=alpha_nontargets, 
+                                                   offset=offsets[i], 
+                                                   axis_toggle=axis_toggle,
+                                                   selected=False))
             else:
-                legendNames.append(loadAndPlot(filename, colors[i], analysis_names[i], alpha=alpha, offset=offsets[i], selected=False))
+                legendNames.append(loadAndPlot(filename, 
+                                               colors[i], 
+                                               analysis_names[i], 
+                                               alpha=alpha, 
+                                               offset=offsets[i], 
+                                               axis_toggle=axis_toggle,
+                                               selected=False))
 
-        #Formal plot
+        #Format plot
+        x_axis_scale = np.arange(1,8) if axis_toggle else [5, 10, 15, 20, 30, 60, 100]
         plt.ylim(45,ylims)
-        plt.xlim(0.5, 7.5)
-        plt.xticks(np.arange(1,8), xLabels, fontsize=fontsize-2)
+        plt.xlim(0.5, xlims)
+        plt.xticks(x_axis_scale, xLabels, fontsize=fontsize-2)
         plt.yticks(np.arange(50,ylims,5), fontsize=fontsize-2)
         #plt.xticks(rotation=90)
         ax1.spines[['right', 'top']].set_visible(False)
