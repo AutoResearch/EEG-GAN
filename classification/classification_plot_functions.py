@@ -1,5 +1,74 @@
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import numpy as np
+
+import ipywidgets as wd
+from IPython.display import clear_output
+
+
+###############################################
+## CLASSES                                   ##
+###############################################
+
+class InteractivePlot:
+
+    def __init__(self):
+
+        self.selected_targets = []
+        self.available_targets, _ = retrieveData(0, 1)
+
+        self.select_electrodes_dropdown = wd.Dropdown(options=['1', '2', '8'], value = '1', description = 'Electrodes', disabled = False)
+        self.select_target_dropdown = wd.Dropdown(options=[' ', 'All']+self.available_targets, value = ' ', description = 'Select', disabled = False)
+        self.remove_target_dropdown = wd.Dropdown(options=[' ']+self.selected_targets, value = ' ', description = 'Remove', disabled = False)
+        self.centered_toggle = wd.ToggleButton(value=True, description='Centered')
+        self.axis_toggle = wd.ToggleButton(value=True, description='Axis Type')
+
+        self.select_electrodes_dropdown.observe(self.change_and_refresh)
+        self.select_target_dropdown.observe(self.change_add)
+        self.remove_target_dropdown.observe(self.change_remove)
+        self.centered_toggle.observe(self.change_and_refresh)
+        self.axis_toggle.observe(self.change_and_refresh)
+        self.refresh()
+
+    def refresh(self):
+        clear_output()
+        prefix_options_select = [' ', 'All'] if self.available_targets else [' ']
+        self.select_target_dropdown.options = prefix_options_select+self.available_targets
+
+        prefix_options_remove = [' ', 'All'] if self.selected_targets else [' ']
+        self.remove_target_dropdown.options = prefix_options_remove+self.selected_targets
+
+        display(self.select_electrodes_dropdown)
+        display(self.select_target_dropdown) #Display the widget for use
+        display(self.remove_target_dropdown) #Display the widget for use
+        display(self.centered_toggle) #Display the widget for use
+        display(self.axis_toggle) #Display the widget for use
+        print(f"Selected methods: {', '.join(self.selected_targets)}")
+        plot_main(self.select_electrodes_dropdown.value, self.selected_targets, self.centered_toggle.value, self.axis_toggle.value)
+
+    def change_and_refresh(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            self.refresh()
+
+    def change_add(self, change):
+        if change['type'] == 'change' and change['name'] == 'value' and self.select_target_dropdown.value != ' ':
+            if self.select_target_dropdown.value == 'All':
+                self.selected_targets, _ = retrieveData(0, 1)
+                self.available_targets = []
+            else:
+                self.selected_targets.append(self.select_target_dropdown.value)
+                self.available_targets.remove(self.select_target_dropdown.value)
+            self.refresh()
+
+    def change_remove(self, change):
+        if change['type'] == 'change' and change['name'] == 'value' and self.remove_target_dropdown.value != ' ':
+            if self.remove_target_dropdown.value == 'All':
+                self.selected_targets = []
+                self.available_targets, _ = retrieveData(0, 1)
+            else:
+                self.selected_targets.remove(self.remove_target_dropdown.value)
+                self.available_targets.append(self.remove_target_dropdown.value)
+            self.refresh()
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -58,7 +127,7 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
         plt.plot(x_axis_scale+selected_offset, meanData, color = plotColor, linewidth = 1, alpha=selected_alpha, label='_nolegend_')
         plt.scatter(x_axis_scale+selected_offset, meanData, label='_nolegend_', color = plotColor, s = 10, alpha=selected_alpha, linewidths=0)
     
-    plt.bar(x_axis_scale+offset, meanData, color = plotColor, linewidth = 1, alpha=alpha, width=.1, label = legendName)
+    plt.bar(x_axis_scale+offset, meanData, color = plotColor, linewidth = 1, alpha=alpha, width=.1, label = '_nolegend_')
     markers, caps, bars = plt.errorbar(x_axis_scale+offset, meanData, semData, label='_nolegend_', color = plotColor, fmt=' ', linewidth = 1, alpha=alpha)
     [bar.set_alpha(alpha) for bar in bars]
     [cap.set_alpha(alpha) for cap in caps]
@@ -107,14 +176,14 @@ def plotDiffData():
 
 
 #Main plotting function
-def plot_main(targets=None, center_toggle=True, axis_toggle=True):
+def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
     ###############################################
     ## SETUP                                     ##
     ###############################################
 
     #Determine the sample sizes of interest
     xLabels = [5,10,15,20,30,60,100]
-    electrodes = 1
+    electrodes = electrodes
     combined = False #Whether to add multiple augmented data to a single plot
     data = np.arange(1,6)
         
@@ -138,6 +207,7 @@ def plot_main(targets=None, center_toggle=True, axis_toggle=True):
     fig.subplots_adjust(hspace=.3)
     plt.rcParams.update({'font.size': 5})  
     fig.text(0.09, 0.5, 'Prediction Accuracy (%)', va='center', rotation='vertical', fontsize=fontsize)
+    fig.suptitle(f'Electrodes: {electrodes}', x=0.1, y=.95, horizontalalignment='left', verticalalignment='top', fontsize=fontsize*1.5)
 
     ###############################################
     ## PLOT NEURAL NETWORK                       ##
@@ -199,10 +269,17 @@ def plot_main(targets=None, center_toggle=True, axis_toggle=True):
             
         #Plot legend on last subplot
         if dat == 1:
-            plt.legend(legendNames, bbox_to_anchor=(.4,1.05), frameon=False, ncol=np.ceil(len(legendNames)/2), fontsize=fontsize-2)
-            
-        #Plot y label on left subplots
-        #plt.ylabel('Prediction Accuracy (%)', fontsize=12)
+            legend_elements = []
+            for i, legend_name in enumerate(legendNames):
+                if targets:
+                    if analysis_names[i] in targets:
+                        legend_elements.append(Patch(facecolor=colors[i], edgecolor=None, label=legend_name, alpha=alpha_selected))
+                    else:
+                        legend_elements.append(Patch(facecolor=colors[i], edgecolor=None, label=legend_name, alpha=alpha_nontargets))
+                else:
+                    legend_elements.append(Patch(facecolor=colors[i], edgecolor=None, label=legend_name, alpha=alpha_selected))
+
+            plt.legend(legend_elements, legendNames, bbox_to_anchor=(.4,1.05), frameon=False, ncol=np.ceil(len(legendNames)/2), fontsize=fontsize-2)
             
         #Plot x label on bottom subplots
         if dat == 5:    
