@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+from matplotlib.gridspec import GridSpec
 import numpy as np
 
 import ipywidgets as wd
@@ -102,7 +103,6 @@ def retrieveData(data, electrodes):
     ##Full Time-Series
     return analysis_names, filenames
 
-
 #Define function to load and plot data
 def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, selected_alpha=1, offset=0, center_toggle=True, axis_toggle=True):
     
@@ -135,19 +135,16 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
     return legendName
 
 #Define function to plot difference bars
-def plotDiffData():
-    
+def plotDiffData(target, reference, analysis_names, filenames):
+
+    target_index = [i for i,f in enumerate(analysis_names) if target == f][0]
+    target_filename = filenames[target_index]
+
     #Load empirical data
     nnDataDS = []
-    with open(empData) as f:
+    with open(target_filename) as f:
         [nnDataDS.append(line.split(',')[0:4]) for line in f.readlines()]
     nnDataDS = np.asarray(nnDataDS).astype(int)
-
-    #Load synthetic data
-    nnDataDSSyn_SynP100 = []
-    with open(augData) as f:
-        [nnDataDSSyn_SynP100.append(line.split(',')[0:4]) for line in f.readlines()]
-    nnDataDSSyn_SynP100 = np.asarray(nnDataDSSyn_SynP100).astype(int)
 
     #Determine means of empirical data
     meanDataDS = []
@@ -155,28 +152,44 @@ def plotDiffData():
         ssIndex = nnDataDS[:,0] == ss
         meanDataDS.append(np.mean(nnDataDS[ssIndex,3]))
 
-    #Determine means of synthetic data
-    meanDataDSSyn_SynP100 = []
-    for ss in np.unique(nnDataDSSyn_SynP100[:,0]):
-        ssIndex = nnDataDSSyn_SynP100[:,0] == ss
-        meanDataDSSyn_SynP100.append(np.mean(nnDataDSSyn_SynP100[ssIndex,3]))
+    if reference:
+        reference_index = [i for i,f in enumerate(analysis_names) if reference == f][0]
+        reference_filename = filenames[reference_index]
+        #Load synthetic data
+        nnDataDSSyn_SynP100 = []
+        with open(reference_filename) as f:
+            [nnDataDSSyn_SynP100.append(line.split(',')[0:4]) for line in f.readlines()]
+        nnDataDSSyn_SynP100 = np.asarray(nnDataDSSyn_SynP100).astype(int)
 
-    #Determine mean differences
-    meanDiff = []
-    for ss in range(len(meanDataDSSyn_SynP100)):
-        meanDiff.append(meanDataDSSyn_SynP100[ss]-meanDataDS[ss])
-      
-    #Plot mean differences as bars with annotated labels  
-    ax2.bar(xLabels,meanDiff,color='grey',width=4)
+        #Determine means of synthetic data
+        meanDataDSSyn_SynP100 = []
+        for ss in np.unique(nnDataDSSyn_SynP100[:,0]):
+            ssIndex = nnDataDSSyn_SynP100[:,0] == ss
+            meanDataDSSyn_SynP100.append(np.mean(nnDataDSSyn_SynP100[ssIndex,3]))
+
+        #Determine mean differences
+        meanDiff = []
+        for ss in range(len(meanDataDSSyn_SynP100)):
+            meanDiff.append(meanDataDSSyn_SynP100[ss]-meanDataDS[ss])
+
+    #Plot mean differences as bars with annotated labels 
+    if reference:
+        plt.bar(np.arange(1,8),meanDiff,color='grey',width=.5)
+    else:
+        plt.bar(np.arange(1,8),meanDataDS,color='grey',width=.5)
+    
+    '''
     for i in range(len(meanDataDSSyn_SynP100)):
+        print(meanDiff[i])
         if meanDiff[i] > 0:
-            ax2.annotate(str(round(meanDiff[i]))+'%', (xLabels[i],meanDiff[i]+.5), ha='center', color='grey', size = 3)
+            plt.annotate(str(round(meanDiff[i]))+'%', ([5,10,15,20,30,60,100],meanDiff[i]+.5), ha='center', color='grey', size = 3)
         else:
-            ax2.annotate(str(round(meanDiff[i]))+'%', (xLabels[i],.5), ha='center', color='grey', size = 3)   
-
-
+            plt.annotate(str(round(meanDiff[i]))+'%', ([5,10,15,20,30,60,100],.5), ha='center', color='grey', size = 3)   
+    '''
+    
 #Main plotting function
 def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
+    
     ###############################################
     ## SETUP                                     ##
     ###############################################
@@ -203,11 +216,10 @@ def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
     #Setup
     #fig = plt.figure(figsize=(24, 3), dpi=600)
     fig = plt.figure(figsize=(10, 7.5))
-
-    fig.subplots_adjust(hspace=.3)
+    #fig.subplots_adjust(hspace=.3)
     plt.rcParams.update({'font.size': 5})  
     fig.text(0.09, 0.5, 'Prediction Accuracy (%)', va='center', rotation='vertical', fontsize=fontsize)
-    fig.suptitle(f'Electrodes: {electrodes}', x=0.1, y=.95, horizontalalignment='left', verticalalignment='top', fontsize=fontsize*1.5)
+    #fig.suptitle(f'Electrodes: {electrodes}', x=0.1, y=.95, horizontalalignment='left', verticalalignment='top', fontsize=fontsize*1.5)
 
     ###############################################
     ## PLOT NEURAL NETWORK                       ##
@@ -215,9 +227,10 @@ def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
 
     #Iterate through all subplots
     for dat in data:
-        
+    
         #Signify subplot
-        ax1 = plt.subplot(5,1,dat)
+        dat_index = dat-1
+        ax1 = plt.subplot2grid((5, 4), (dat_index, 0), colspan=3)
 
         #Create horizontal lines
         axisLevels = np.arange(50,ylims,5)
@@ -233,30 +246,30 @@ def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
             if targets:
                 if analysis_names[i] in targets:
                     legendNames.append(loadAndPlot(filename, 
-                                                   colors[i], 
-                                                   analysis_names[i], 
-                                                   alpha=alpha_targets, 
-                                                   selected_alpha=alpha_selected, 
-                                                   offset=offsets[i], 
-                                                   center_toggle=center_toggle, 
-                                                   axis_toggle=axis_toggle, 
-                                                   selected=True))
+                                                colors[i], 
+                                                analysis_names[i], 
+                                                alpha=alpha_targets, 
+                                                selected_alpha=alpha_selected, 
+                                                offset=offsets[i], 
+                                                center_toggle=center_toggle, 
+                                                axis_toggle=axis_toggle, 
+                                                selected=True))
                 else:
                     legendNames.append(loadAndPlot(filename, 
-                                                   colors[i], 
-                                                   analysis_names[i], 
-                                                   alpha=alpha_nontargets, 
-                                                   offset=offsets[i], 
-                                                   axis_toggle=axis_toggle,
-                                                   selected=False))
+                                                colors[i], 
+                                                analysis_names[i], 
+                                                alpha=alpha_nontargets, 
+                                                offset=offsets[i], 
+                                                axis_toggle=axis_toggle,
+                                                selected=False))
             else:
                 legendNames.append(loadAndPlot(filename, 
-                                               colors[i], 
-                                               analysis_names[i], 
-                                               alpha=alpha, 
-                                               offset=offsets[i], 
-                                               axis_toggle=axis_toggle,
-                                               selected=False))
+                                            colors[i], 
+                                            analysis_names[i], 
+                                            alpha=alpha, 
+                                            offset=offsets[i], 
+                                            axis_toggle=axis_toggle,
+                                            selected=False))
 
         #Format plot
         x_axis_scale = np.arange(1,8) if axis_toggle else [5, 10, 15, 20, 30, 60, 100]
@@ -266,6 +279,8 @@ def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
         plt.yticks(np.arange(50,ylims,5), fontsize=fontsize-2)
         #plt.xticks(rotation=90)
         ax1.spines[['right', 'top']].set_visible(False)
+        for y in np.arange(5,15,5):
+            plt.axhline(y=y, color='k', linestyle=':', alpha=.05, label='_nolegend_')
             
         #Plot legend on last subplot
         if dat == 1:
@@ -279,7 +294,7 @@ def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
                 else:
                     legend_elements.append(Patch(facecolor=colors[i], edgecolor=None, label=legend_name, alpha=alpha_selected))
 
-            plt.legend(legend_elements, legendNames, bbox_to_anchor=(.4,1.05), frameon=False, ncol=np.ceil(len(legendNames)/2), fontsize=fontsize-2)
+            plt.legend(legend_elements, legendNames, bbox_to_anchor=(.2,1.2), frameon=False, ncol=np.ceil(len(legendNames)/2), fontsize=fontsize-2)
             
         #Plot x label on bottom subplots
         if dat == 5:    
@@ -311,6 +326,34 @@ def plot_main(electrodes=1, targets=None, center_toggle=True, axis_toggle=True):
             ax1.annotate('Random Forest', (0.55,ylims-5), fontsize = fontsize-2)
         elif (dat == 5):
             ax1.annotate('K-Nearest Neighbors', (0.55,ylims-5), fontsize = fontsize-2)
+        
+        #Add difference subplot if two+ targets are selected
+        ax1 = plt.subplot2grid((5, 4), (dat_index, 3), colspan=1)
+        if len(targets) == 1:
+            plotDiffData(targets[0], None, analysis_names, filenames)
+        elif len(targets) >= 2:
+            plotDiffData(targets[0], targets[1], analysis_names, filenames)
+        ax1.spines[['right', 'top']].set_visible(False)
+        plt.xlim(0,8)
+        plt.xticks(np.arange(1,8), ['5','10','15','20','30','60','100'], fontsize=fontsize-2)
+
+        if len(targets) >= 2:
+            plt.ylim(0,15)
+            plt.yticks(np.arange(0,15,5), fontsize=fontsize-2)
+        else:
+            plt.ylim(50,ylims)
+            plt.yticks(np.arange(50,ylims,5), fontsize=fontsize-2)
+
+        if dat == 1:
+            if len(targets) == 1:
+                ax1.annotate(f'{targets[0]}',(0.55,ylims), fontsize = fontsize)
+            elif len(targets) >= 2:
+                ax1.annotate(f"{targets[0].replace('-Augmented','')} - {targets[1].replace('-Augmented','')}",(0.55,15), fontsize = fontsize)
+            else:
+                ax1.annotate(f'Select an Analysis',(0.55,ylims), fontsize = fontsize)
+        elif dat == 5:
+            plt.xlabel('Sample Size', fontsize=fontsize)
+
 
     ###############################################
     ## SAVE PLOT                                 ##
