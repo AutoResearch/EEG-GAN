@@ -91,7 +91,7 @@ def main():
         kw_timestep = 'Time'
 
     # load model/training configuration
-    if state_dict['configuration']['model_class'] != 'VariationalAutoencoder': #TODO: Change this to GAN
+    if not 'model_class' in state_dict['configuration'].keys(): #This attribute is not present in the state_dict of the GAN
 
         n_conditions = state_dict['configuration']['n_conditions']
         n_channels = state_dict['configuration']['n_channels']
