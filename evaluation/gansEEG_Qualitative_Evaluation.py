@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pywt
 import multiprocessing as mp
+import sklearn.manifold as sklm
 
 ##############################################
 ## CLASSES                                  ##
@@ -92,19 +93,20 @@ def constrain(data, num_bins=10):
     return data
 
 def frequency_transform(data):
+    
     #Create a new array to store the transformed data
     transformedData = np.zeros((data.shape[0], data.shape[1]//2+1))
     
     #Iterate through the data
-    for i in range(data.shape[0]):
-        transformedData[i] = np.abs(scipy.fft.fft(data[i]))[:data.shape[1]//2+1]
+    for i, dat in enumerate(data):
+        transformedData[i,:] = np.abs(scipy.fft.rfft(dat))[:(data.shape[1]//2)+1]
     
     return transformedData
 
-def time_frequency_wavelets(sample, srate, wavelet = 'cmor1.5-1.0'):
+def time_frequency_wavelets(sample, sampling_period, wavelet = 'cmor1.5-1.0'):
     widths = np.geomspace(1, 1024, num=100)
     
-    tf, freqs = pywt.cwt(sample, widths, wavelet, sampling_period=srate)
+    tf, freqs = pywt.cwt(sample, widths, wavelet, sampling_period=sampling_period)
     tf = np.abs(tf[:-1, :-1]) #Take the absolute value of the wavelet transform
 
     return freqs, tf
@@ -146,10 +148,39 @@ def time_frequency_transform(data):
     return tfrs
 '''
 
+def tsne(data, labels, perplexity = 40, learning_rate=100, norm_data=True, analysis_sample_no=5000):
+    print('running...')
+
+    #Get unique labels
+    unique_labels = np.unique(labels)
+
+    #Randomly sample data for each label
+    tsne_labels = []
+    tsne_data = []
+    for label in unique_labels:
+        label_data = data[labels==label,:]
+        label_labels = labels[labels==label]
+        index = np.random.permutation(len(label_data))[:analysis_sample_no]
+        label_data = label_data[index,:]
+        label_labels = label_labels[index]
+        tsne_data.append(label_data)
+        tsne_labels.append(label_labels)
+    
+    tsne_data = np.vstack(tsne_data)
+    tsne_labels = np.hstack(tsne_labels)
+
+    if norm_data:
+        tsne_data = norm(tsne_data)
+
+    model = sklm.TSNE(n_components=2, perplexity=perplexity, learning_rate=learning_rate)
+    transformed = model.fit_transform(tsne_data)
+
+    return tsne_labels, transformed
+
 ###############################################
 ## LOAD AND PROCESS DATA                     ##
 ###############################################
-def main(electrodes, target_electrode):
+def main(electrodes, target_electrode, run_TFT=True, run_tsne=False, process_synthetic=True):
 
     print('Loading data...')
     
@@ -177,9 +208,13 @@ def main(electrodes, target_electrode):
     ganData = np.delete(ganData, 1,1) #Remove the electrode column but we need to keep it
 
     #Process synthetic data
-    tempganData = filterEEG(ganData[:,1:])
-    tempganData = baselineCorrect(tempganData)
-
+    fftTempganData = ganData
+    if process_synthetic:
+        tempganData = filterEEG(ganData[:,1:])
+        tempganData = baselineCorrect(tempganData)
+    else:
+        tempganData = ganData[:,1:]
+    
     #Create and populate new array for processed synthetic data
     processedganData = np.zeros((len(tempganData),101))
     processedganData[:,0] = ganData[:,0]
@@ -188,6 +223,8 @@ def main(electrodes, target_electrode):
     #Split into conditions
     lossganData = processedganData[np.r_[processedganData[:,0]==1],1:]
     winganData = processedganData[np.r_[processedganData[:,0]==0],1:]
+    fftwinganData = fftTempganData[np.r_[fftTempganData[:,0]==0],1:]
+    fftlossganData = fftTempganData[np.r_[fftTempganData[:,0]==1],1:]
 
     #Average data
     avgLossganData = np.mean(lossganData, axis=0)
@@ -202,6 +239,9 @@ def main(electrodes, target_electrode):
     avgLossganData = (((avgLossganData-ganDataOffset)/ganDataScale)*EEGDataScale)+EEGDataOffset
     avgWinganData = (((avgWinganData-ganDataOffset)/ganDataScale)*EEGDataScale)+EEGDataOffset
 
+    scaledLossganData = (((lossganData-ganDataOffset)/ganDataScale)*EEGDataScale)+EEGDataOffset
+    scaledWinganData = (((winganData-ganDataOffset)/ganDataScale)*EEGDataScale)+EEGDataOffset
+
     ## VAE ##
 
     vae_fn_0 = f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e{electrodes}_full_c0.csv'
@@ -213,8 +253,12 @@ def main(electrodes, target_electrode):
     vaeData = np.delete(vaeData, 1,1) #Remove the electrode column but we need to keep it
 
     #Process synthetic data
-    tempvaeData = filterEEG(vaeData[:,1:])
-    tempvaeData = baselineCorrect(tempvaeData)
+    fftTempvaeData = vaeData
+    if process_synthetic:
+        tempvaeData = filterEEG(vaeData[:,1:])
+        tempvaeData = baselineCorrect(tempvaeData)
+    else:
+        tempvaeData = vaeData[:,1:]
 
     #Create and populate new array for processed synthetic data
     processedvaeData = np.zeros((len(tempvaeData),101))
@@ -224,6 +268,8 @@ def main(electrodes, target_electrode):
     #Split into conditions
     lossvaeData = processedvaeData[np.r_[processedvaeData[:,0]==1],1:]
     winvaeData = processedvaeData[np.r_[processedvaeData[:,0]==0],1:]
+    fftwinvaeData = fftTempvaeData[np.r_[fftTempvaeData[:,0]==0],1:]
+    fftlossvaeData = fftTempvaeData[np.r_[fftTempvaeData[:,0]==1],1:]
 
     #Average data
     avgLossvaeData = np.mean(lossvaeData, axis=0)
@@ -238,6 +284,9 @@ def main(electrodes, target_electrode):
     avgLossvaeData = (((avgLossvaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
     avgWinvaeData = (((avgWinvaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
 
+    scaledLossvaeData = (((lossvaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
+    scaledWinvaeData = (((winvaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
+
     print('Data loading complete!')
 
     ###############################################
@@ -246,21 +295,22 @@ def main(electrodes, target_electrode):
 
     winEEGFFT = frequency_transform(winEEGData)
     lossEEGFFT = frequency_transform(lossEEGData)
-    winGANFFT = frequency_transform(winganData)
-    lossGANFFT = frequency_transform(lossganData)
-    winVAEFFT = frequency_transform(winvaeData)
-    lossVAEFFT = frequency_transform(lossvaeData)
+    winGANFFT = frequency_transform(fftwinganData)
+    lossGANFFT = frequency_transform(fftlossganData)
+    winVAEFFT = frequency_transform(fftwinvaeData)
+    lossVAEFFT = frequency_transform(fftlossvaeData)
 
     ## Time-Frequency
     speriod = 1/83.33
 
     #Time-Frequency Transform
-    frex, winEEGTFT = time_frequency_transform(winEEGData, speriod=speriod)
-    _, lossEEGTFT = time_frequency_transform(lossEEGData, speriod=speriod)
-    _, winGANTFT = time_frequency_transform(winganData, speriod=speriod)
-    _, lossGANTFT = time_frequency_transform(lossganData, speriod=speriod)
-    _, winVAETFT = time_frequency_transform(winvaeData, speriod=speriod)
-    _, lossVAETFT = time_frequency_transform(lossvaeData, speriod=speriod)
+    if run_TFT:
+        frex, winEEGTFT = time_frequency_transform(winEEGData, speriod=speriod)
+        _, lossEEGTFT = time_frequency_transform(lossEEGData, speriod=speriod)
+        _, winGANTFT = time_frequency_transform(winganData, speriod=speriod)
+        _, lossGANTFT = time_frequency_transform(lossganData, speriod=speriod)
+        _, winVAETFT = time_frequency_transform(winvaeData, speriod=speriod)
+        _, lossVAETFT = time_frequency_transform(lossvaeData, speriod=speriod)
 
     '''
     import multiprocessing as mp
@@ -273,31 +323,58 @@ def main(electrodes, target_electrode):
         results.append(p)
     '''
 
-    EEGTFT = np.mean(winEEGTFT,0) - np.mean(lossEEGTFT,0)
-    GANTFT = np.mean(winGANTFT,0) - np.mean(lossGANTFT,0)
-    VAETFT = np.mean(winVAETFT,0) - np.mean(lossVAETFT,0)
+    if run_TFT:
+        EEGTFT = np.mean(winEEGTFT,0) - np.mean(lossEEGTFT,0)
+        GANTFT = np.mean(winGANTFT,0) - np.mean(lossGANTFT,0)
+        VAETFT = np.mean(winVAETFT,0) - np.mean(lossVAETFT,0)
 
-    #change EEGTFT to range from red to blue in imshow
-    EEGTFT = norm(EEGTFT)
-    GANTFT = norm(GANTFT)
-    VAETFT = norm(VAETFT)
+        #change EEGTFT to range from red to blue in imshow
+        EEGTFT = norm(EEGTFT)
+        GANTFT = norm(GANTFT)
+        VAETFT = norm(VAETFT)
 
-    tr_EEGTFT = constrain(EEGTFT, num_bins=5)
-    tr_GANTFT = constrain(GANTFT, num_bins=5)
-    tr_VAETFT = constrain(VAETFT, num_bins=5)
+        tr_EEGTFT = constrain(EEGTFT, num_bins=5)
+        tr_GANTFT = constrain(GANTFT, num_bins=5)
+        tr_VAETFT = constrain(VAETFT, num_bins=5)
+
+    #TSNE
+    if run_tsne:
+        #Create a single array of all data but include a label for each dataset
+        all_data = np.vstack((winEEGData, lossEEGData, winganData, lossganData, winvaeData, lossvaeData))
+        win_labels = np.ones((len(winEEGData),1))*0
+        loss_labels = np.ones((len(lossEEGData),1))*1
+        wingan_labels = np.ones((len(winganData),1))*2
+        lossgan_labels = np.ones((len(lossganData),1))*3
+        winvae_labels = np.ones((len(winvaeData),1))*4
+        lossvae_labels = np.ones((len(lossvaeData),1))*5
+        all_labels = np.vstack((win_labels, loss_labels, wingan_labels, lossgan_labels, winvae_labels, lossvae_labels)).reshape(-1)
+        all_data = np.vstack((winEEGData, lossEEGData, winganData, lossganData, winvaeData, lossvaeData))
+
+        norm_data=False
+        tsne_labels, tsne_data = tsne(all_data, norm_data=norm_data, labels=all_labels)
+        winEEGTSNE = tsne_data[tsne_labels==0,:]
+        lossEEGTSNE = tsne_data[tsne_labels==1,:]
+        winganTSNE = tsne_data[tsne_labels==2,:]
+        lossganTSNE = tsne_data[tsne_labels==3,:]
+        winvaeTSNE = tsne_data[tsne_labels==4,:]
+        lossvaeTSNE = tsne_data[tsne_labels==5,:]
 
     #######################################
     ## PLOT ALL
     #######################################
 
+    num_rows = 4 if run_tsne else 3
+
     time  = np.linspace(0,83.3,100)/83.3
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(12,num_rows*3))
+
+
 
     #######################################
     ## ERPS
     #######################################
 
-    ax1 = plt.subplot(3,3,1)
+    ax1 = plt.subplot(num_rows,3,1)
     plt.plot(time, np.mean(winEEGData, axis=0))
     plt.plot(time, np.mean(lossEEGData, axis=0))
     plt.ylabel(r'Voltage ($\mu$V)')
@@ -308,7 +385,7 @@ def main(electrodes, target_electrode):
     ax1.spines.top.set_visible(False)
 
     #Plot synthetic ERPs
-    ax2 = plt.subplot(3,3,2)
+    ax2 = plt.subplot(num_rows,3,2)
     plt.plot(time, avgWinganData)
     plt.plot(time, avgLossganData)
     plt.xlabel('Time (ms)')
@@ -318,7 +395,7 @@ def main(electrodes, target_electrode):
     ax2.spines.top.set_visible(False)
 
     #Plot synthetic ERPs
-    ax2 = plt.subplot(3,3,3)
+    ax2 = plt.subplot(num_rows,3,3)
     plt.plot(time, avgWinvaeData)
     plt.plot(time, avgLossvaeData)
     plt.xlabel('Time (ms)')
@@ -332,74 +409,116 @@ def main(electrodes, target_electrode):
     ## FFTs
     #######################################
 
-    ax=fig.add_subplot(3,3,4)
-    plt.plot(norm(np.mean(winEEGFFT,0)[:10]-np.mean(lossEEGFFT,0)[:10]))
-    for i in np.arange(0,10,2):
+    ax=fig.add_subplot(num_rows,3,4)
+    plt.plot(norm(np.mean(winEEGFFT,0)[:20]-np.mean(lossEEGFFT,0)[:20]))
+    for i in np.arange(0,20,2):
         plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
     ax.spines.right.set_visible(False)
     ax.spines.top.set_visible(False)
-    plt.xticks(np.arange(0,10,2))
+    plt.xticks(np.arange(0,21,2))
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Normalized Power')
 
-    ax=fig.add_subplot(3,3,5)
-    plt.plot(norm(np.mean(winGANFFT,0)[:10]-np.mean(lossGANFFT,0)[:10]))
-    for i in np.arange(0,10,2):
+    ax=fig.add_subplot(num_rows,3,5)
+    plt.plot(norm(np.mean(winGANFFT,0)[:20]-np.mean(lossGANFFT,0)[:20]))
+    for i in np.arange(0,20,2):
         plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
     ax.spines.right.set_visible(False)
     ax.spines.top.set_visible(False)
-    plt.xticks(np.arange(0,10,2))
+    plt.xticks(np.arange(0,21,2))
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Normalized Power')
 
-    ax=fig.add_subplot(3,3,6)
-    plt.plot(norm(np.mean(winVAEFFT,0)[:10]-np.mean(lossVAEFFT,0)[:10]))
-    for i in np.arange(0,10,2):
+    ax=fig.add_subplot(num_rows,3,6)
+    plt.plot(norm(np.mean(winVAEFFT,0)[:20]-np.mean(lossVAEFFT,0)[:20]))
+    for i in np.arange(0,20,2):
         plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
     ax.spines.right.set_visible(False)
     ax.spines.top.set_visible(False)
-    plt.xticks(np.arange(0,10,2))
+    plt.xticks(np.arange(0,21,2))
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Normalized Power')
 
     #######################################
     ## TFTs
     #######################################
+    
+    if run_TFT:
+        fig.add_subplot(num_rows,3,7)
+        im = plt.pcolormesh(time, frex, tr_EEGTFT, cmap='coolwarm')
+        plt.ylim([0,15])
+        plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
+        plt.ylabel('Frequency (Hz)')
+        plt.xlabel('Time (ms)')
 
-    fig.add_subplot(3,3,7)
-    im = plt.pcolormesh(time, frex, tr_EEGTFT, cmap='coolwarm')
-    plt.ylim([0,15])
-    plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
-    plt.ylabel('Frequency (Hz)')
-    plt.xlabel('Time (ms)')
+        fig.add_subplot(num_rows,3,8)
+        plt.pcolormesh(time, frex, tr_GANTFT, cmap='coolwarm')
+        plt.ylim([0,15])
+        plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
+        plt.ylabel('Frequency (Hz)')
+        plt.xlabel('Time (ms)')
 
-    fig.add_subplot(3,3,8)
-    plt.pcolormesh(time, frex, tr_GANTFT, cmap='coolwarm')
-    plt.ylim([0,15])
-    plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
-    plt.ylabel('Frequency (Hz)')
-    plt.xlabel('Time (ms)')
+        ax = fig.add_subplot(num_rows,3,9)
+        mesh = plt.pcolormesh(time, frex, tr_VAETFT, cmap='coolwarm')
+        plt.ylim([0,15])
+        plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
+        plt.ylabel('Frequency (Hz)')
+        plt.xlabel('Time (ms)')
+        cax = ax.inset_axes([0.5, .9, 0.4, 0.04])
+        fig.colorbar(mesh, cax=cax, orientation='horizontal')
 
-    ax = fig.add_subplot(3,3,9)
-    mesh = plt.pcolormesh(time, frex, tr_VAETFT, cmap='coolwarm')
-    plt.ylim([0,15])
-    plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
-    plt.ylabel('Frequency (Hz)')
-    plt.xlabel('Time (ms)')
-    cax = ax.inset_axes([0.5, .9, 0.4, 0.04])
-    fig.colorbar(mesh, cax=cax, orientation='horizontal')
+    #######################################
+    ## TSNE
+    #######################################
+
+    if run_tsne:
+        alpha = .01
+        ax = fig.add_subplot(num_rows,3,10)
+        plt.scatter(winEEGTSNE[:,0], winEEGTSNE[:,1], c='C0', alpha=alpha)
+        plt.scatter(lossEEGTSNE[:,0], lossEEGTSNE[:,1], c='C1', alpha=alpha)
+        ax.spines.right.set_visible(False)
+        ax.spines.top.set_visible(False)
+        plt.xlabel('Principal Component 1')
+        plt.ylabel('Principal Component 2')
+        plt.xlim(-100,100)
+        plt.ylim(-100,100)
+        
+        ax = fig.add_subplot(num_rows,3,11)
+        plt.scatter(winganTSNE[:,0], winganTSNE[:,1], c='C0', alpha=alpha)
+        plt.scatter(lossganTSNE[:,0], lossganTSNE[:,1], c='C1', alpha=alpha)
+        ax.spines.right.set_visible(False)
+        ax.spines.top.set_visible(False)
+        plt.xlabel('Principal Component 1')
+        plt.ylabel('Principal Component 2')
+        plt.xlim(-100,100)
+        plt.ylim(-100,100)
+
+        ax = fig.add_subplot(num_rows,3,12)
+        plt.scatter(winvaeTSNE[:,0], winvaeTSNE[:,1], c='C0', alpha=alpha)
+        plt.scatter(lossvaeTSNE[:,0], lossvaeTSNE[:,1], c='C1', alpha=alpha)
+        ax.spines.right.set_visible(False)
+        ax.spines.top.set_visible(False)
+        plt.xlabel('Principal Component 1')
+        plt.ylabel('Principal Component 2')
+        plt.xlim(-100,100)
+        plt.ylim(-100,100)
 
     #######################################
     ## Save
     #######################################
+    plt.tight_layout()
     fig = plt.gcf()
-    fig.set_size_inches(12, 12)
+    fig.set_size_inches(12, num_rows*4)
     fig.savefig(f'Figure N - Evaluations num_electrodes {electrodes} electrode {target_electrode}.png', dpi=600)
 
 if __name__ == '__main__':
 
-    electrodes = [1]
+    #User inputs
+    electrodes = [1, 2, 8]
+    run_TFT = True
+    run_tsne = False
+    process_synthetic=True
     
     for electrode in electrodes:
         for target_electrode in range(1, electrode+1):
-            main(electrode, target_electrode)
+            main(electrode, target_electrode, run_TFT=run_TFT, run_tsne=run_tsne, process_synthetic=process_synthetic)
