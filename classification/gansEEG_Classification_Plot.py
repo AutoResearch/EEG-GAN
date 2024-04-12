@@ -11,10 +11,10 @@ import numpy as np
 #Determine the sample sizes of interest
 xLabels = [5,10,15,20,30,60,100]
 electrodes = 1
-augmentation_type = 'gan'
+augmentation_type = 'gaus'
 combined = False #Whether to add multiple augmented data to a single plot
 
-data = np.arange(1,12)
+data = np.arange(1,6)
 
 if augmentation_type == 'vae': #Temporary
     data = np.arange(1,9)
@@ -29,6 +29,8 @@ def retrieveData(data, augmentation_type):
         aug_prefix = 'augmented'
     elif augmentation_type == 'vae':
         aug_prefix = 'vae'
+    elif augmentation_type == 'gaus':
+        aug_prefix = 'gaussian'
 
     ##Full Time-Series
     if data == 1:
