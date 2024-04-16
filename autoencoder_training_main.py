@@ -35,7 +35,7 @@ def main():
         'sample_interval': default_args['sample_interval'],
         'channel_label': default_args['channel_label'],
         'channels_out': default_args['channels_out'],
-        'timeseries_out': default_args['timeseries_out'],
+        'time_out': default_args['time_out'],
         'n_epochs': default_args['n_epochs'],
         'batch_size': default_args['batch_size'],
         'train_ratio': default_args['train_ratio'],
@@ -90,7 +90,7 @@ def main():
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1]
     opt['channels_in'] = opt['n_channels']
-    opt['timeseries_in'] = opt['sequence_length']
+    opt['time_in'] = opt['sequence_length']
 
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
@@ -108,18 +108,18 @@ def main():
 
         target_old = opt['target']
         channels_out_old = opt['channels_out']
-        timeseries_out_old = opt['timeseries_out']
+        time_out_old = opt['time_out']
 
         opt['target'] = model_dict['configuration']['target']
         opt['channels_out'] = model_dict['configuration']['channels_out']
-        opt['timeseries_out'] = model_dict['configuration']['timeseries_out']
+        opt['time_out'] = model_dict['configuration']['time_out']
         
         # Report changes to user
         print(f"Loading model {opt['path_checkpoint']}.\n\nInhereting the following parameters:")
         print("parameter:\t\told value -> new value")
         print(f"target:\t\t\t{target_old} -> {opt['target']}")
         print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
-        print(f"timeseries_out:\t{timeseries_out_old} -> {opt['timeseries_out']}")
+        print(f"time_out:\t{time_out_old} -> {opt['time_out']}")
         print('-----------------------------------\n')
 
     elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
@@ -127,7 +127,7 @@ def main():
     
     # Add parameters for tracking
     opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
-    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['timeseries_out']
+    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['time_out']
     opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['n_channels']
     
     if opt['target'] == 'channels':
@@ -150,9 +150,9 @@ def main():
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
         model_1 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
-                                             timeseries_in=opt['timeseries_in'],
+                                             time_in=opt['time_in'],
                                              channels_out=opt['channels_out'],
-                                             timeseries_out=opt['timeseries_out'],
+                                             time_out=opt['time_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
@@ -160,9 +160,9 @@ def main():
                                              training_level=1).to(opt['device'])
         
         model_2 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
-                                             timeseries_in=opt['timeseries_in'],
+                                             time_in=opt['time_in'],
                                              channels_out=opt['channels_out'],
-                                             timeseries_out=opt['timeseries_out'],
+                                             time_out=opt['time_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],

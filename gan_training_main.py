@@ -129,7 +129,7 @@ def main():
     opt['n_samples'] = dataset.shape[0]
 
     ae_dict = torch.load(opt['path_autoencoder'], map_location=torch.device('cpu')) if opt['path_autoencoder'] != '' else []
-    if opt['gan_type'] == 'tts' and ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time') and ae_dict['configuration']['timeseries_out'] % opt['patch_size']!= 0:
+    if opt['gan_type'] == 'tts' and ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time') and ae_dict['configuration']['time_out'] % opt['patch_size']!= 0:
         warnings.warn(
             f"Sequence length ({ae_dict['configuration']['timeseries_out']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
             f"The sequence length is padded with zeros to fit the condition.")
@@ -180,6 +180,9 @@ def main():
         mp.spawn(run,
                  args=(opt['world_size'], find_free_port(), ddp_backend, trainer, opt),
                  nprocs=opt['world_size'], join=True)
+        
+        print("GAN training finished.")
+        
     else:
         trainer = GANTrainer(generator, discriminator, opt)
         if default_args['load_checkpoint']:
@@ -197,16 +200,14 @@ def main():
             filename = opt['save_name']
         else:
             filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
-        trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples, update_history=True)
-
-        print(f"Checkpoint saved to {path_checkpoint}.")
+        path_checkpoint = os.path.join(path, filename)
+        trainer.save_checkpoint(path_checkpoint=path_checkpoint, samples=gen_samples, update_history=True)
         
         generator = trainer.generator
         discriminator = trainer.discriminator
 
         print("GAN training finished.")
-        print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
-
+        
         return generator, discriminator, opt, gen_samples
 
 

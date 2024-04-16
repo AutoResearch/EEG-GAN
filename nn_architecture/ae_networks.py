@@ -147,9 +147,9 @@ class TransformerAutoencoder(Autoencoder):
     
 
 class TransformerDoubleAutoencoder(Autoencoder):
-    def __init__(self, channels_in: int, timeseries_in: int, channels_out: int, timeseries_out: int, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', training_level=2, **kwargs):
+    def __init__(self, channels_in: int, time_in: int, channels_out: int, time_out: int, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', training_level=2, **kwargs):
         target = Autoencoder.TARGET_BOTH
-        super(TransformerDoubleAutoencoder, self).__init__(channels_in, channels_out, timeseries_out, hidden_dim, target, num_layers, dropout, activation)
+        super(TransformerDoubleAutoencoder, self).__init__(channels_in, channels_out, time_out, hidden_dim, target, num_layers, dropout, activation)
 
         '''
         Note that this double autoencoder trains two autoencoders - the first is a timeseries autoencoder and the second is a channels autoencoder.
@@ -161,16 +161,16 @@ class TransformerDoubleAutoencoder(Autoencoder):
         '''
         
         self.training_level = training_level
-        self.sequence_length = timeseries_in
+        self.sequence_length = time_in
         self.num_heads = num_heads
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Timeseries Encoder
-        self.linear_enc_in_timeseries = nn.Linear(timeseries_in, hidden_dim)
+        self.linear_enc_in_timeseries = nn.Linear(time_in, hidden_dim)
         self.encoder_layer_timeseries = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.encoder_timeseries = nn.TransformerEncoder(self.encoder_layer_timeseries, num_layers=num_layers)
-        self.linear_enc_out_timeseries = nn.Linear(hidden_dim, timeseries_out)
+        self.linear_enc_out_timeseries = nn.Linear(hidden_dim, time_out)
 
         # Channel Encoder
         self.linear_enc_in_channels = nn.Linear(channels_in, hidden_dim)
@@ -185,10 +185,10 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.linear_dec_out_channels = nn.Linear(hidden_dim, channels_in)
         
         # Timeseries Decoder
-        self.linear_dec_in_timeseries = nn.Linear(timeseries_out, hidden_dim)
+        self.linear_dec_in_timeseries = nn.Linear(time_out, hidden_dim)
         self.decoder_layer_timeseries = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads, dim_feedforward=hidden_dim, dropout=dropout, batch_first=True)
         self.decoder_timeseries = nn.TransformerEncoder(self.decoder_layer_timeseries, num_layers=num_layers)
-        self.linear_dec_out_timeseries = nn.Linear(hidden_dim, timeseries_in)
+        self.linear_dec_out_timeseries = nn.Linear(hidden_dim, time_in)
 
     def forward(self, data):
         x = self.encode(data.to(self.device))

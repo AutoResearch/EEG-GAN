@@ -261,7 +261,7 @@ def default_inputs_training_autoencoder():
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'sigmoid', 'Activation function: '],
         'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],
-        'timeseries_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
+        'time_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
         'n_epochs': [int, 'Number of epochs to train for', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
