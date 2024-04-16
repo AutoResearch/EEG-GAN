@@ -168,52 +168,57 @@ class GANTrainer(Trainer):
         batch = None
 
         loop = tqdm(range(self.epochs))
-        for epoch in loop:
-            # for-loop for number of batch_size entries in sessions
-            i_batch = 0
-            d_loss_batch = 0
-            g_loss_batch = 0
-            for batch in dataset:
-                # draw batch_size samples from sessions
-                data = batch[:, self.n_conditions:].to(self.device)
-                data_labels = batch[:, :self.n_conditions, 0].unsqueeze(1).to(self.device)
+        # try/except for KeyboardInterrupt --> Abort training and save model
+        try:
+            for epoch in loop:
+                # for-loop for number of batch_size entries in sessions
+                i_batch = 0
+                d_loss_batch = 0
+                g_loss_batch = 0
+                for batch in dataset:
+                    # draw batch_size samples from sessions
+                    data = batch[:, self.n_conditions:].to(self.device)
+                    data_labels = batch[:, :self.n_conditions, 0].unsqueeze(1).to(self.device)
 
-                # update generator every n iterations as suggested in paper
-                if i_batch % self.critic_iterations == 0:
-                    train_generator = True
-                else:
-                    train_generator = False
+                    # update generator every n iterations as suggested in paper
+                    if i_batch % self.critic_iterations == 0:
+                        train_generator = True
+                    else:
+                        train_generator = False
 
-                d_loss, g_loss, gen_samples_batch = self.batch_train(data, data_labels, train_generator)
+                    d_loss, g_loss, gen_samples_batch = self.batch_train(data, data_labels, train_generator)
 
-                d_loss_batch += d_loss
-                g_loss_batch += g_loss
-                i_batch += 1
-            self.d_losses.append(d_loss_batch/i_batch)
-            self.g_losses.append(g_loss_batch/i_batch)
+                    d_loss_batch += d_loss
+                    g_loss_batch += g_loss
+                    i_batch += 1
+                self.d_losses.append(d_loss_batch/i_batch)
+                self.g_losses.append(g_loss_batch/i_batch)
 
-            if self.scheduler_warmup < epoch:
-                if self.lr_scheduler.lower() == 'cycliclr':
-                    if self.scheduler_target.lower() == 'generator' or self.scheduler_target.lower() == 'both':
-                        self.generator_scheduler.step()
-                    if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
-                        self.discriminator_scheduler.step()
+                if self.scheduler_warmup < epoch:
+                    if self.lr_scheduler.lower() == 'cycliclr':
+                        if self.scheduler_target.lower() == 'generator' or self.scheduler_target.lower() == 'both':
+                            self.generator_scheduler.step()
+                        if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
+                            self.discriminator_scheduler.step()
 
-            # Save a checkpoint of the trained GAN and the generated samples every sample interval
-            if epoch % self.sample_interval == 0:
-                gen_samples.append(gen_samples_batch[np.random.randint(0, len(batch))].detach().cpu().numpy())
-                # save models and optimizer states as checkpoints
-                # toggle between checkpoint files to avoid corrupted file during training
-                if trigger_checkpoint_01:
-                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=gen_samples)
-                    trigger_checkpoint_01 = False
-                else:
-                    self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), samples=gen_samples)
-                    trigger_checkpoint_01 = True
+                # Save a checkpoint of the trained GAN and the generated samples every sample interval
+                if epoch % self.sample_interval == 0:
+                    gen_samples.append(gen_samples_batch[np.random.randint(0, len(batch))].detach().cpu().numpy())
+                    # save models and optimizer states as checkpoints
+                    # toggle between checkpoint files to avoid corrupted file during training
+                    if trigger_checkpoint_01:
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=gen_samples)
+                        trigger_checkpoint_01 = False
+                    else:
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), samples=gen_samples)
+                        trigger_checkpoint_01 = True
 
-            self.trained_epochs += 1
-            #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
-            loop.set_postfix_str(f"D LOSS: {np.round(d_loss_batch/i_batch,6)}, G LOSS: {np.round(g_loss_batch/i_batch,6)}")
+                self.trained_epochs += 1
+                #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
+                loop.set_postfix_str(f"D LOSS: {np.round(d_loss_batch/i_batch,6)}, G LOSS: {np.round(g_loss_batch/i_batch,6)}")
+        except KeyboardInterrupt:
+            # save model at KeyboardInterrupt
+            print("Keyboard interrupt detected.\nCancel training and continue with further operations.")
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], samples=gen_samples, update_history=True)
 
@@ -561,17 +566,19 @@ class AETrainer(Trainer):
         }
 
     def training(self, train_data, test_data):
+        path_checkpoint = 'trained_ae'
+        if not os.path.exists(path_checkpoint):
+            os.makedirs(path_checkpoint)
+        trigger_checkpoint_01 = True
+        checkpoint_01_file = 'checkpoint_01.pt'
+        checkpoint_02_file = 'checkpoint_02.pt'
+
+        samples = []
+
+        loop = tqdm(range(self.epochs))
+        
+        # try/except for KeyboardInterrupt --> Abort training and save model
         try:
-            path_checkpoint = 'trained_ae'
-            if not os.path.exists(path_checkpoint):
-                os.makedirs(path_checkpoint)
-            trigger_checkpoint_01 = True
-            checkpoint_01_file = 'checkpoint_01.pt'
-            checkpoint_02_file = 'checkpoint_02.pt'
-
-            samples = []
-
-            loop = tqdm(range(self.epochs))
             for epoch in loop:
                 train_loss, test_loss, sample = self.batch_train(train_data, test_data)
                 self.train_loss.append(train_loss)
@@ -595,14 +602,12 @@ class AETrainer(Trainer):
 
                 self.trained_epochs += 1
                 #self.print_log(epoch + 1, train_loss, test_loss)
-
-            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
-            return samples
-
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
-            print("Keyboard interrupt detected.\nSaving checkpoint...")
-            self.save_checkpoint(update_history=True, samples=samples)
+            print("Keyboard interrupt detected.\nCancel training and continue with further operations.")
+
+        self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
+        return samples
 
     def batch_train(self, train_data, test_data):
         train_loss = self.train_model(train_data)
