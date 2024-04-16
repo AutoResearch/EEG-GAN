@@ -29,7 +29,14 @@ Instructions to start the training:
 
 
 def main():
-    """Main function of the training process."""
+    """Main function of the training process. 
+    For input help use the command 'python gan_training_main.py help' in the terminal."""
+    
+    # Regarding Github Issue #62 GAN Training script does not close everything properly (aka Memory Leakage after crashed training):
+    # Could not reproduce the memory leakage issue. May be an Oscar specific issue.
+    # Try to fix the issue by emptying the cache before each training run.
+    torch.cuda.empty_cache()
+    
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
     # ----------------------------------------------------------------------------------------------------------------------
