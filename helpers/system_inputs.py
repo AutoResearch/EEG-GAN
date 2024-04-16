@@ -225,6 +225,7 @@ def default_inputs_training_gan():
         'hidden_dim': [int, 'Hidden dimension of the GAN components', 16, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
         'patch_size': [int, 'Patch size of the divided sequence (only for TTS-GAN)', 20, 'Patch size: '],
+        'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated, if applicable', 0, 'Scheduler warmup: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
         'discriminator_lr': [float, 'If used, it overrides the general learning rate for the discriminator', None, 'Discriminator learning rate: '],
         'generator_lr': [float, 'If used, it overrides the general learning rate for the generator', None, 'Generator learning rate: '],
@@ -238,7 +239,7 @@ def default_inputs_training_gan():
         'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
         'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'lr_scheduler': [str, 'The learning rate scheduler to use; Options: [CyclicLR]', '', 'Learning rate scheduler: '],
-        'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated, if applicable', 0, 'Scheduler warmup: '],
+        'save_name': [str, 'Name to save model', None, 'Model save name: '],
         'scheduler_target': [str, 'Which part of the GAN to apply the learning rate scheduler, if applicable; Options: [discriminator, generator, both]', 'both', 'LR Scheduler Target: ']
     }
 
@@ -268,7 +269,7 @@ def default_inputs_training_autoencoder():
         'num_layers': [int, 'Number of layers of the transformer', 2, 'Number of layers: '],
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
-        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
+        'learning_rate': [float, 'Learning rate of the AE', 0.0001, 'Learning rate: '],
     }
     return kw_dict
 

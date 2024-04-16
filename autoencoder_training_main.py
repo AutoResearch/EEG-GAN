@@ -243,10 +243,18 @@ def main():
         # ----------------------------------------------------------------------------------------------------------------------
 
         # Save model
+        path = 'trained_ae'
         if opt['save_name'] is None:
-            fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
             opt['save_name'] = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
-    
+        if opt['save_name'] != '':
+            # check if .pt extension is already included in the save_name
+            if not opt['save_name'].endswith('.pt'):
+                opt['save_name'] += '.pt'
+            filename = opt['save_name']
+        else:
+            fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
+            filename = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
+        opt['save_name'] = os.path.join(path, filename)
         trainer.save_checkpoint(opt['save_name'], update_history=True, samples=samples)
         print(f"Model and configuration saved in {opt['save_name']}")
 

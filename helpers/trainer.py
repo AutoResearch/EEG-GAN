@@ -498,8 +498,7 @@ class GANTrainer(Trainer):
 
 
 class AETrainer(Trainer):
-    """Trainer for conditional Wasserstein-GAN with gradient penalty.
-    Source: https://arxiv.org/pdf/1704.00028.pdf"""
+    """Trainer for Autoencoder."""
 
     def __init__(self, model, opt):
         # training configuration
@@ -583,7 +582,7 @@ class AETrainer(Trainer):
                 if len(sample) > 0:
                     samples.append(sample)
 
-                # Save a checkpoint of the trained GAN and the generated samples every sample interval
+                # Save a checkpoint of the trained AE and the generated samples every sample interval
                 if epoch % self.sample_interval == 0:
                     # save models and optimizer states as checkpoints
                     # toggle between checkpoint files to avoid corrupted file during training

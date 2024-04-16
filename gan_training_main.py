@@ -98,6 +98,7 @@ def main():
         'scheduler_warmup': default_args['scheduler_warmup'],
         'scheduler_target': default_args['scheduler_target'],
         'seed': default_args['seed'],
+        'save_name': default_args['save_name'],
     }
     
     # set a seed for reproducibility if desired
@@ -184,7 +185,13 @@ def main():
         # save final models, optimizer states, generated samples, losses and configuration as final result
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
+        if default_args['save_name'] != '':
+            # check if .pt extension is already included in the save_name
+            if not opt['save_name'].endswith('.pt'):
+                opt['save_name'] += '.pt'
+            filename = opt['save_name']
+        else:
+            filename = f'gan_{trainer.epochs}ep_' + timestamp + '.pt'
         trainer.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples, update_history=True)
 
         print(f"Checkpoint saved to {path_checkpoint}.")
