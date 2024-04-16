@@ -93,7 +93,7 @@ def init_gan(gan_type,
         for param in autoencoder.parameters():
             param.requires_grad = False
         autoencoder.eval()
-
+        
         # if prediction or seq2seq, adjust latent_dim_in to encoded input size
         if input_sequence_length != 0:
             new_input_dim = autoencoder.output_dim if not hasattr(autoencoder, 'output_dim_2') else autoencoder.output_dim*autoencoder.output_dim_2

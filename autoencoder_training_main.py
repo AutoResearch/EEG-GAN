@@ -246,7 +246,7 @@ def main():
         path = 'trained_ae'
         if opt['save_name'] is None:
             opt['save_name'] = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
-        if opt['save_name'] != '':
+        if opt['save_name'] is not None:
             # check if .pt extension is already included in the save_name
             if not opt['save_name'].endswith('.pt'):
                 opt['save_name'] += '.pt'

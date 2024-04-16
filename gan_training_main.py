@@ -83,7 +83,7 @@ def main():
         'sequence_length': -1,
         'hidden_dim': default_args['hidden_dim'],  # Dimension of hidden layers in discriminator and generator
         'num_layers': default_args['num_layers'],
-        'activation': default_args['activation'],
+        'activation': default_args['activation'] if default_args['path_autoencoder'] is None else "tanh",
         'latent_dim': 128,  # Dimension of the latent space
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
@@ -105,6 +105,11 @@ def main():
     if opt['seed']:
         torch.manual_seed(42)
         np.random.seed(42)
+    
+    # if autoencoder is used, take its activation function as the activation function for the generator
+    # print warning that the activation function is overwritten with the autoencoder activation function
+    print(f"Warning: Since an autoencoder is used, the specified activation function {default_args['activation']} of the GAN is overwritten with the autoencoder encoding activation function 'nn.Tanh()' to ensure stability.")
+    
     
     # Load dataset as tensor
     dataloader = Dataloader(default_args['path_dataset'],
@@ -151,8 +156,8 @@ def main():
     opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
     opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
-    opt['padding'] = padding.shape[1]
-
+    opt['padding'] = padding.shape[1]    
+    
     # --------------------------------------------------------------------------------
     # Initialize generator, discriminator and trainer
     # --------------------------------------------------------------------------------
@@ -185,7 +190,7 @@ def main():
         # save final models, optimizer states, generated samples, losses and configuration as final result
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        if default_args['save_name'] != '':
+        if opt['save_name'] is not None:
             # check if .pt extension is already included in the save_name
             if not opt['save_name'].endswith('.pt'):
                 opt['save_name'] += '.pt'

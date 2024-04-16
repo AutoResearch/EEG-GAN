@@ -27,6 +27,7 @@ class Autoencoder(nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
         self.target = target
+        self.activation_encoder = nn.Tanh()
         if activation == 'relu':
             self.activation = nn.ReLU()
         elif activation == 'sigmoid':
@@ -54,7 +55,7 @@ class Autoencoder(nn.Module):
             encoder_block.append(nn.Tanh())
         encoder_block.append(nn.Linear(hidden_dim, output_dim))
         # encoder_block.append(self.activation)
-        encoder_block.append(nn.Tanh())
+        encoder_block.append(self.activation_encoder)
         self.encoder = nn.Sequential(*encoder_block)
 
         # decoder block of linear layers constructed in a loop and passed to a sequential container
@@ -101,7 +102,6 @@ class TransformerAutoencoder(Autoencoder):
 
         self.num_heads = num_heads
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.tanh = nn.Tanh()
 
         # self.pe_enc = PositionalEncoder(batch_first=True, d_model=input_dim)
         self.linear_enc_in = nn.Linear(input_dim, hidden_dim)
@@ -128,7 +128,7 @@ class TransformerAutoencoder(Autoencoder):
         x = self.encoder(x)
         x = self.linear_enc_out(x)
         # x = self.activation(x)
-        x = self.tanh(x)
+        x = self.activation_encoder(x)
         if self.target == self.TARGET_TIMESERIES:
             x = x.permute(0, 2, 1)
         return x
@@ -144,11 +144,7 @@ class TransformerAutoencoder(Autoencoder):
         if self.target == self.TARGET_TIMESERIES:
             x = x.permute(0, 2, 1)
         return x
-
-    def save(self, path):
-        path = '../trained_ae'
-        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
-        # torch.save(save, os.path.join(path, file))
+    
 
 class TransformerDoubleAutoencoder(Autoencoder):
     def __init__(self, channels_in: int, timeseries_in: int, channels_out: int, timeseries_out: int, hidden_dim=256, num_layers=3, num_heads=8, dropout=0.1, activation='linear', training_level=2, **kwargs):
@@ -167,7 +163,6 @@ class TransformerDoubleAutoencoder(Autoencoder):
         self.training_level = training_level
         self.sequence_length = timeseries_in
         self.num_heads = num_heads
-        self.tanh = nn.Tanh()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -210,7 +205,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
             x = self.linear_enc_in_timeseries(x)
             x = self.encoder_timeseries(x)
             x = self.linear_enc_out_timeseries(x)
-            x = self.tanh(x)
+            x = self.activation_encoder(x)
             x = x.permute(0, 2, 1)
         
         if self.training_level == 2: 
@@ -222,7 +217,7 @@ class TransformerDoubleAutoencoder(Autoencoder):
             x = self.linear_enc_in_channels(x)
             x = self.encoder_channels(x)
             x = self.linear_enc_out_channels(x)
-            x = self.tanh(x)
+            x = self.activation_encoder(x)
 
         return x
 
@@ -251,11 +246,6 @@ class TransformerDoubleAutoencoder(Autoencoder):
 
         return x
 
-    def save(self, path):
-        path = '../trained_ae'
-        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
-        # torch.save(save, os.path.join(path, file))
-
 
 class TransformerFlattenAutoencoder(Autoencoder):
     def __init__(self, input_dim, output_dim, sequence_length, hidden_dim=1024, num_layers=3, dropout=0.1, activation='linear', **kwargs):
@@ -278,8 +268,6 @@ class TransformerFlattenAutoencoder(Autoencoder):
         self.linear_dec_out_1 = nn.Linear(output_dim, hidden_dim)
         self.linear_dec_out_2 = nn.Linear(hidden_dim, input_dim*sequence_length)
 
-        self.tanh = nn.Sigmoid()
-
     def forward(self, data):
         x = self.encode(data.to(self.device))
         x = self.decode(x)
@@ -291,7 +279,7 @@ class TransformerFlattenAutoencoder(Autoencoder):
         x = self.encoder(x)
         x = self.linear_enc_out_1(x.permute(0, 2, 1))
         x = self.linear_enc_out_2(x)
-        x = self.tanh(x)
+        x = self.activation_encoder(x)
         return x
 
     def decode(self, encoded):
@@ -300,13 +288,8 @@ class TransformerFlattenAutoencoder(Autoencoder):
         x = self.decoder(x.permute(0, 2, 1))
         x = self.linear_dec_out_1(x.permute(0, 2, 1))
         x = self.linear_dec_out_2(x).reshape(encoded.shape[0], self.sequence_length, self.input_dim)
-        x = self.tanh(x)
+        x = self.activation(x)
         return x
-
-    def save(self, path):
-        path = '../trained_ae'
-        file = f'ae_{pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")}.pth'
-        # torch.save(save, os.path.join(path, file))
 
 
 class PositionalEncoder(nn.Module):
