@@ -19,15 +19,15 @@ from helpers.ddp_training_classifier import run
 
 if __name__ == "__main__":
 
-    # sys.argv = ["generated", "path_test=trained_classifier\cl_exp_109ep.pt", "path_dataset=generated_samples\sd_len100_10000ep.csv", "n_epochs=2", "sample_interval=10"]
-    # sys.argv = ["experiment", "path_dataset=data\ganTrialERP_len100_train_shuffled.csv", "path_test=data\ganTrialERP_len100_test_shuffled.csv", "n_epochs=1", "sample_interval=10"]
+    # sys.argv = ["generated", "path_test=trained_classifier\cl_exp_109ep.pt", "dataset=generated_samples\sd_len100_10000ep.csv", "n_epochs=2", "sample_interval=10"]
+    # sys.argv = ["experiment", "dataset=data\ganTrialERP_len100_train_shuffled.csv", "path_test=data\ganTrialERP_len100_test_shuffled.csv", "n_epochs=1", "sample_interval=10"]
     default_args = system_inputs.parse_arguments(sys.argv, system_inputs.default_inputs_training_classifier())
 
     if not default_args['experiment'] and not default_args['generated'] and not default_args['testing']:
         raise ValueError("At least one of the following flags must be set: 'experiment', 'generated', 'testing'.")
 
-    if default_args['load_checkpoint']:
-        print(f"Resuming training from checkpoint {default_args['path_checkpoint']}.")
+    if default_args['checkpoint'] != '':
+        print(f"Resuming training from checkpoint {default_args['checkpoint']}.")
 
     # Look for cuda
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") if not default_args['ddp'] else torch.device("cpu")
@@ -38,12 +38,11 @@ if __name__ == "__main__":
     opt = {
         'n_epochs': default_args['n_epochs'],
         'sequence_length': default_args['sequence_length'],
-        'load_checkpoint': default_args['load_checkpoint'],
-        'path_checkpoint': default_args['path_checkpoint'],
-        'path_dataset': default_args['path_dataset'],
+        'checkpoint': default_args['checkpoint'],
+        'dataset': default_args['dataset'],
         'batch_size': default_args['batch_size'],
         'learning_rate': default_args['learning_rate'],
-        'n_conditions': len(default_args['conditions']),
+        'n_conditions': len(default_args['kw_conditions']),
         'patch_size': default_args['patch_size'],
         'hidden_dim': 128,  # Dimension of hidden layers in discriminator and generator
         'world_size': world_size,  # number of processes for distributed training
@@ -59,8 +58,8 @@ if __name__ == "__main__":
 
     # if in testing mode and path_test is None, use the dataset from the specified checkpoint
     if default_args['testing'] and default_args['path_test'] == 'None':
-        default_args['path_test'] = default_args['path_checkpoint']
-        opt['path_test'] = default_args['path_checkpoint']
+        default_args['path_test'] = default_args['checkpoint']
+        opt['path_test'] = default_args['checkpoint']
 
     # Get test data if provided
     if default_args['path_test'] != 'None':
@@ -73,8 +72,8 @@ if __name__ == "__main__":
         elif default_args['path_test'].endswith('.csv'):
             # load csv
             dataloader = Dataloader(default_args['path_test'],
-                                    kw_timestep=default_args['kw_timestep_dataset'],
-                                    col_label=default_args['conditions'],
+                                    kw_time=default_args['kw_time'],
+                                    kw_conditions=default_args['kw_conditions'],
                                     norm_data=True)
             test_data = dataloader.get_data()[:, opt['n_conditions']:].float()
             test_labels = dataloader.get_data()[:, :opt['n_conditions']].float()
@@ -83,9 +82,9 @@ if __name__ == "__main__":
 
     if default_args['experiment']:
         # Get experiment's data as training data
-        dataloader = Dataloader(default_args['path_dataset'],
-                                kw_timestep=default_args['kw_timestep_dataset'],
-                                col_label=default_args['conditions'],
+        dataloader = Dataloader(default_args['dataset'],
+                                kw_time=default_args['kw_time'],
+                                kw_conditions=default_args['kw_conditions'],
                                 norm_data=True)
         if test_data is None:
             _, _, train_idx, test_idx = dataloader.dataset_split(train_size=.8)
@@ -100,8 +99,8 @@ if __name__ == "__main__":
 
     if default_args['generated']:
         # Get generated data as training data
-        train_data = torch.tensor(pd.read_csv(default_args['path_dataset']).to_numpy()[:, opt['n_conditions']:]).float()
-        train_labels = torch.tensor(pd.read_csv(default_args['path_dataset']).to_numpy()[:, :opt['n_conditions']]).float()
+        train_data = torch.tensor(pd.read_csv(default_args['dataset']).to_numpy()[:, opt['n_conditions']:]).float()
+        train_labels = torch.tensor(pd.read_csv(default_args['dataset']).to_numpy()[:, :opt['n_conditions']]).float()
         if test_data is None:
             # Split train data into train and test
             _, _, train_idx, test_idx = Dataloader().dataset_split(train_data, train_size=.8)
@@ -112,7 +111,7 @@ if __name__ == "__main__":
 
     # TODO: implement data concatenation of experiment and generator data
 
-    opt['sequence_length'] = test_data.shape[1]# - len(default_args['conditions'])
+    opt['sequence_length'] = test_data.shape[1]# - len(default_args['kw_conditions'])
 
     if opt['sequence_length'] % opt['patch_size'] != 0:
         warnings.warn(
@@ -134,7 +133,7 @@ if __name__ == "__main__":
 
     # Test model
     if default_args['testing']:
-        classifier.load_state_dict(torch.load(default_args['path_checkpoint'], map_location=device)['model'])
+        classifier.load_state_dict(torch.load(default_args['checkpoint'], map_location=device)['model'])
         trainer = Trainer(classifier, opt)
         test_loss, test_acc = trainer.test(test_data, test_labels)
         print(f"Test loss: {test_loss:.4f} - Test accuracy: {test_acc:.4f}")
@@ -144,16 +143,16 @@ if __name__ == "__main__":
     if default_args['ddp']:
         # DDP Training
         trainer = DDPTrainer(classifier, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
+        if default_args['checkpoint'] != '':
+            trainer.load_checkpoint(default_args['checkpoint'])
         mp.spawn(run,
-                 args=(world_size, find_free_port(), default_args['ddp_backend'], trainer, train_data, train_labels, test_data, test_labels),
+                 args=(world_size, find_free_port(), "nccl", trainer, train_data, train_labels, test_data, test_labels),
                  nprocs=world_size, join=True)
     else:
         # Regular training
         trainer = Trainer(classifier, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
+        if default_args['checkpoint'] != '':
+            trainer.load_checkpoint(default_args['checkpoint'])
         # TODO: Adjust train-method to your needs
         loss = trainer.train(train_data, train_labels, test_data, test_labels)
 

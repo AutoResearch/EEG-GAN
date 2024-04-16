@@ -12,7 +12,7 @@ data_checkpoint = 'data/ganTrialElectrodeERP_p100_e2_len100.csv'
 ae_checkpoint = 'trained_ae/ae_ddp_5000ep_p100_e8_enc50-4.pt'
 
 #### Load data ####
-dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
+dataloader = Dataloader(data_checkpoint, kw_conditions='Condition', kw_channel='Electrode')
 dataset = dataloader.get_data().detach().numpy()
 norm = lambda data: (data-np.min(data)) / (np.max(data) - np.min(data))
 dataset = np.concatenate((dataset[:,[0],:], norm(dataset[:,1:,:])), axis=1)

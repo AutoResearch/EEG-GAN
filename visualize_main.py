@@ -27,34 +27,34 @@ def main():
               "PCA and t-SNE are only available for all channels. Ignoring channel_index.")
 
     # throw error if checkpoint but csv-file is specified
-    if default_args['checkpoint'] and default_args['path_dataset'].split('.')[-1] == 'csv':
+    if default_args['checkpoint'] and default_args['data'].split('.')[-1] == 'csv':
         raise ValueError("Inconsistent parameter specification. 'checkpoint' was specified but a csv-file was given.")
 
     # throw warning if checkpoint and conditions are given
-    if default_args['checkpoint'] and default_args['conditions'][0] != '':
+    if default_args['checkpoint'] and default_args['kw_conditions'][0] != '':
         warnings.warn("Conditions are given, but checkpoint is specified. Given conditions will be ignored and taken from the checkpoint file if the checkpoint file contains the conditions parameter.")
 
     original_data = None
     if default_args['csv']:
-        n_conditions = len(default_args['conditions']) if default_args['conditions'][0] != '' else 0
+        n_conditions = len(default_args['kw_conditions']) if default_args['kw_conditions'][0] != '' else 0
         # load data with DataLoader
-        dataloader = Dataloader(path=default_args['path_dataset'],
+        dataloader = Dataloader(path=default_args['data'],
                                 norm_data=True,
-                                kw_timestep=default_args['kw_timestep'],
-                                col_label=default_args['conditions'],
-                                channel_label=default_args['channel_label'], )
+                                kw_time=default_args['kw_timestep'],
+                                kw_conditions=default_args['kw_conditions'],
+                                kw_channel=default_args['kw_channel'], )
         data = dataloader.get_data(shuffle=False)[:, n_conditions:].numpy()
         conditions = dataloader.get_labels()[:, :, 0].numpy()
         random = True
     elif default_args['checkpoint']:
-        state_dict = torch.load(default_args['path_dataset'], map_location='cpu')
+        state_dict = torch.load(default_args['data'], map_location='cpu')
         n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
-        if (n_conditions == 0) & (default_args['conditions'][0] != ''):
+        if (n_conditions == 0) & (default_args['kw_conditions'][0] != ''):
             dataloader = Dataloader(path=default_args['path_comp_dataset'],
                                 norm_data=True,
-                                kw_timestep=default_args['kw_timestep'],
-                                col_label=default_args['conditions'],
-                                channel_label=default_args['channel_label'], )
+                                kw_time=default_args['kw_timestep'],
+                                kw_conditions=default_args['kw_conditions'],
+                                kw_channel=default_args['kw_channel'], )
             n_conditions = dataloader.get_labels()[:, :, 0].numpy().shape[-1]
         sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
         data = np.concatenate(state_dict['samples'])
@@ -225,9 +225,9 @@ def main():
             # load comparison data
             dataloader_comp = Dataloader(path=default_args['path_comp_dataset'],
                                          norm_data=True,
-                                         kw_timestep=default_args['kw_timestep'],
-                                         col_label=default_args['conditions'],
-                                         channel_label=default_args['channel_label'], )
+                                         kw_time=default_args['kw_timestep'],
+                                         kw_conditions=default_args['kw_conditions'],
+                                         kw_channel=default_args['kw_channel'], )
             original_data = dataloader_comp.get_data(shuffle=False)[:, n_conditions:].numpy()
         elif original_data is None and default_args['path_comp_dataset'] == '':
             raise ValueError("No comparison data found for PCA or t-SNE. Please specify a comparison dataset with the argument 'path_comp_dataset'.")
@@ -270,11 +270,11 @@ def main():
 if __name__ == '__main__':
     # sys.argv = [
     #             # 'csv',
-    #             # 'path_dataset=generated_samples/gan_1ep_2chan_1cond.csv',
+    #             # 'data=generated_samples/gan_1ep_2chan_1cond.csv',
     #             'checkpoint',
-    #             'path_dataset=trained_ae/ae_gansMultiCondition.pt',
+    #             'data=trained_ae/ae_gansMultiCondition.pt',
     #             # 'conditions=Condition',
-    #             'channel_label=Electrode',
+    #             'kw_channel=Electrode',
     #             'n_samples=8',
     #             # 'channel_plots',
     #             # 'channel_index=0',

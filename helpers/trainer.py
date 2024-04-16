@@ -50,8 +50,6 @@ class GANTrainer(Trainer):
         self.sequence_length_generated = self.sequence_length-self.input_sequence_length if self.sequence_length != self.input_sequence_length else self.sequence_length
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
         self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
-        self.use_checkpoint = opt['load_checkpoint'] if 'load_checkpoint' in opt else False
-        self.path_checkpoint = opt['path_checkpoint'] if 'path_checkpoint' in opt else None
         self.latent_dim = opt['latent_dim'] if 'latent_dim' in opt else 10
         self.critic_iterations = opt['critic_iterations'] if 'critic_iterations' in opt else 5
         self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
@@ -128,8 +126,8 @@ class GANTrainer(Trainer):
             'patch_size': opt['patch_size'] if 'patch_size' in opt else None,
             'b1': self.b1,
             'b2': self.b2,
-            'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
-            'path_autoencoder': opt['path_autoencoder'] if 'path_autoencoder' in opt else None,
+            'data': opt['data'] if 'data' in opt else None,
+            'autoencoder': opt['autoencoder'] if 'autoencoder' in opt else None,
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
             'lr_scheduler': self.lr_scheduler,
@@ -137,13 +135,13 @@ class GANTrainer(Trainer):
             'scheduler_target': self.scheduler_target,
             'padding': self.padding,
             'dataloader': {
-                'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+                'data': opt['data'] if 'data' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
-                'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
-                'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+                'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+                'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else {},
         }
@@ -153,8 +151,6 @@ class GANTrainer(Trainer):
         gen_samples = []
         # checkpoint file settings; toggle between two checkpoints to avoid corrupted file if training is interrupted
         path_checkpoint = 'trained_models'
-        if not os.path.exists(path_checkpoint):
-            os.makedirs(path_checkpoint)
         trigger_checkpoint_01 = True
         checkpoint_01_file = 'checkpoint_01.pt'
         checkpoint_02_file = 'checkpoint_02.pt'
@@ -531,8 +527,8 @@ class AETrainer(Trainer):
             'sample_interval': self.sample_interval,
             'learning_rate': self.learning_rate,
             'hidden_dim': opt['hidden_dim'],
-            'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
-            'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
+            'data': opt['data'] if 'data' in opt else None,
+            'checkpoint': opt['checkpoint'] if 'checkpoint' in opt else None,
             'channels_in': opt['channels_in'],
             'time_in': opt['time_in'],
             'time_out': opt['time_out'] if 'time_out' in opt else None,
@@ -540,7 +536,7 @@ class AETrainer(Trainer):
             'sequence_length': opt['sequence_length'],
             'target': opt['target'] if 'target' in opt else None,
             # 'conditions': opt['conditions'] if 'conditions' in opt else None,
-            'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'output_dim': opt['output_dim'],
@@ -549,13 +545,13 @@ class AETrainer(Trainer):
             'num_heads': opt['num_heads'],
             'activation': opt['activation'],
             'dataloader': {
-                'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+                'data': opt['data'] if 'data' in opt else None,
                 'col_label': opt['conditions'] if 'conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
-                'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
-                'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
+                'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+                'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else None,
         }

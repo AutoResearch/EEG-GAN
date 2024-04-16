@@ -45,6 +45,7 @@ def main():
     # create directory 'trained_models' if not exists
     if not os.path.exists('trained_models'):
         os.makedirs('trained_models')
+        print('Directory "../trained_models" created to store checkpoints and final model.')
     
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 
@@ -54,9 +55,8 @@ def main():
 
     # Training configuration
     ddp = default_args['ddp']
-    ddp_backend = default_args['ddp_backend']
-    load_checkpoint = default_args['load_checkpoint']
-    path_checkpoint = default_args['path_checkpoint']
+    ddp_backend = "nccl" #default_args['ddp_backend']
+    checkpoint = default_args['checkpoint']
 
     # Data configuration
     diff_data = False  # Differentiate data
@@ -67,8 +67,13 @@ def main():
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
 
-    if load_checkpoint:
-        print(f'Resuming training from checkpoint {path_checkpoint}.')
+    if default_args['checkpoint'] != '':
+        # check if checkpoint exists and otherwise take trained_models/checkpoint.pt
+        if not os.path.exists(default_args['checkpoint']):
+            print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
+            default_args['checkpoint'] = os.path.join('trained_models', 'checkpoint.pt')
+            checkpoint = default_args['checkpoint']
+        print(f'Resuming training from checkpoint {checkpoint}.')
 
     # GAN configuration
     opt = {
@@ -76,29 +81,28 @@ def main():
         'n_epochs': default_args['n_epochs'],
         'input_sequence_length': default_args['input_sequence_length'],
         # 'seq_len_generated': default_args['seq_len_generated'],
-        'load_checkpoint': default_args['load_checkpoint'],
-        'path_checkpoint': default_args['path_checkpoint'],
-        'path_dataset': default_args['path_dataset'],
-        'path_autoencoder': default_args['path_autoencoder'],
+        'checkpoint': default_args['checkpoint'],
+        'data': default_args['data'],
+        'autoencoder': default_args['autoencoder'],
         'batch_size': default_args['batch_size'],
         'discriminator_lr': default_args['discriminator_lr'],
         'generator_lr': default_args['generator_lr'],
         'sample_interval': default_args['sample_interval'],
-        'n_conditions': len(default_args['conditions']) if default_args['conditions'][0] != '' else 0,
+        'n_conditions': len(default_args['kw_conditions']) if default_args['kw_conditions'][0] != '' else 0,
         'patch_size': default_args['patch_size'],
-        'kw_timestep': default_args['kw_timestep'],
-        'conditions': default_args['conditions'],
+        'kw_time': default_args['kw_time'],
+        'kw_conditions': default_args['kw_conditions'],
         'sequence_length': -1,
         'hidden_dim': default_args['hidden_dim'],  # Dimension of hidden layers in discriminator and generator
         'num_layers': default_args['num_layers'],
-        'activation': default_args['activation'] if default_args['path_autoencoder'] is None else "tanh",
+        'activation': default_args['activation'] if default_args['autoencoder'] is None else "tanh",
         'latent_dim': 128,  # Dimension of the latent space
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu") if not ddp else torch.device("cpu"), 
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),  # number of processes for distributed training
         # 'multichannel': default_args['multichannel'],
-        'channel_label': default_args['channel_label'],
+        'kw_channel': default_args['kw_channel'],
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
@@ -116,17 +120,17 @@ def main():
     
     # if autoencoder is used, take its activation function as the activation function for the generator
     # print warning that the activation function is overwritten with the autoencoder activation function
-    print(f"Warning: Since an autoencoder is used, the specified activation function {default_args['activation']} of the GAN is overwritten with the autoencoder encoding activation function 'nn.Tanh()' to ensure stability.")
-    
+    if default_args['autoencoder'] != '':
+        print(f"Warning: Since an autoencoder is used, the specified activation function {default_args['activation']} of the GAN is overwritten with the autoencoder encoding activation function 'nn.Tanh()' to ensure stability.")
     
     # Load dataset as tensor
-    dataloader = Dataloader(default_args['path_dataset'],
-                            kw_timestep=default_args['kw_timestep'],
-                            col_label=default_args['conditions'],
+    dataloader = Dataloader(default_args['data'],
+                            kw_time=default_args['kw_time'],
+                            kw_conditions=default_args['kw_conditions'],
                             norm_data=norm_data,
                             std_data=std_data,
                             diff_data=diff_data,
-                            channel_label=default_args['channel_label'])
+                            kw_channel=default_args['kw_channel'])
     dataset = dataloader.get_data()
 
     opt['channel_names'] = dataloader.channels
@@ -136,7 +140,7 @@ def main():
         opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
-    ae_dict = torch.load(opt['path_autoencoder'], map_location=torch.device('cpu')) if opt['path_autoencoder'] != '' else []
+    ae_dict = torch.load(opt['autoencoder'], map_location=torch.device('cpu')) if opt['autoencoder'] != '' else []
     if opt['gan_type'] == 'tts' and ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time') and ae_dict['configuration']['time_out'] % opt['patch_size']!= 0:
         warnings.warn(
             f"Sequence length ({ae_dict['configuration']['timeseries_out']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
@@ -183,8 +187,8 @@ def main():
     print('-----------------------------------------\n')
     if ddp:
         trainer = GANDDPTrainer(generator, discriminator, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
+        if default_args['checkpoint'] != '':
+            trainer.load_checkpoint(default_args['checkpoint'])
         mp.spawn(run,
                  args=(opt['world_size'], find_free_port(), ddp_backend, trainer, opt),
                  nprocs=opt['world_size'], join=True)
@@ -193,15 +197,15 @@ def main():
         
     else:
         trainer = GANTrainer(generator, discriminator, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
+        if default_args['checkpoint'] != '':
+            trainer.load_checkpoint(default_args['checkpoint'])
         dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True)
         gen_samples = trainer.training(dataset)
 
         # save final models, optimizer states, generated samples, losses and configuration as final result
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        if opt['save_name'] is not None:
+        if opt['save_name'] != '':
             # check if .pt extension is already included in the save_name
             if not opt['save_name'].endswith('.pt'):
                 opt['save_name'] += '.pt'

@@ -37,14 +37,14 @@ def main():
     if len(condition) == 1 and condition[0] == 'None':
         condition = []
 
-    file = default_args['path_file']
+    file = default_args['model']
     if file.split(os.path.sep)[0] == file and file.split('/')[0] == file:
         # use default path if no path is given
         path = 'trained_models'
         file = os.path.join(path, file)
 
     path_samples = default_args['path_samples']
-    if path_samples == 'None':
+    if path_samples == '':
         # Use checkpoint filename as path
         path_samples = os.path.basename(file).split('.')[0] + '.csv'
     if path_samples.split(os.path.sep)[0] == path_samples:
@@ -103,7 +103,7 @@ def main():
                             activation=state_dict['configuration']['activation'],
                             input_sequence_length=input_sequence_length,
                             patch_size=state_dict['configuration']['patch_size'],
-                            path_autoencoder=state_dict['configuration']['path_autoencoder'],
+                            path_autoencoder=state_dict['configuration']['autoencoder'],
                             padding=state_dict['configuration']['padding'],
                             )
     generator.eval()
@@ -184,19 +184,19 @@ def main():
         else:
             col_labels = []
     # check if channel label is given
-    if state_dict['configuration']['dataloader']['channel_label']:
-        channel_label = [state_dict['configuration']['dataloader']['channel_label']]
+    if state_dict['configuration']['dataloader']['kw_channel']:
+        kw_channel = [state_dict['configuration']['dataloader']['kw_channel']]
     else:
-        channel_label = ['Channel']
+        kw_channel = ['Channel']
     # get keyword for time step labels
-    if state_dict['configuration']['dataloader']['kw_timestep']:
-        kw_timestep = state_dict['configuration']['dataloader']['kw_timestep']
+    if state_dict['configuration']['dataloader']['kw_time']:
+        kw_time = state_dict['configuration']['dataloader']['kw_time']
     else:
-        kw_timestep = 'Time'
+        kw_time = 'Time'
     # create time step labels
     time_labels = [f'Time{i}' for i in range(sequence_length)]
     # create dataframe
-    df = pd.DataFrame(all_samples, columns=[col_labels + channel_label + time_labels])
+    df = pd.DataFrame(all_samples, columns=[col_labels + kw_channel + time_labels])
     df.to_csv(path_samples, index=False)
 
     print("Generated samples were saved to " + path_samples)

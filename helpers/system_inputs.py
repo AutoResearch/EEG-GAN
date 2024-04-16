@@ -120,7 +120,7 @@ class HelperMain(Helper):
             '\n\t\tpython gan_training_main.py load_checkpoint path_checkpoint="path/to/file.pt"')
         print(
             '4.\tIf you want to use a different dataset, you can use the following command:'
-            '\n\tpython gan_training_main.py path_dataset="path/to/file.csv"'
+            '\n\tpython gan_training_main.py data="path/to/file.csv"'
             '\n\tThe default dataset is "data/gansEEGTrainingData.csv"')
         print(
             '6.\tThe keyword "input_sequence_length" describes the length of a sequence taken as input for the generator.'
@@ -163,14 +163,14 @@ class HelperVisualize(Helper):
         super().print_help()
         print('1.\tEither the keyword "checkpoint" or "csv" must be given.'
               '\n\t1.1 If the keyword "checkpoint" is given'
-              '\n\t\t"path_dataset" must point to a pt-file.'
-              '\n\t\t"path_dataset" may point to a GAN or an Autoencoder checkpoint file.'
-              '\n\t\tthe keyword "conditions" will be ignored since the conditions are taken from the checkpoint file.'
-              '\n\t\tthe keyword "channel_label" will be ignored since the samples are already sorted channel-wise.'
+              '\n\t\t"data" must point to a pt-file.'
+              '\n\t\t"data" may point to a GAN or an Autoencoder checkpoint file.'
+              '\n\t\tthe keyword "kw_conditions" will be ignored since the conditions are taken from the checkpoint file.'
+              '\n\t\tthe keyword "kw_channel" will be ignored since the samples are already sorted channel-wise.'
               '\n\t\tthe samples will be drawn evenly from the saved samples to show the training progress.'
               '\n\t1.2 If the keyword "csv" is given'
-              '\n\t\t"path_dataset" must point to a csv-file.'
-              '\n\t\tthe keyword "conditions" must be given to identify the condition column.'
+              '\n\t\t"data" must point to a csv-file.'
+              '\n\t\tthe keyword "kw_conditions" must be given to identify the condition column.'
               '\n\t\tthe samples will be drawn randomly from the dataset.')
         print('2.\tThe keyword "loss" works only with the keyword "checkpoint".')
         print('3.\tThe keyword "average" averages either'
@@ -215,7 +215,6 @@ class HelperGenerateSamples(Helper):
 def default_inputs_training_gan():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
-        'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
         'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
         'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
@@ -230,15 +229,14 @@ def default_inputs_training_gan():
         'generator_lr': [float, 'Learning rate for the generator', 0.0001, 'Generator learning rate: '],
         'activation': [str, 'Activation function of the generator; Only for type=ff; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
         'type': [str, 'Type of the GAN; Options: [ff, tr, tts]', 'tts', 'GAN Type: '],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
-        'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_models', 'checkpoint.pt'), 'Checkpoint: '],
-        'path_autoencoder': [str, 'Path to the autoencoder; Only usable with Autoencoder-GAN', '', 'Autoencoder checkpoint: '],
-        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
-        'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
+        'data': [str, 'Path to a dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
+        'checkpoint': [str, 'Path to a pre-trained GAN', '', 'Using pre-trained GAN: '],
+        'autoencoder': [str, 'Path to a autoencoder', '', 'Using autoencoder: '],
+        'kw_conditions': [str, '** Conditions to be used', '', 'Conditions: '],
+        'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
+        'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
         'lr_scheduler': [str, 'The learning rate scheduler to use; Options: [CyclicLR]', '', 'Learning rate scheduler: '],
-        'save_name': [str, 'Name to save model', None, 'Model save name: '],
+        'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'scheduler_target': [str, 'Which part of the GAN to apply the learning rate scheduler, if applicable; Options: [discriminator, generator, both]', 'both', 'LR Scheduler Target: ']
     }
 
@@ -250,14 +248,13 @@ def default_inputs_training_autoencoder():
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
         'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
-        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
-        'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
-        'save_name': [str, 'Name to save model', None, 'Model save name: '],
+        'data': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
+        'checkpoint': [str, 'Path to a pre-trained AE', '', 'Using pre-trained AE: '],
+        'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'target': [str, 'Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;', 'full', 'Target: '],
         # 'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
-        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
-        'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
+        'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
         'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'sigmoid', 'Activation function: '],
         'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],
         'time_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
@@ -287,13 +284,13 @@ def default_inputs_training_classifier():
         'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 1000, 'Sample interval: '],
         'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
-        'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP_len100.csv'), 'Dataset: '],
+        'data': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP_len100.csv'), 'Dataset: '],
         'path_test': [str, 'Path to the test dataset if using generated samples', 'None', 'Test dataset: '],
         'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_classifier', 'checkpoint.pt'), 'Checkpoint: '],
         'path_critic': [str, 'Path to the trained critic', os.path.join('trained_models', 'checkpoint.pt'), 'Critic: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
-        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        'kw_conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'kw_time': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
     }
 
     return kw_dict
@@ -310,11 +307,11 @@ def default_inputs_visualize():
         'spectogram': [bool, 'Use spectogram to visualize the frequency distribution of the data', False, 'Using spectogram'],
         'fft': [bool, 'Use a FFT-histogram to visualize the frequency distribution of the data', False, 'Using FFT-Hist'],
         'channel_plots': [bool, 'Plot each channel in a separate column', False, 'Plotting each channel in a separate column'],
-        'path_dataset': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'data': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
         'path_comp_dataset': [str, 'Path to a csv dataset for comparison; comparison only for t-SNE or PCA;', os.path.join('data', 'ganAverageERP.csv'), 'Training dataset: '],
-        'kw_timestep': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
-        'channel_label': [str, 'Column name to detect used channels', '', 'Channel label: '],
+        'kw_conditions': [str, '** Conditions to be used', '', 'Conditions: '],
+        'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
+        'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
         'n_samples': [int, 'Total number of samples to be plotted', 0, 'Number of plotted samples: '],
         # 'n_subplots': [int, 'Number of samples in one plot', 8, 'Number of samples in one plot: '],
         # 'starting_row': [int, 'Starting row of the dataset', 0, 'Starting to plot from row: '],
@@ -339,9 +336,9 @@ def default_inputs_checkpoint_to_csv():
 def default_inputs_generate_samples():
     kw_dict = {
         'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
-        'path_file': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
-        'path_samples': [str, 'File where to store the generated samples; If None, then checkpoint name is used', 'None', 'Saving generated samples to file: '],
-        'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
+        'model': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'path_samples': [str, 'File where to store the generated samples; If None, then checkpoint name is used', '', 'Saving generated samples to file: '],
+        'kw_time': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
         'sequence_length': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
         'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
         'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],

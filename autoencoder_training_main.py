@@ -26,14 +26,27 @@ def main():
     default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
     print('-----------------------------------------\n')
     
+    # create directory 'trained_models' if not exists
+    if not os.path.exists('trained_ae'):
+        os.makedirs('trained_ae')
+        print('Directory "../trained_ae" created to store checkpoints and final model.')
+    
+    if default_args['checkpoint'] != '':
+        # check if checkpoint exists and otherwise take trained_models/checkpoint.pt
+        if not os.path.exists(default_args['checkpoint']):
+            print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
+            default_args['checkpoint'] = os.path.join('trained_ae', 'checkpoint.pt')
+            checkpoint = default_args['checkpoint']
+        print(f'Resuming training from checkpoint {checkpoint}.')
+    
     # User inputs
     opt = {
-        'path_dataset': default_args['path_dataset'],
-        'path_checkpoint': default_args['path_checkpoint'],
+        'data': default_args['data'],
+        'checkpoint': default_args['checkpoint'],
         'save_name': default_args['save_name'],
         'target': default_args['target'],
         'sample_interval': default_args['sample_interval'],
-        'channel_label': default_args['channel_label'],
+        'kw_channel': default_args['kw_channel'],
         'channels_out': default_args['channels_out'],
         'time_out': default_args['time_out'],
         'n_epochs': default_args['n_epochs'],
@@ -48,11 +61,11 @@ def main():
         'num_heads': default_args['num_heads'],
         'num_layers': default_args['num_layers'],
         'ddp': default_args['ddp'],
-        'ddp_backend': default_args['ddp_backend'],
+        'ddp_backend': "nccl",  #default_args['ddp_backend'],
         'norm_data': True,
         'std_data': False,
         'diff_data': False,
-        'kw_timestep': default_args['kw_timestep'],
+        'kw_time': default_args['kw_time'],
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
         'history': None,
@@ -69,8 +82,8 @@ def main():
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
     
-    data = Dataloader(path=opt['path_dataset'],
-                      channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
+    data = Dataloader(path=opt['data'],
+                      kw_channel=opt['kw_channel'], kw_time=opt['kw_time'],
                       norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
     dataset = data.get_data()
     
@@ -103,8 +116,8 @@ def main():
 
     # Initiate autoencoder
     model_dict = None
-    if default_args['load_checkpoint'] and os.path.isfile(opt['path_checkpoint']):
-        model_dict = torch.load(opt['path_checkpoint'])
+    if default_args['load_checkpoint'] and os.path.isfile(opt['checkpoint']):
+        model_dict = torch.load(opt['checkpoint'])
 
         target_old = opt['target']
         channels_out_old = opt['channels_out']
@@ -115,15 +128,15 @@ def main():
         opt['time_out'] = model_dict['configuration']['time_out']
         
         # Report changes to user
-        print(f"Loading model {opt['path_checkpoint']}.\n\nInhereting the following parameters:")
+        print(f"Loading model {opt['checkpoint']}.\n\nInhereting the following parameters:")
         print("parameter:\t\told value -> new value")
         print(f"target:\t\t\t{target_old} -> {opt['target']}")
         print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
         print(f"time_out:\t{time_out_old} -> {opt['time_out']}")
         print('-----------------------------------\n')
 
-    elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
-        raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
+    elif default_args['load_checkpoint'] and not os.path.isfile(opt['checkpoint']):
+        raise FileNotFoundError(f"Checkpoint file {opt['checkpoint']} not found.")
     
     # Add parameters for tracking
     opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
@@ -200,7 +213,7 @@ def main():
                 model = model_2
             trainer = AEDDPTrainer(model, opt)
             if default_args['load_checkpoint']:
-                trainer.load_checkpoint(default_args['path_checkpoint'])
+                trainer.load_checkpoint(default_args['checkpoint'])
             mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
                     nprocs=opt['world_size'], join=True)
             
@@ -223,7 +236,7 @@ def main():
                 model = model_2
             trainer = AETrainer(model, opt)
             if default_args['load_checkpoint']:
-                trainer.load_checkpoint(default_args['path_checkpoint'])
+                trainer.load_checkpoint(default_args['checkpoint'])
             samples = trainer.training(train_dataloader, test_dataloader)
 
             if training_levels == 2 and training_level == 1:
@@ -244,16 +257,14 @@ def main():
 
         # Save model
         path = 'trained_ae'
-        if opt['save_name'] is None:
-            opt['save_name'] = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
-        if opt['save_name'] is not None:
+        if opt['save_name'] != '':
             # check if .pt extension is already included in the save_name
             if not opt['save_name'].endswith('.pt'):
                 opt['save_name'] += '.pt'
             filename = opt['save_name']
         else:
-            fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
-            filename = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
+            fn = opt['data'].split('/')[-1].split('.csv')[0]
+            filename = f"ae_{fn}_{str(time.time()).split('.')[0]}.pt"
         opt['save_name'] = os.path.join(path, filename)
         trainer.save_checkpoint(opt['save_name'], update_history=True, samples=samples)
         print(f"Model and configuration saved in {opt['save_name']}")

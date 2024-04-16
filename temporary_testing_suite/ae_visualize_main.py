@@ -14,7 +14,7 @@ ae_checkpoint = 'trained_ae/ae_ddp_4000ep_20230824_145643.pt'
 
 #Load
 ae_dict = torch.load(ae_checkpoint, map_location=torch.device('cuda'))
-dataloader = Dataloader(data_checkpoint, col_label='Condition', channel_label='Electrode')
+dataloader = Dataloader(data_checkpoint, kw_conditions='Condition', kw_channel='Electrode')
 dataset = dataloader.get_data()
 sequence_length = dataset.shape[1] - dataloader.labels.shape[1]
 
