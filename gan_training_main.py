@@ -32,10 +32,19 @@ def main():
     """Main function of the training process. 
     For input help use the command 'python gan_training_main.py help' in the terminal."""
     
-    # Regarding Github Issue #62 GAN Training script does not close everything properly (aka Memory Leakage after crashed training):
-    # Could not reproduce the memory leakage issue. May be an Oscar specific issue.
+    # TODO: Regarding Github Issue #62 GAN Training script does not close everything properly (aka Memory Leakage after crashed training):
+    # Could not reproduce the memory leakage issue. May be an Oscar or DDP specific issue.
+    # Two approaches:
+    # 1. added a try/except clause at DDP Training level to destroy the process group if an exception occurs
+    # 2. added a torch.cuda.empty_cache() call before each training run to clear the cache
+    # First try the 1st approach. If it does not work, try the 2nd approach.
+    # Here's the 2nd approach:
     # Try to fix the issue by emptying the cache before each training run.
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
+    
+    # create directory 'trained_models' if not exists
+    if not os.path.exists('trained_models'):
+        os.makedirs('trained_models')
     
     default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
 

@@ -128,10 +128,13 @@ class AEDDPTrainer(trainer.AETrainer):
 
 
 def run(rank, world_size, master_port, backend, trainer_ddp, opt):
-    _setup(rank, world_size, master_port, backend)
-    trainer_ddp = _setup_trainer(rank, trainer_ddp)
-    _ddp_training(trainer_ddp, opt)
-    dist.destroy_process_group()
+    try:
+        _setup(rank, world_size, master_port, backend)
+        trainer_ddp = _setup_trainer(rank, trainer_ddp)
+        _ddp_training(trainer_ddp, opt)
+        dist.destroy_process_group()
+    except:
+        dist.destroy_process_group()
 
 
 def _setup(rank, world_size, master_port, backend):
