@@ -97,8 +97,14 @@ def main():
         'lr_scheduler': default_args['lr_scheduler'],
         'scheduler_warmup': default_args['scheduler_warmup'],
         'scheduler_target': default_args['scheduler_target'],
+        'seed': default_args['seed'],
     }
-
+    
+    # set a seed for reproducibility if desired
+    if opt['seed']:
+        torch.manual_seed(42)
+        np.random.seed(42)
+    
     # Load dataset as tensor
     dataloader = Dataloader(default_args['path_dataset'],
                             kw_timestep=default_args['kw_timestep'],

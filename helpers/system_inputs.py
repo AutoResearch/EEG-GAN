@@ -217,6 +217,7 @@ def default_inputs_training_gan():
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
         'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
+        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
         'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence (not implemented yet)', 0, 'Input sequence length: '],
@@ -248,6 +249,7 @@ def default_inputs_training_autoencoder():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
+        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
         'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
         'path_dataset': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
@@ -275,6 +277,7 @@ def default_inputs_training_classifier():
     kw_dict = {
         'experiment': [bool, "Use experiment's samples as dataset", False, "Use experiment's samples as dataset"],
         'generated': [bool, 'Use generated samples as dataset', False, 'Use generated samples as dataset'],
+        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'testing': [bool, 'Only test. No training', False, 'Testing only'],
         'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
@@ -335,6 +338,7 @@ def default_inputs_checkpoint_to_csv():
 
 def default_inputs_generate_samples():
     kw_dict = {
+        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
         'path_file': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
         'path_samples': [str, 'File where to store the generated samples; If None, then checkpoint name is used', 'None', 'Saving generated samples to file: '],
         'kw_timestep_dataset': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],

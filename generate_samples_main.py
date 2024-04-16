@@ -18,6 +18,11 @@ from nn_architecture.ae_networks import TransformerDoubleAutoencoder, Transforme
 def main():
     default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
 
+    # set a seed for reproducibility if desired
+    if default_args['seed']:
+        torch.manual_seed(42)
+        np.random.seed(42)      
+    
     print('\n-----------------------------------------')
     print("System output:")
     print('-----------------------------------------\n')

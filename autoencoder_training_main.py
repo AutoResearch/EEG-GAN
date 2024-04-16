@@ -25,7 +25,7 @@ def main():
 
     default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
     print('-----------------------------------------\n')
-
+    
     # User inputs
     opt = {
         'path_dataset': default_args['path_dataset'],
@@ -56,9 +56,15 @@ def main():
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
         'history': None,
-        'trained_epochs': 0
+        'trained_epochs': 0,
+        'seed': default_args['seed'],
     }
-
+    
+    # set a seed for reproducibility if desired
+    if opt['seed']:
+        torch.manual_seed(42)
+        np.random.seed(42)
+    
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
