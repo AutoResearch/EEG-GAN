@@ -81,7 +81,6 @@ def main():
         'path_dataset': default_args['path_dataset'],
         'path_autoencoder': default_args['path_autoencoder'],
         'batch_size': default_args['batch_size'],
-        'learning_rate': default_args['learning_rate'],
         'discriminator_lr': default_args['discriminator_lr'],
         'generator_lr': default_args['generator_lr'],
         'sample_interval': default_args['sample_interval'],

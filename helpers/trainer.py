@@ -56,9 +56,8 @@ class GANTrainer(Trainer):
         self.critic_iterations = opt['critic_iterations'] if 'critic_iterations' in opt else 5
         self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
-        self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
-        self.discriminator_lr = opt['discriminator_lr']
-        self.generator_lr = opt['generator_lr']
+        self.d_lr = opt['discriminator_lr'] if 'learning_rate' in opt else 0.0001
+        self.g_lr = opt['generator_lr'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
         self.n_channels = opt['n_channels'] if 'n_channels' in opt else 1
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
@@ -78,9 +77,6 @@ class GANTrainer(Trainer):
 
         self.generator.to(self.device)
         self.discriminator.to(self.device)
-
-        self.d_lr = self.discriminator_lr if self.discriminator_lr is not None else self.learning_rate
-        self.g_lr = self.generator_lr if self.generator_lr is not None else self.learning_rate
 
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.g_lr, betas=(self.b1, self.b2))
@@ -123,9 +119,8 @@ class GANTrainer(Trainer):
             'epochs': self.epochs,
             'trained_epochs': self.trained_epochs,
             'sample_interval': self.sample_interval,
-            'learning_rate': self.learning_rate,
-            'discriminator_lr': self.discriminator_lr,
-            'generator_lr': self.generator_lr,
+            'discriminator_lr': self.d_lr,
+            'generator_lr': self.g_lr,
             'n_conditions': self.n_conditions,
             'latent_dim': self.latent_dim,
             'critic_iterations': self.critic_iterations,
