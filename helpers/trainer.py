@@ -134,6 +134,7 @@ class GANTrainer(Trainer):
             'scheduler_warmup': self.scheduler_warmup,
             'scheduler_target': self.scheduler_target,
             'padding': self.padding,
+            'seed': opt['seed'],
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
                 'column_label': opt['conditions'] if 'conditions' in opt else None,

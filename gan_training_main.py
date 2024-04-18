@@ -114,9 +114,12 @@ def main():
     }
     
     # set a seed for reproducibility if desired
-    if opt['seed']:
-        torch.manual_seed(42)
-        np.random.seed(42)
+    if opt['seed'] is not None:
+        np.random.seed(opt['seed'])                       
+        torch.manual_seed(opt['seed'])                    
+        torch.cuda.manual_seed(opt['seed'])               
+        torch.cuda.manual_seed_all(opt['seed'])           
+        torch.backends.cudnn.deterministic = True  
     
     # if autoencoder is used, take its activation function as the activation function for the generator
     # print warning that the activation function is overwritten with the autoencoder activation function
