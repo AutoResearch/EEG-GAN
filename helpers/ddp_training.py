@@ -164,38 +164,35 @@ def _setup_trainer(rank, trainer_ddp):
 
 def _ddp_training(trainer_ddp, opt):
     # load data
-    try:
-        if 'conditions' not in opt:
-            opt['conditions'] = ['']
-        dataloader = Dataloader(opt['data'],
-                                kw_time=opt['kw_timestep'],
-                                kw_conditions=opt['conditions'],
-                                norm_data=True,
-                                kw_channel=opt['kw_channel'])
-        dataset = dataloader.get_data()
-        opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
+    if 'conditions' not in opt:
+        opt['conditions'] = ['']
+    dataloader = Dataloader(opt['data'],
+                            kw_time=opt['kw_timestep'],
+                            kw_conditions=opt['conditions'],
+                            norm_data=True,
+                            kw_channel=opt['kw_channel'])
+    dataset = dataloader.get_data()
+    opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
-        if trainer_ddp.batch_size > len(dataset):
-            raise ValueError(f"Batch size {trainer_ddp.batch_size} is larger than the partition size {len(dataset)}.")
+    if trainer_ddp.batch_size > len(dataset):
+        raise ValueError(f"Batch size {trainer_ddp.batch_size} is larger than the partition size {len(dataset)}.")
 
-        # train
-        if isinstance(trainer_ddp, GANDDPTrainer):
-            path = 'trained_models'
-            model_prefix = 'gan'
-            dataset = DataLoader(dataset, batch_size=trainer_ddp.batch_size, shuffle=True)
-            gen_samples = trainer_ddp.training(dataset)
-        elif isinstance(trainer_ddp, AEDDPTrainer):
-            path = 'trained_ae'
-            model_prefix = 'ae'
-            train_data = dataset[:int(len(dataset) * opt['train_ratio'])]
-            test_data = dataset[int(len(dataset) * opt['train_ratio']):]
-            train_data = DataLoader(train_data, batch_size=trainer_ddp.batch_size, shuffle=True)
-            test_data = DataLoader(test_data, batch_size=trainer_ddp.batch_size, shuffle=True)
-            trainer_ddp.training(train_data, test_data)
-        else:
-            raise ValueError(f"Trainer type {type(trainer_ddp)} not supported.")
-    except Exception as error:
-        ValueError(f"Error in DDP training: {error}")
+    # train
+    if isinstance(trainer_ddp, GANDDPTrainer):
+        path = 'trained_models'
+        model_prefix = 'gan'
+        dataset = DataLoader(dataset, batch_size=trainer_ddp.batch_size, shuffle=True)
+        gen_samples = trainer_ddp.training(dataset)
+    elif isinstance(trainer_ddp, AEDDPTrainer):
+        path = 'trained_ae'
+        model_prefix = 'ae'
+        train_data = dataset[:int(len(dataset) * opt['train_ratio'])]
+        test_data = dataset[int(len(dataset) * opt['train_ratio']):]
+        train_data = DataLoader(train_data, batch_size=trainer_ddp.batch_size, shuffle=True)
+        test_data = DataLoader(test_data, batch_size=trainer_ddp.batch_size, shuffle=True)
+        trainer_ddp.training(train_data, test_data)
+    else:
+        raise ValueError(f"Trainer type {type(trainer_ddp)} not supported.")
 
     # save checkpoint
     if trainer_ddp.rank == 0:
