@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
+from datetime import datetime
 
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
 from helpers.dataloader import Dataloader
@@ -79,7 +80,7 @@ def main():
         torch.manual_seed(opt['seed'])                    
         torch.cuda.manual_seed(opt['seed'])               
         torch.cuda.manual_seed_all(opt['seed'])           
-        torch.backends.cudnn.deterministic = True  
+        torch.backends.cudnn.deterministic = True
     
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
@@ -260,14 +261,15 @@ def main():
 
         # Save model
         path = 'trained_ae'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         if opt['save_name'] != '':
             # check if .pt extension is already included in the save_name
             if not opt['save_name'].endswith('.pt'):
                 opt['save_name'] += '.pt'
             filename = opt['save_name']
         else:
-            fn = opt['data'].split('/')[-1].split('.csv')[0]
-            filename = f"ae_{fn}_{str(time.time()).split('.')[0]}.pt"
+            filename = f'ae_{trainer.epochs}ep_' + timestamp + '.pt'
+
         opt['save_name'] = os.path.join(path, filename)
         trainer.save_checkpoint(opt['save_name'], update_history=True, samples=samples)
         print(f"Model and configuration saved in {opt['save_name']}")
