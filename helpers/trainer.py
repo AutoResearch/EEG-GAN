@@ -54,6 +54,7 @@ class GANTrainer(Trainer):
         self.critic_iterations = opt['critic_iterations'] if 'critic_iterations' in opt else 5
         self.lambda_gp = opt['lambda_gp'] if 'lambda_gp' in opt else 10
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
+        self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.d_lr = opt['discriminator_lr'] if 'learning_rate' in opt else 0.0001
         self.g_lr = opt['generator_lr'] if 'learning_rate' in opt else 0.0001
         self.n_conditions = opt['n_conditions'] if 'n_conditions' in opt else 0
