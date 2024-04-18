@@ -129,10 +129,15 @@ class AEDDPTrainer(trainer.AETrainer):
 
 def run(rank, world_size, master_port, backend, trainer_ddp, opt):
     try:
+        print('1')
         _setup(rank, world_size, master_port, backend)
+        print('2')
         trainer_ddp = _setup_trainer(rank, trainer_ddp)
+        print('3')
         _ddp_training(trainer_ddp, opt)
+        print('4')
         dist.destroy_process_group()
+        print('5')
     except Exception as error:
         ValueError(f"Error in DDP training: {error}")
         dist.destroy_process_group()
