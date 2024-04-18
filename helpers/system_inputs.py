@@ -247,7 +247,7 @@ def default_inputs_training_autoencoder():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
-        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
+        'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
         'data': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'checkpoint': [str, 'Path to a pre-trained AE', '', 'Using pre-trained AE: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],

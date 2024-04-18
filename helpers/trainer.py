@@ -545,6 +545,7 @@ class AETrainer(Trainer):
             'num_layers': opt['num_layers'],
             'num_heads': opt['num_heads'],
             'activation': opt['activation'],
+            'seed': opt['seed'],
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
                 'col_label': opt['conditions'] if 'conditions' in opt else None,
