@@ -599,6 +599,9 @@ class AETrainer(Trainer):
             # save model at KeyboardInterrupt
             print("Keyboard interrupt detected.\nCancel training and continue with further operations.")
 
+        except Exception as error:
+            ValueError(f"An error occurred during training: {error}")
+
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
         return samples
 
