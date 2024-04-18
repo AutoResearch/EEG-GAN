@@ -132,8 +132,8 @@ def run(rank, world_size, master_port, backend, trainer_ddp, opt):
         _setup(rank, world_size, master_port, backend)
         print('1')
         trainer_ddp = _setup_trainer(rank, trainer_ddp)
-        print('2')
         _ddp_training(trainer_ddp, opt)
+        print('2')
         dist.destroy_process_group()
     except Exception as error:
         ValueError(f"Error in DDP training: {error}")
