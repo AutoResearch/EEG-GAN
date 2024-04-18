@@ -165,7 +165,7 @@ def _ddp_training(trainer_ddp, opt):
     # load data
     if 'conditions' not in opt:
         opt['conditions'] = ['']
-    dataloader = Dataloader(opt['path_dataset'],
+    dataloader = Dataloader(opt['data'],
                             kw_time=opt['kw_timestep'],
                             kw_conditions=opt['conditions'],
                             norm_data=True,
