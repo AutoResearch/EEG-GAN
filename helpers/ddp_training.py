@@ -55,6 +55,7 @@ class GANDDPTrainer(trainer.GANTrainer):
         self.device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else f'cpu:{rank}')
 
     def set_ddp_framework(self):
+        print('1')
         # set ddp generator and discriminator
         self.generator.to(self.rank)
         self.discriminator.to(self.rank)
@@ -62,16 +63,20 @@ class GANDDPTrainer(trainer.GANTrainer):
         self.discriminator = DDP(self.discriminator, device_ids=[self.rank], find_unused_parameters=False) #TODO: We suppressed a warning that not all outputs were being used by adding the find_unused... argument. Should check further to see if this is here appropriate.
 
         # safe optimizer state_dicts for later use
+        print('2')
         g_opt_state = self.generator_optimizer.state_dict()
         d_opt_state = self.discriminator_optimizer.state_dict()
 
+        print('3')
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
                                                     lr=self.learning_rate, betas=(self.b1, self.b2))
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.learning_rate, betas=(self.b1, self.b2))
 
+        print('4')
         self.generator_optimizer.load_state_dict(g_opt_state)
         self.discriminator_optimizer.load_state_dict(d_opt_state)
+        print('5')
 
 class AEDDPTrainer(trainer.AETrainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
@@ -154,9 +159,7 @@ def _setup_trainer(rank, trainer_ddp):
     print(f"Using device {trainer_ddp.device}.")
 
     # construct DDP model
-    print('1')
     trainer_ddp.set_ddp_framework()
-    print('2')
 
     # load checkpoint
     # if training.use_checkpoint:
