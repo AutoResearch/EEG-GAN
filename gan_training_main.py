@@ -67,13 +67,12 @@ def main():
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
 
-    if default_args['checkpoint'] != '':
+    if default_args['load_checkpoint'] and default_args['checkpoint'] != '':
         # check if checkpoint exists and otherwise take trained_models/checkpoint.pt
         if not os.path.exists(default_args['checkpoint']):
             print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
             default_args['checkpoint'] = os.path.join('trained_models', 'checkpoint.pt')
-            checkpoint = default_args['checkpoint']
-        print(f'Resuming training from checkpoint {checkpoint}.')
+        print(f'Resuming training from checkpoint {default_args['checkpoint']}.')
 
     # GAN configuration
     opt = {
