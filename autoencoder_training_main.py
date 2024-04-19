@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 from datetime import datetime
+import warnings
 
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
 from helpers.dataloader import Dataloader
@@ -208,6 +209,10 @@ def main():
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
+        warnings.warn(f""" The default autoencoder is a small model and DDP training adds a lot of overhead when transferring data to GPUs. 
+                As such, it might be useful to test each GPU and CPU training and see what works best for your use case. 
+                Although DDP training will result in better performance than CPU with the same number of training epochs,
+                you can achieve this same performance quicker by adding epochs with CPU training.""", stacklevel=2)
         for training_level in range(1,training_levels+1):
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
