@@ -73,6 +73,8 @@ def main():
             print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
             default_args['checkpoint'] = os.path.join('trained_models', 'checkpoint.pt')
         print(f'Resuming training from checkpoint {default_args['checkpoint']}.')
+    else:
+        default_args['checkpoint'] = os.path.join('trained_models', 'checkpoint.pt')
 
     # GAN configuration
     opt = {
