@@ -70,8 +70,6 @@ class GANDDPTrainer(trainer.GANTrainer):
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                         lr=self.d_lr, betas=(self.b1, self.b2))
 
-        #self.generator_optimizer.load_state_dict(g_opt_state)
-        #self.discriminator_optimizer.load_state_dict(d_opt_state)
 
 class AEDDPTrainer(trainer.AETrainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
@@ -124,7 +122,6 @@ class AEDDPTrainer(trainer.AETrainer):
         # safe optimizer state_dicts, init new ddp optimizer and load state_dicts
         opt_state = self.optimizer.state_dict()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        #self.optimizer.load_state_dict(opt_state)
 
 
 def run(rank, world_size, master_port, backend, trainer_ddp, opt):
