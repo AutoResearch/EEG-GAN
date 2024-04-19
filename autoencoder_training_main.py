@@ -216,13 +216,22 @@ def main():
                 you can achieve this same performance quicker by adding epochs with CPU training.""", stacklevel=3)
         for training_level in range(1,training_levels+1):
             opt['training_level'] = training_level
+            
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
-                model = model_1
+                trainer = AEDDPTrainer(model_1, opt)
             elif training_levels == 2 and training_level == 2:
                 print('Training the second level of the autoencoder...')
-                model = model_2
-            trainer = AEDDPTrainer(model, opt)
+                model_1_sd = trainer.model.state_dict()
+                model_1_osd = trainer.optimizer.state_dict()
+                trainer = AEDDPTrainer(model_2, opt)
+                trainer.model1_states = {
+                    'model': model_1_sd,
+                    'optimizer': model_1_osd
+                    }
+            else:
+                trainer = AEDDPTrainer(model, opt)
+                
             if default_args['load_checkpoint']:
                 trainer.load_checkpoint(default_args['checkpoint'])
             mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
