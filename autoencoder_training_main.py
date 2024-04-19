@@ -213,6 +213,7 @@ def main():
                 Although DDP training will result in better performance than CPU with the same number of training epochs,
                 you can achieve this same performance quicker by adding epochs with CPU training.""", stacklevel=3)
         for training_level in range(1,training_levels+1):
+            opt['training_level'] = training_level
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
                 model = model_1
@@ -238,11 +239,19 @@ def main():
             
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
-                model = model_1
+                trainer = AETrainer(model_1, opt)
             elif training_levels == 2 and training_level == 2:
                 print('Training the second level of the autoencoder...')
-                model = model_2
-            trainer = AETrainer(model, opt)
+                model_1_sd = trainer.model.state_dict()
+                model_1_osd = trainer.optimizer.state_dict()
+                trainer = AETrainer(model_2, opt)
+                trainer.model1_states = {
+                    'model': model_1_sd,
+                    'optimizer': model_1_osd
+                    }
+            else:
+                trainer = AETrainer(model, opt)
+                
             if default_args['load_checkpoint']:
                 trainer.load_checkpoint(default_args['checkpoint'])
             samples = trainer.training(train_dataloader, test_dataloader)

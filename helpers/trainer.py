@@ -508,6 +508,8 @@ class AETrainer(Trainer):
         self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
+        self.training_levels = opt['training_levels']
+        self.training_level = opt['training_level']
 
         # model
         self.model = model
@@ -667,15 +669,24 @@ class AETrainer(Trainer):
             'configuration': self.configuration,
         }
 
-        torch.save(checkpoint_dict, path_checkpoint)
+        if self.training_levels == 2 and self.training_level == 2:
+            checkpoint_dict['model_1'] = self.model1_states['model']
+            checkpoint_dict['model_1_optimizer'] = self.model1_states['optimizer']
+
+        if not (self.training_levels == 2 and self.training_level == 1) or 'checkpoint.pt' not in path_checkpoint:
+            torch.save(checkpoint_dict, path_checkpoint)
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):
             # load state_dicts
             state_dict = torch.load(path_checkpoint, map_location=self.device)
-            consume_prefix_in_state_dict_if_present(state_dict['model'], 'module.')
-            self.model.load_state_dict(state_dict['model'])
-            self.optimizer.load_state_dict(state_dict['optimizer'])
+            consume_prefix_in_state_dict_if_present(state_dict['model'], 'module.') 
+            if self.training_levels == 2 and self.training_level == 1:
+                self.model.load_state_dict(state_dict['model_1'])
+                self.optimizer.load_state_dict(state_dict['model_1_optimizer'])
+            else:           
+                self.model.load_state_dict(state_dict['model'])
+                self.optimizer.load_state_dict(state_dict['optimizer'])
         else:
             raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
 
