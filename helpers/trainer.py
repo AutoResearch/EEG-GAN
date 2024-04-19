@@ -159,6 +159,8 @@ class GANTrainer(Trainer):
         gen_samples_batch = None
         batch = None
 
+        print(self.epochs)
+
         loop = tqdm(range(self.epochs))
         # try/except for KeyboardInterrupt --> Abort training and save model
         try:
