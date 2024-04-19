@@ -166,13 +166,23 @@ def _ddp_training(trainer_ddp, opt):
     # load data
     if 'conditions' not in opt:
         opt['conditions'] = ['']
-    dataloader = Dataloader(opt['data'],
-                        kw_time=opt['kw_time'],
-                        kw_conditions=opt['kw_conditions'],
-                        norm_data=opt['norm_data'],
-                        std_data=opt['std_data'],
-                        diff_data=opt['diff_data'],
-                        kw_channel=opt['kw_channel'])
+    if isinstance(trainer_ddp, GANDDPTrainer):
+        dataloader = Dataloader(opt['data'],
+                            kw_time=opt['kw_time'],
+                            kw_conditions=opt['kw_conditions'],
+                            norm_data=opt['norm_data'],
+                            std_data=opt['std_data'],
+                            diff_data=opt['diff_data'],
+                            kw_channel=opt['kw_channel'])
+    elif isinstance(trainer_ddp, AEDDPTrainer):
+        dataloader = Dataloader(opt['data'],
+                            kw_time=opt['kw_time'],
+                            norm_data=opt['norm_data'],
+                            std_data=opt['std_data'],
+                            diff_data=opt['diff_data'],
+                            kw_channel=opt['kw_channel'])
+    else:
+        raise ValueError(f"Trainer type {type(trainer_ddp)} not supported.")
     
     dataset = dataloader.get_data()
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
