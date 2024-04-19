@@ -167,10 +167,13 @@ def _ddp_training(trainer_ddp, opt):
     if 'conditions' not in opt:
         opt['conditions'] = ['']
     dataloader = Dataloader(opt['data'],
-                            kw_time=opt['kw_timestep'],
-                            kw_conditions=opt['conditions'],
-                            norm_data=opt['norm_data'],
-                            kw_channel=opt['kw_channel'])
+                        kw_time=opt['kw_time'],
+                        kw_conditions=opt['kw_conditions'],
+                        norm_data=opt['norm_data'],
+                        std_data=opt['std_data'],
+                        diff_data=opt['diff_data'],
+                        kw_channel=opt['kw_channel'])
+    
     dataset = dataloader.get_data()
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
