@@ -169,7 +169,7 @@ def _ddp_training(trainer_ddp, opt):
     dataloader = Dataloader(opt['data'],
                             kw_time=opt['kw_timestep'],
                             kw_conditions=opt['conditions'],
-                            norm_data=True,
+                            norm_data=opt['norm_data'],
                             kw_channel=opt['kw_channel'])
     dataset = dataloader.get_data()
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
