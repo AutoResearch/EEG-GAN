@@ -249,7 +249,7 @@ def default_inputs_training_autoencoder():
         'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
         'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
         'data': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
-        'checkpoint': [str, 'Path to a pre-trained AE', 'trained_ae/checkpoint.pt', 'Using pre-trained AE: '],
+        'checkpoint': [str, 'Path to a pre-trained AE', os.path.join('trained_ae','checkpoint.pt'), 'Using pre-trained AE: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'target': [str, 'Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;', 'full', 'Target: '],
         # 'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
