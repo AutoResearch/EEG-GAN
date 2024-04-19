@@ -202,7 +202,7 @@ def main():
         trainer = GANTrainer(generator, discriminator, opt)
         if default_args['checkpoint'] != '':
             trainer.load_checkpoint(default_args['checkpoint'])
-        dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True)
+        dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True, pin_memory=True)
         gen_samples = trainer.training(dataset)
 
         # save final models, optimizer states, generated samples, losses and configuration as final result

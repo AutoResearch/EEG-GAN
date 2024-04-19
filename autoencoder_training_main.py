@@ -111,8 +111,8 @@ def main():
 
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
-    test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=opt['batch_size'], shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=opt['batch_size'], shuffle=True, pin_memory=True)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Initiate and train autoencoder
