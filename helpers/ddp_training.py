@@ -218,5 +218,5 @@ def _ddp_training(trainer_ddp, opt):
                 samples.append(np.concatenate([inputs.unsqueeze(1).detach().cpu().numpy(), outputs.unsqueeze(1).detach().cpu().numpy()], axis=1))
             trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=samples)
 
-        print("GAN training finished.")
+        print("Model training finished.")
         print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")
