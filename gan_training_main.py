@@ -193,10 +193,10 @@ def main():
             history[key] = [opt[key]]
     history['trained_epochs'] = [] 
 
-    if default_args['load_checkpoint'] and os.path.isfile(opt['checkpoint']):
+    if default_args['checkpoint'] != '':
         
         # load checkpoint
-        model_dict = torch.load(opt['checkpoint'])
+        model_dict = torch.load(default_args['checkpoint'])
 
         # update history
         for key in history.keys():
