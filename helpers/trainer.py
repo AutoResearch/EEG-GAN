@@ -377,7 +377,7 @@ class GANTrainer(Trainer):
 
         if update_history:
             self.configuration['trained_epochs'] = self.trained_epochs
-            self.configuration['history']['trained_epochs'] = [self.trained_epochs]
+            self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]            
             self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
 
         state_dict = {
@@ -510,6 +510,7 @@ class AETrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.training_levels = opt['training_levels']
         self.training_level = opt['training_level']
+        self.start_time = time.time()
 
         # model
         self.model = model
@@ -658,7 +659,8 @@ class AETrainer(Trainer):
         if update_history:
             self.configuration['trained_epochs'] = self.trained_epochs
             self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
-        
+            self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
+
         checkpoint_dict = {
             'model': model.state_dict(),
             'optimizer': self.optimizer.state_dict(),

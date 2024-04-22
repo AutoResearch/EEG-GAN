@@ -67,14 +67,13 @@ def main():
     if std_data and norm_data:
         raise Warning("Standardization and normalization are used at the same time.")
 
-    if default_args['load_checkpoint'] and default_args['checkpoint'] != '':
+    if default_args['checkpoint'] != '':
         # check if checkpoint exists and otherwise take trained_models/checkpoint.pt
         if not os.path.exists(default_args['checkpoint']):
             print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
             default_args['checkpoint'] = os.path.join('trained_models', 'checkpoint.pt')
-        print(f'Resuming training from checkpoint {default_args['checkpoint']}.')
-    else:
-        default_args['checkpoint'] = os.path.join('trained_models', 'checkpoint.pt')
+            checkpoint = default_args['checkpoint']
+        print(f'Resuming training from checkpoint {checkpoint}.')
 
     # GAN configuration
     opt = {
@@ -112,6 +111,8 @@ def main():
         'scheduler_target': default_args['scheduler_target'],
         'seed': default_args['seed'],
         'save_name': default_args['save_name'],
+        'history': None,
+
     }
     
     # set a seed for reproducibility if desired
@@ -180,6 +181,28 @@ def main():
     
     generator, discriminator = init_gan(**opt)
     print("Generator and discriminator initialized.")
+
+    # --------------------------------------------------------------------------------
+    # Setup History
+    # --------------------------------------------------------------------------------
+    
+    # Populate model configuration    
+    history = {}
+    for key in opt.keys():
+        if (not key == 'history') | (not key == 'trained_epochs'):
+            history[key] = [opt[key]]
+    history['trained_epochs'] = [] 
+
+    if default_args['load_checkpoint'] and os.path.isfile(opt['checkpoint']):
+        
+        # load checkpoint
+        model_dict = torch.load(opt['checkpoint'])
+
+        # update history
+        for key in history.keys():
+            history[key] = model_dict['configuration']['history'][key] + history[key]
+
+    opt['history'] = history
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Start training process
