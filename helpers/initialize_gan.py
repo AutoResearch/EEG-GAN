@@ -33,11 +33,11 @@ def init_gan(gan_type,
              activation='tanh', 
              input_sequence_length=0, 
              patch_size=-1, 
-             path_autoencoder='',
+             autoencoder='',
              padding=0,
              **kwargs,
              ):
-    if path_autoencoder == '':
+    if autoencoder == '':
         # no autoencoder defined -> use transformer GAN
         generator = gan_architectures[gan_types[gan_type][0]](
             # FFGenerator inputs: latent_dim, channels, hidden_dim, num_layers, dropout, activation
@@ -74,7 +74,7 @@ def init_gan(gan_type,
         # initialize an autoencoder-GAN
 
         # initialize the autoencoder
-        ae_dict = torch.load(path_autoencoder, map_location=torch.device('cpu'))
+        ae_dict = torch.load(autoencoder, map_location=torch.device('cpu'))
         if ae_dict['configuration']['target'] == 'channels':
             ae_dict['configuration']['target'] = TransformerAutoencoder.TARGET_CHANNELS
             autoencoder = TransformerAutoencoder(**ae_dict['configuration']).to(device)

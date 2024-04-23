@@ -103,7 +103,7 @@ def main():
                             activation=state_dict['configuration']['activation'],
                             input_sequence_length=input_sequence_length,
                             patch_size=state_dict['configuration']['patch_size'],
-                            path_autoencoder=state_dict['configuration']['autoencoder'],
+                            autoencoder=state_dict['configuration']['autoencoder'],
                             padding=state_dict['configuration']['padding'],
                             )
     generator.eval()
