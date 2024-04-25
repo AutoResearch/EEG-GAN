@@ -136,6 +136,49 @@ class HelperMain(Helper):
         self.end_line()
 
 
+class HelperVAE(Helper):
+    def __init__(self, kw_dict):
+        super().__init__(kw_dict)
+
+    def print_help(self):
+        """Print help message for vae_training_main.py regarding special features."""
+        super().print_help()
+        print(
+            '1.\tThe training works with two levels of checkpoint files:'
+            '\n\t1.1 During the training:'
+            '\n\t\tCheckpoints are saved every "sample_interval" batches as either "checkpoint_01.pt"'
+            '\n\t\tor "checkpoint_02.pt". These checkpoints are considered as low-level checkpoints since they are only '
+            '\n\t\tnecessary in the case of training interruption. Hereby, they can be used to continue the training from '
+            '\n\t\tthe most recent sample. To continue training, the most recent checkpoint file must be renamed to '
+            '\n\t\t"checkpoint.pt".'
+            '\n\t\tFurther, these low-level checkpoints carry the generated samples for inference purposes.'
+            '\n\t1.2 After finishing the training:'
+            '\n\t\tA high-level checkpoint is saved as "checkpoint.pt", which is used to '
+            '\n\t\tcontinue training in another session. This high-level checkpoint does not carry the generated samples.'
+            '\n\t\tTo continue training from this checkpoint file no further adjustments are necessary. '
+            '\n\t\tSimply give the keyword "load_checkpoint" when calling the training process.'
+            '\n\t\tThe low-level checkpoints are deleted after creating the high-level checkpoint.'
+            '\n\t1.3 For inference purposes:'
+            '\n\t\tAnother dictionary is saved as "vae_{n_epochs}ep_{timestamp}.pt".'
+            '\n\t\tThis file contains everything the checkpoint file contains, plus the generated samples.')
+        print(
+            '2.\tUse "ddp" to activate distributed training. '
+            '\n\tOnly if multiple GPUs are available for one node.'
+            '\n\tAll available GPUs are used for training.'
+            '\n\tEach GPU trains on the whole dataset. '
+            '\n\tHence, the number of training epochs is multiplied by the number of GPUs')
+        print(
+            '3.\tIf you want to load a pre-trained VAE, you can use the following command:'
+            '\n\tpython gan_training_main.py load_checkpoint; The default file is "trained_models/checkpoint.pt"'
+            '\n\tIf you want to use another file, you can use the following command:'
+            '\n\t\tpython vae_training_main.py load_checkpoint path_checkpoint="path/to/file.pt"')
+        print(
+            '4.\tIf you want to use a different dataset, you can use the following command:'
+            '\n\tpython gan_training_main.py path_dataset="path/to/file.csv"'
+            '\n\tThe default dataset is "data/gansEEGTrainingData.csv"')
+        self.start_line()
+        self.end_line()
+
 class HelperAutoencoder(Helper):
     def __init__(self, kw_dict):
         super().__init__(kw_dict)
@@ -267,6 +310,27 @@ def default_inputs_training_autoencoder():
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the AE', 0.0001, 'Learning rate: '],
     }
+    return kw_dict
+
+
+def default_inputs_training_vae():
+    kw_dict = {
+        'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
+        'data': [str, 'Path to the dataset', os.path.join('data', 'ganTrialElectrodeERP_p500_e1_SS100_Run00.csv'), 'Dataset: '], #TODO: REMOVE THIS
+        'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
+        'save_name': [str, 'Name to save model', None, 'Model save name: '],
+        'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
+        'kw_channel': [str, 'Column name to detect used channels', '', 'Channel label: '],
+        'kw_conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
+        'kw_time': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
+        'n_epochs': [int, 'Number of epochs to train for', 1000, 'Number of epochs: '],
+        'batch_size': [int, 'Batch size', 128, 'Batch size: '],
+        'hidden_dim': [int, 'Hidden dimension of the network', 256, 'Hidden dimension: '],
+        'encoded_dim': [int, 'Encoded dimension of mu and sigma', 25, 'Encoded dimension: '],
+        'learning_rate': [float, 'Learning rate of the VAE', 3e-4, 'Learning rate: '],
+        'kl_alpha': [float, 'Weight of the KL divergence in loss', 0.00005, 'KL alpha: '],
+        }
     return kw_dict
 
 
@@ -402,6 +466,9 @@ def parse_arguments(arguments, kw_dict=None, file=None):
         elif file == 'autoencoder_training_main.py':
             system_args = default_inputs_training_autoencoder()
             helper = HelperAutoencoder(system_args)
+        elif file == 'vae_training_main.py':
+            system_args = default_inputs_training_vae()
+            helper = HelperVAE(system_args)
         else:
             raise ValueError(f'File {file} not recognized.')
     else:
