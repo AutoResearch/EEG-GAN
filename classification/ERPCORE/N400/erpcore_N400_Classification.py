@@ -98,7 +98,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     print(f'ANALYSIS STARTED: Series = {series}, Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
     #Base save file names
-    generic_filename = f'classification/Classification Results/XXANALYSISXXPredictions_e{electrode_number}_XXCLASSXX.csv'
+    generic_filename = f'classification/ERPCORE/N400/Classification Results/XXANALYSISXXPredictions_e{electrode_number}_XXCLASSXX.csv'
 
     #Add features tag if applied
     if features:
@@ -294,7 +294,7 @@ if __name__ == '__main__':
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020'] #Which sample sizes to include
     syntheticDataOptions = ['emp'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['SVM','LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
+    classifiers = ['LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1] #Which electrode to predict
     num_series = 10 #Number of times to run all classifications
 
