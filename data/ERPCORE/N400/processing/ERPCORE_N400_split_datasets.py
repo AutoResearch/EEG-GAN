@@ -63,4 +63,4 @@ for sample_size in sample_sizes:
         #Extract sample data and save as csv
         sample_data = train_data[np.isin(train_data[:,0], sample_IDs)]
         sample_data = pd.DataFrame(sample_data)
-        sample_data.to_csv(f'data/ERPCORE/N400/Training Datasets/erpcore_n400_SS{str(sample_size).zfill(3)}_Run0{run}.csv', header=headers, index=False)
+        sample_data.to_csv(f'data/ERPCORE/N400/Training Datasets/erpcore_N400_SS{str(sample_size).zfill(3)}_Run0{run}.csv', header=headers, index=False)
