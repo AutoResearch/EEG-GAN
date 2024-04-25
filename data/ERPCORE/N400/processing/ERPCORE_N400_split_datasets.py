@@ -41,4 +41,26 @@ test_data = pd.DataFrame(test_data)
 test_data.to_csv(f'data/ERPCORE/N400/Validation and Test Datasets/erpcore_N400_test.csv', header=headers, index=False)
 
 train_data = pd.DataFrame(train_data)
-train_data.to_csv(f'data/ERPCORE/N400/Training Datasets/erpcore_N400_train.csv', header=headers, index=False)
+train_data.to_csv(f'data/ERPCORE/N400/Validation and Test Datasets/erpcore_N400_train.csv', header=headers, index=False)
+
+#####################################################
+## Split training datasets
+#####################################################
+
+sample_sizes = [5, 10, 15, 20]
+number_runs = 5
+train_data = np.array(train_data)
+
+for sample_size in sample_sizes:
+    for run in range(number_runs):
+
+        #Determine participant IDs for each dataset
+        p_IDs = np.unique(train_data[:,0])
+        np.random.shuffle(p_IDs)
+        sample_IDs = p_IDs[:sample_size]
+        print(f'Sample IDs for SS{str(sample_size).zfill(3)} and Run 0{run}: {sample_IDs}')
+
+        #Extract sample data and save as csv
+        sample_data = train_data[np.isin(train_data[:,0], sample_IDs)]
+        sample_data = pd.DataFrame(sample_data)
+        sample_data.to_csv(f'data/ERPCORE/N400/Training Datasets/erpcore_n400_SS{str(sample_size).zfill(3)}_Run0{run}.csv', header=headers, index=False)
