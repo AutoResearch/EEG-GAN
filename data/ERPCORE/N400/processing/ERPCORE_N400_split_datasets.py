@@ -41,4 +41,4 @@ test_data = pd.DataFrame(test_data)
 test_data.to_csv(f'data/ERPCORE/N400/Validation and Test Datasets/erpcore_N400_test.csv', header=headers, index=False)
 
 train_data = pd.DataFrame(train_data)
-train_data.to_csv(f'data/ERPCORE/N400/Validation and Test Datasets/erpcore_N400_train.csv', header=headers, index=False)
+train_data.to_csv(f'data/ERPCORE/N400/Training Datasets/erpcore_N400_train.csv', header=headers, index=False)
