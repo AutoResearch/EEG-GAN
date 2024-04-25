@@ -159,15 +159,13 @@ def main(run_TFT=True, process_synthetic=True):
     scaledLossganData = (((lossganData-ganDataOffset)/ganDataScale)*EEGDataScale)+EEGDataOffset
     scaledWinganData = (((winganData-ganDataOffset)/ganDataScale)*EEGDataScale)+EEGDataOffset
 
-    '''
     ## VAE ##
     
-    vae_fn_0 = f'data/anti-saccade/Full Datasets/antisaccade_e4_max_full.csv'
-    vae_fn_1 = f'data/anti-saccade/Full Datasets/antisaccade_e4_max_full.csv'
+    vae_fn_0 = f'generated_samples/ERPCORE/N400/Full Datasets/vae_erpcore_N400_full_c0.csv'
+    vae_fn_1 = f'generated_samples/ERPCORE/N400/Full Datasets/vae_erpcore_N400_full_c1.csv'
     vaeData0 = np.genfromtxt(vae_fn_0, delimiter=',', skip_header=1)
     vaeData1 = np.genfromtxt(vae_fn_1, delimiter=',', skip_header=1)
     vaeData = np.vstack((vaeData0, vaeData1))
-    vaeData = vaeData[np.r_[vaeData[:,1]==target_electrode],:]
     vaeData = np.delete(vaeData, 1,1) #Remove the electrode column but we need to keep it
 
     #Process synthetic data
@@ -179,7 +177,7 @@ def main(run_TFT=True, process_synthetic=True):
         tempvaeData = vaeData[:,1:]
 
     #Create and populate new array for processed synthetic data
-    processedvaeData = np.zeros((len(tempvaeData),101))
+    processedvaeData = np.zeros((len(tempvaeData),129))
     processedvaeData[:,0] = vaeData[:,0]
     processedvaeData[:,1:] = np.array(tempvaeData)
 
@@ -194,8 +192,8 @@ def main(run_TFT=True, process_synthetic=True):
     avgWinvaeData = np.mean(winvaeData, axis=0)
 
     #Scale synthetic data 
-    EEGDataScale = np.max(np.mean(lossEEGData, axis=0))-np.min(np.mean(lossEEGData, axis=0)) 
-    EEGDataOffset = np.min(np.mean(lossEEGData, axis=0))
+    EEGDataScale = np.max(np.mean(related_EEG_data, axis=0))-np.min(np.mean(related_EEG_data, axis=0)) 
+    EEGDataOffset = np.min(np.mean(related_EEG_data, axis=0))
     vaeDataScale = np.max(avgLossvaeData)-np.min(avgLossvaeData)
     vaeDataOffset = np.min(avgLossvaeData)
 
@@ -207,8 +205,6 @@ def main(run_TFT=True, process_synthetic=True):
 
     print('Data loading complete!')
 
-    '''
-
     ###############################################
     ## TRANSFORM DATA                            ##
     ###############################################
@@ -217,8 +213,8 @@ def main(run_TFT=True, process_synthetic=True):
     related_EEG_FFT = frequency_transform(related_EEG_data)
     winGANFFT = frequency_transform(fftwinganData)
     lossGANFFT = frequency_transform(fftlossganData)
-    #winVAEFFT = frequency_transform(fftwinvaeData)
-    #lossVAEFFT = frequency_transform(fftlossvaeData)
+    winVAEFFT = frequency_transform(fftwinvaeData)
+    lossVAEFFT = frequency_transform(fftlossvaeData)
 
     ## Time-Frequency
     speriod = 1/100
@@ -229,33 +225,22 @@ def main(run_TFT=True, process_synthetic=True):
         _, related_EEG_TFT = time_frequency_transform(related_EEG_data, speriod=speriod)
         _, winGANTFT = time_frequency_transform(winganData, speriod=speriod)
         _, lossGANTFT = time_frequency_transform(lossganData, speriod=speriod)
-        #_, winVAETFT = time_frequency_transform(winvaeData, speriod=speriod)
-        #_, lossVAETFT = time_frequency_transform(lossvaeData, speriod=speriod)
-
-    '''
-    import multiprocessing as mp
-    results = []
-    data_list = [winEEGData, lossEEGData, winganData, lossganData, winvaeData, lossvaeData]
-    data_names = ['winEEGData', 'lossEEGData', 'winganData', 'lossganData', 'winvaeData', 'lossvaeData']
-    for data, data_name in zip(data_list, data_names):
-        p = mp.Process(target=time_frequency_transform, args=(data, speriod, data_name))
-        p.start()
-        results.append(p)
-    '''
+        _, winVAETFT = time_frequency_transform(winvaeData, speriod=speriod)
+        _, lossVAETFT = time_frequency_transform(lossvaeData, speriod=speriod)
 
     if run_TFT:
         EEGTFT = np.mean(unrelaed_EEG_TFT,0) - np.mean(related_EEG_TFT,0)
         GANTFT = np.mean(winGANTFT,0) - np.mean(lossGANTFT,0)
-        #VAETFT = np.mean(winVAETFT,0) - np.mean(lossVAETFT,0)
+        VAETFT = np.mean(winVAETFT,0) - np.mean(lossVAETFT,0)
 
         #change EEGTFT to range from red to blue in imshow
         EEGTFT = norm(EEGTFT)
         GANTFT = norm(GANTFT)
-        #VAETFT = norm(VAETFT)
+        VAETFT = norm(VAETFT)
 
         tr_EEGTFT = constrain(EEGTFT, num_bins=5)
         tr_GANTFT = constrain(GANTFT, num_bins=5)
-        #tr_VAETFT = constrain(VAETFT, num_bins=5)
+        tr_VAETFT = constrain(VAETFT, num_bins=5)
 
     #######################################
     ## PLOT ALL
@@ -290,7 +275,6 @@ def main(run_TFT=True, process_synthetic=True):
     ax2.spines.right.set_visible(False)
     ax2.spines.top.set_visible(False)
 
-    '''
     #Plot synthetic ERPs
     ax2 = plt.subplot(num_rows,3,3)
     plt.plot(time, avgWinvaeData)
@@ -301,7 +285,7 @@ def main(run_TFT=True, process_synthetic=True):
     ax2.spines.right.set_visible(False)
     ax2.spines.top.set_visible(False)
     ax2.legend(['Win', 'Lose'],frameon=False)
-    '''
+    
     #######################################
     ## FFTs
     #######################################
@@ -331,7 +315,6 @@ def main(run_TFT=True, process_synthetic=True):
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Normalized Power')
 
-    '''
     ax=fig.add_subplot(num_rows,3,6)
     plt.plot(norm(np.mean(winVAEFFT,0)[:20]-np.mean(lossVAEFFT,0)[:20]))
     for i in np.arange(0,20,2):
@@ -342,7 +325,6 @@ def main(run_TFT=True, process_synthetic=True):
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Normalized Power')
 
-    '''
     #######################################
     ## TFTs
     #######################################
@@ -362,7 +344,6 @@ def main(run_TFT=True, process_synthetic=True):
         plt.ylabel('Frequency (Hz)')
         plt.xlabel('Time (ms)')
 
-        '''
         ax = fig.add_subplot(num_rows,3,9)
         mesh = plt.pcolormesh(time, frex, tr_VAETFT, cmap='coolwarm')
         plt.ylim([0,15])
@@ -371,8 +352,6 @@ def main(run_TFT=True, process_synthetic=True):
         plt.xlabel('Time (ms)')
         cax = ax.inset_axes([0.5, .9, 0.4, 0.04])
         fig.colorbar(mesh, cax=cax, orientation='horizontal')
-
-        '''
 
     #######################################
     ## Save
@@ -385,7 +364,7 @@ def main(run_TFT=True, process_synthetic=True):
 if __name__ == '__main__':
 
     #User inputs
-    run_TFT = True
+    run_TFT = False
     process_synthetic=True
     
     main(run_TFT=run_TFT, process_synthetic=process_synthetic)
