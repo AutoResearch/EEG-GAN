@@ -1,3 +1,7 @@
 
 #### RUN TRAINING AUTOENCODER ####
 for s in 005 010 015 020; do for r in 0 1 2 3 4; do python autoencoder_training_main.py data="data/ERPCORE/N170/Training Datasets/erpcore_N170_SS${s}_Run0${r}.csv" save_name="ERPCORE/N170/Training Datasets/ae_erpcore_N170_SS${s}_Run0${r}.pt" target=time kw_channel=Electrode time_out=64 n_epochs=2000; done; done
+
+#######################EVALUATION
+
+python autoencoder_training_main.py data="data/ERPCORE/N170/Full Datasets/erpcore_N170_full.csv" save_name="ERPCORE/N170/Full Datasets/ae_erpcore_N170_full.pt" target=time kw_channel=Electrode time_out=64 n_epochs=2000;
