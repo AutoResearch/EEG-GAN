@@ -106,6 +106,7 @@ class GANTrainer(Trainer):
             'device': self.device,
             'generator_class': generator_class,
             'discriminator_class': discriminator_class,
+            'model_class': 'GAN',
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
             'input_sequence_length': self.input_sequence_length,
@@ -135,9 +136,13 @@ class GANTrainer(Trainer):
             'scheduler_target': self.scheduler_target,
             'padding': self.padding,
             'seed': opt['seed'],
+            'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+            'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
-                'column_label': opt['conditions'] if 'conditions' in opt else None,
+                'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
@@ -540,7 +545,6 @@ class AETrainer(Trainer):
             'sequence_length': opt['sequence_length'],
             'target': opt['target'] if 'target' in opt else None,
             # 'conditions': opt['conditions'] if 'conditions' in opt else None,
-            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'output_dim': opt['output_dim'],
@@ -549,12 +553,15 @@ class AETrainer(Trainer):
             'num_heads': opt['num_heads'],
             'activation': opt['activation'],
             'seed': opt['seed'],
+            'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+            'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
-                'col_label': opt['conditions'] if 'conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
+                'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
                 'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
                 'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
@@ -687,6 +694,193 @@ class AETrainer(Trainer):
             else:           
                 self.model.load_state_dict(state_dict['model'])
                 self.optimizer.load_state_dict(state_dict['optimizer'])
+        else:
+            raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
+
+    def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False, samples=None):
+        """if training was successful delete the sub-checkpoint files and save the most current state as checkpoint,
+        but without generated samples to keep memory usage low. Checkpoint should be used for further training only.
+        Therefore, there's no need for the saved samples."""
+
+        print("Managing checkpoints...")
+        # save current model as checkpoint.pt
+        self.save_checkpoint(path_checkpoint=os.path.join(path_checkpoint, 'checkpoint.pt'), model=None, update_history=update_history, samples=samples)
+
+        for f in checkpoint_files:
+            if os.path.exists(os.path.join(path_checkpoint, f)):
+                os.remove(os.path.join(path_checkpoint, f))
+
+    def print_log(self, current_epoch, train_loss, test_loss):
+        print(
+            "[Epoch %d/%d] [Train loss: %f] [Test loss: %f]" % (current_epoch, self.epochs, train_loss, test_loss)
+        )
+
+    def set_optimizer_state(self, optimizer):
+        self.optimizer.load_state_dict(optimizer)
+        print('Optimizer state loaded successfully.')
+
+class VAETrainer(Trainer):
+    """Trainer for VAE"""
+
+    def __init__(self, model, opt):
+        # training configuration
+        super().__init__()
+        self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
+        self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
+        self.sample_interval = opt['sample_interval'] if 'sample_interval' in opt else 100
+        self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
+        self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
+        self.kl_alpha = opt['kl_alpha'] if 'kl_alpha' in opt else .00001
+        self.n_conditions = len(opt['kw_conditions']) if 'kw_conditions' in opt else 0
+
+        # model
+        self.model = model
+        self.model.to(self.device)
+
+        # optimizer and loss
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.loss = torch.nn.MSELoss()
+
+        # training statistics
+        self.trained_epochs = 0
+        self.train_loss = []
+
+        self.configuration = {
+            'device': self.device,
+            'model_class': str(self.model.__class__.__name__),
+            'batch_size': self.batch_size,
+            'n_epochs': self.epochs,
+            'sample_interval': self.sample_interval,
+            'learning_rate': self.learning_rate,
+            'hidden_dim': opt['hidden_dim'],
+            'encoded_dim': opt['encoded_dim'],
+            'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+            'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+            'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+            'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+            'trained_epochs': self.trained_epochs,
+            'input_dim': opt['input_dim'],
+            'activation': opt['activation'],
+            
+            'dataloader': {
+                'data': opt['data'] if 'data' in opt else None,
+                'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
+                'std_data': opt['std_data'] if 'std_data' in opt else None,
+                'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
+                'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+                'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+                'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+            },
+            'history': opt['history'] if 'history' in opt else None,
+        }
+
+    def training(self, dataset: DataLoader):
+        try:
+            self.recon_losses = []
+            self.kl_losses = []
+            self.losses = []
+            gen_samples = []
+            
+            path_checkpoint = 'trained_vae'
+            if not os.path.exists(path_checkpoint):
+                os.makedirs(path_checkpoint)
+            trigger_checkpoint_01 = True
+            checkpoint_01_file = 'checkpoint_01.pt'
+            checkpoint_02_file = 'checkpoint_02.pt'
+            
+            loop = tqdm(range(self.epochs))
+            for epoch in loop:
+                self.epoch = epoch
+                epoch_loss = self.batch_train(dataset)
+                self.train_loss.append(epoch_loss)
+                loop.set_postfix(loss=self.batch_loss.item())
+
+                #Generate samples on interval
+                if self.epoch % self.sample_interval == 0:
+                    generated_samples = torch.Tensor(self.model.generate_samples(loader=dataset,condition=0,num_samples=1000)).to(self.device)
+                    gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist()) #TODO: Not sure if this is the same as the GAN
+
+                    # save models and optimizer states as checkpoints
+                    # toggle between checkpoint files to avoid corrupted file during training
+                    if trigger_checkpoint_01:
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_01_file), samples=gen_samples)
+                        trigger_checkpoint_01 = False
+                    else:
+                        self.save_checkpoint(os.path.join(path_checkpoint, checkpoint_02_file), samples=gen_samples)
+                        trigger_checkpoint_01 = True
+                    
+                self.trained_epochs += 1
+
+            self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=gen_samples)
+            
+            return gen_samples
+
+        except KeyboardInterrupt:
+            # save model at KeyboardInterrupt
+            print("Keyboard interrupt detected.\nSaving checkpoint...")
+            self.save_checkpoint(update_history=True, samples=gen_samples)
+
+    def batch_train(self, data):
+
+        self.model.train()
+        total_loss = 0
+        for batch in data:
+
+            #Run data through model
+            inputs = batch[:,self.n_conditions:,:].to(self.model.device)
+            x_reconstruction, mu, sigma = self.model(inputs)
+            
+            #Loss
+            reconstruction_loss = self.loss(x_reconstruction, inputs)
+            kl_div = torch.mean(-0.5 * torch.sum(1 + sigma - mu**2 - torch.exp(sigma), axis=1), dim=0)
+            self.batch_loss = reconstruction_loss + kl_div*self.kl_alpha
+
+            #Update
+            self.optimizer.zero_grad()
+            self.batch_loss.backward()
+            self.optimizer.step()
+            total_loss += self.batch_loss.item()
+
+        self.recon_losses.append(reconstruction_loss.detach().tolist())
+        self.kl_losses.append(kl_div.detach().tolist())
+        self.losses.append(self.batch_loss.detach().tolist())
+
+        return total_loss / len(data)
+
+    def save_checkpoint(self, path_checkpoint=None, model=None, update_history=False, samples=None):
+        if path_checkpoint is None:
+            default_path = 'trained_ae'
+            if not os.path.exists(default_path):
+                os.makedirs(default_path)
+            path_checkpoint = os.path.join(default_path, 'checkpoint.pt')
+
+        if model is None:
+            model = self.model
+
+        if update_history:
+            self.configuration['trained_epochs'] = self.trained_epochs
+            self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
+        
+        checkpoint_dict = {
+            'model': model.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'train_loss': self.train_loss,
+            'trained_epochs': self.trained_epochs,
+            'samples': samples,
+            'configuration': self.configuration,
+        }
+
+        torch.save(checkpoint_dict, path_checkpoint)
+
+    def load_checkpoint(self, path_checkpoint):
+        if os.path.isfile(path_checkpoint):
+            # load state_dicts
+            state_dict = torch.load(path_checkpoint, map_location=self.device)
+            consume_prefix_in_state_dict_if_present(state_dict['model'], 'module.')
+            self.model.load_state_dict(state_dict['model'])
+            self.optimizer.load_state_dict(state_dict['optimizer'])
         else:
             raise FileNotFoundError(f"Checkpoint-file {path_checkpoint} was not found.")
 
