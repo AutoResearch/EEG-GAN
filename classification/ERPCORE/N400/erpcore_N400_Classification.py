@@ -115,8 +115,8 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     ## SYNTHETIC PROCESSING                      ##
     ###############################################
     if addSyntheticData == 'gan':
-        synFilename_0 = f"generated_samples/Anti-Saccade/antisaccade_gan_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Anti-Saccade/antisaccade_gan_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/ERPCORE/N400/Training Datasets/gan_erpcore_N400_SS{dataSampleSize}_Run{run}_c0.csv" #TODO: filename is missing a zero
+        synFilename_1 = f"generated_samples/ERPCORE/N400/Training Datasets/gan_erpcore_N400_SS{dataSampleSize}_Run{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features)
 
     elif addSyntheticData == 'vae':
@@ -293,8 +293,8 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020'] #Which sample sizes to include
-    syntheticDataOptions = ['emp'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
+    syntheticDataOptions = ['gan','emp'] #['emp', 'gan', 'vae'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    classifiers = ['SVM','RF','KNN','LR','NN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1] #Which electrode to predict
     num_series = 10 #Number of times to run all classifications
 

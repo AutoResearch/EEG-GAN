@@ -126,10 +126,10 @@ def load_synthetic(synFilename_0, synFilename_1, features):
     #Load Synthetic Data
     #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
 
-    Syn0_dataloader = Dataloader(synFilename_0, col_label='Condition', channel_label='Electrode')
+    Syn0_dataloader = Dataloader(synFilename_0, kw_conditions='Condition 0', kw_channel='Electrode') #TODO: Condition has 0 in header
     synData_0 = Syn0_dataloader.get_data(shuffle=False).detach().numpy()
 
-    Syn1_dataloader = Dataloader(synFilename_1, col_label='Condition', channel_label='Electrode')
+    Syn1_dataloader = Dataloader(synFilename_1, kw_conditions='Condition 0', kw_channel='Electrode')
     synData_1 = Syn1_dataloader.get_data(shuffle=False).detach().numpy()
 
     synData = np.concatenate((synData_0,synData_1),axis=0)
