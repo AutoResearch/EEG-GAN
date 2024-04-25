@@ -27,12 +27,12 @@ def main():
 
     #User input
     opt = {
-        'path_dataset': default_args['path_dataset'],
+        'data': default_args['data'],
         'path_checkpoint': default_args['path_checkpoint'],
         'save_name': default_args['save_name'],
         'sample_interval': default_args['sample_interval'],
-        'channel_label': default_args['channel_label'],
-        'conditions': default_args['conditions'],
+        'kw_channel': default_args['kw_channel'],
+        'kw_conditions': default_args['kw_conditions'],
         'n_epochs': default_args['n_epochs'],
         'batch_size': default_args['batch_size'],
         'learning_rate': default_args['learning_rate'],
@@ -43,7 +43,7 @@ def main():
         'norm_data': True,
         'std_data': False,
         'diff_data': False,
-        'kw_timestep': default_args['kw_timestep'],
+        'kw_time': default_args['kw_time'],
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
         'history': None,
         'trained_epochs': 0
@@ -59,16 +59,16 @@ def main():
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
-    data = Dataloader(path=opt['path_dataset'],
-                      channel_label=opt['channel_label'], 
-                      col_label=opt['conditions'],
-                      kw_timestep=opt['kw_timestep'],
+    data = Dataloader(path=opt['data'],
+                      kw_channel=opt['kw_channel'], 
+                      kw_conditions=opt['kw_conditions'],
+                      kw_time=opt['kw_time'],
                       norm_data=opt['norm_data'], 
                       std_data=opt['std_data'], 
                       diff_data=opt['diff_data'])
     dataset = data.get_data()
 
-    opt['input_dim'] = (dataset.shape[1] - len(opt['conditions'])) * dataset.shape[-1]
+    opt['input_dim'] = (dataset.shape[1] - len(opt['kw_conditions'])) * dataset.shape[-1]
 
     # ------------------------------------------------------------------------------------------------------------------
     # Load VAE checkpoint and populate configuration
@@ -115,7 +115,7 @@ def main():
     print("Training VAE...")
     print('-----------------------------------------\n')
     
-    if opt['ddp']:
+    if False: #opt['ddp']:
         NotImplementedError('Distributed training not implemented yet.')
         '''
         pass #Not implemented yet #TODO: IMPLEMENT THIS

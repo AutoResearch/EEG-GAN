@@ -115,7 +115,11 @@ class VariationalAutoencoder(nn.Module):
                     z = mu + sigma * torch.randn_like(sigma)
                     sample_decoded = self.decode(z)
                     gen_sample = torch.concat((y, sample_decoded), dim=1)
-                    gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
+                    if condition:
+                        gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
+                    else:
+                        gen_sample = gen_sample
+
                     generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
 
         return generated_samples[:num_samples,:]

@@ -106,6 +106,7 @@ class GANTrainer(Trainer):
             'device': self.device,
             'generator_class': generator_class,
             'discriminator_class': discriminator_class,
+            'model_class': 'GAN',
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
             'input_sequence_length': self.input_sequence_length,
@@ -135,9 +136,13 @@ class GANTrainer(Trainer):
             'scheduler_target': self.scheduler_target,
             'padding': self.padding,
             'seed': opt['seed'],
+            'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+            'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
-                'column_label': opt['conditions'] if 'conditions' in opt else None,
+                'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
@@ -540,7 +545,6 @@ class AETrainer(Trainer):
             'sequence_length': opt['sequence_length'],
             'target': opt['target'] if 'target' in opt else None,
             # 'conditions': opt['conditions'] if 'conditions' in opt else None,
-            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'output_dim': opt['output_dim'],
@@ -549,12 +553,15 @@ class AETrainer(Trainer):
             'num_heads': opt['num_heads'],
             'activation': opt['activation'],
             'seed': opt['seed'],
+            'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+            'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
-                'col_label': opt['conditions'] if 'conditions' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
+                'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
                 'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
                 'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
@@ -725,7 +732,7 @@ class VAETrainer(Trainer):
         self.learning_rate = opt['learning_rate'] if 'learning_rate' in opt else 0.0001
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.kl_alpha = opt['kl_alpha'] if 'kl_alpha' in opt else .00001
-        self.n_conditions = len(opt['conditions']) if 'conditions' in opt else 0
+        self.n_conditions = len(opt['kw_conditions']) if 'kw_conditions' in opt else 0
 
         # model
         self.model = model
@@ -750,21 +757,21 @@ class VAETrainer(Trainer):
             'encoded_dim': opt['encoded_dim'],
             'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
             'path_checkpoint': opt['path_checkpoint'] if 'path_checkpoint' in opt else None,
-            'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
-            'conditions': opt['conditions'] if 'conditions' in opt else None,
-            'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
+            'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
+            'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+            'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'activation': opt['activation'],
             
             'dataloader': {
-                'path_dataset': opt['path_dataset'] if 'path_dataset' in opt else None,
+                'data': opt['data'] if 'data' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
                 'std_data': opt['std_data'] if 'std_data' in opt else None,
                 'norm_data': opt['norm_data'] if 'norm_data' in opt else None,
-                'kw_timestep': opt['kw_timestep'] if 'kw_timestep' in opt else None,
-                'channel_label': opt['channel_label'] if 'channel_label' in opt else None,
-                'conditions': opt['conditions'] if 'conditions' in opt else None,
+                'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
+                'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+                'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else None,
         }
@@ -793,9 +800,6 @@ class VAETrainer(Trainer):
                 #Generate samples on interval
                 if self.epoch % self.sample_interval == 0:
                     generated_samples = torch.Tensor(self.model.generate_samples(loader=dataset,condition=0,num_samples=1000)).to(self.device)
-                    if True: #TODO: This is to display progress as part of debugging, but should (might want to?) be removed later
-                        self.model.plot_samples(loader=dataset,epoch=self.epoch)
-                        self.model.plot_losses(self.recon_losses, self.kl_losses, self.losses)
                     gen_samples.append(generated_samples[np.random.randint(0, generated_samples.shape[0])].detach().tolist()) #TODO: Not sure if this is the same as the GAN
 
                     # save models and optimizer states as checkpoints
