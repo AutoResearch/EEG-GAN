@@ -103,6 +103,9 @@ class VariationalAutoencoder(nn.Module):
   
     def generate_samples(self, loader, condition=0, num_samples=2500):
 
+        if not type(condition) == list:
+            condition = [condition]
+
         if not condition:
             raise NotImplementedError('You must specify a condition to generate samples with the VAE')
         else:
