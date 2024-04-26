@@ -169,7 +169,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
                 for e in range(x_.shape[-1]):
                     x_sample = x_[0,:,e]
                     if addSyntheticData == 'gaus':
-                        X_tr = x_sample + np.random.normal(0, .1, 100)
+                        X_tr = x_sample + np.random.normal(0, .1, 128)
                     elif addSyntheticData == 'rev':
                         X_tr = torch.flip(x_sample, (0,)) 
                     elif addSyntheticData == 'neg':
@@ -177,8 +177,8 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
                     elif addSyntheticData == 'smooth':
 
                         #Determine how much and where the data will be removed
-                        mask_len_samples = int((np.random.uniform()*100)/6.67)+10 # 10-25% of the data
-                        start_location = np.random.choice(range(0,100-mask_len_samples))
+                        mask_len_samples = int((np.random.uniform()*128)/6.67)+10 # 10-25% of the data
+                        start_location = np.random.choice(range(0,128-mask_len_samples))
 
                         #Taken from braindecode
                         batch_size = 1 #Currently just one sample
