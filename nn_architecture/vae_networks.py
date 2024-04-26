@@ -103,6 +103,14 @@ class VariationalAutoencoder(nn.Module):
   
     def generate_samples(self, loader, condition=0, num_samples=2500):
 
+        if not type(condition) == list:
+            condition = [condition]
+
+        if not condition:
+            raise NotImplementedError('You must specify a condition to generate samples with the VAE')
+        else:
+            condition = condition[0]
+
         self.num_electrodes = next(iter(loader)).shape[-1]
         
         with torch.no_grad():
@@ -115,10 +123,7 @@ class VariationalAutoencoder(nn.Module):
                     z = mu + sigma * torch.randn_like(sigma)
                     sample_decoded = self.decode(z)
                     gen_sample = torch.concat((y, sample_decoded), dim=1)
-                    if condition:
-                        gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
-                    else:
-                        gen_sample = gen_sample
+                    gen_sample = gen_sample[gen_sample[:,0,0]==condition,:,:]
 
                     generated_samples = np.vstack((generated_samples, gen_sample.detach().numpy())) 
 

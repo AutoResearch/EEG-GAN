@@ -235,10 +235,7 @@ def main():
         model.load_state_dict(state_dict['model'])
 
         # generate samples
-        if condition:
-            samples = model.generate_samples(loader=dataset, condition=condition[0], num_samples=num_samples_total)
-        else:
-            samples = model.generate_samples(loader=dataset, condition=condition, num_samples=num_samples_total)
+        samples = model.generate_samples(loader=dataset, condition=condition, num_samples=num_samples_total)
 
         # reconfigure samples to a 2D matrix for saving
         new_samples = []
