@@ -206,8 +206,16 @@ def _ddp_training(trainer_ddp, opt):
 
     # save checkpoint
     if trainer_ddp.rank == 0:
+        path ='trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'{model_prefix}_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
+        if opt['save_name'] != '':
+            # check if .pt extension is already included in the save_name
+            if not opt['save_name'].endswith('.pt'):
+                opt['save_name'] += '.pt'
+            filename = opt['save_name']
+        else:
+            filename = f'{model_prefix}_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
+            
         if isinstance(trainer_ddp, GANDDPTrainer):
             trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
         elif isinstance(trainer_ddp, AEDDPTrainer):
