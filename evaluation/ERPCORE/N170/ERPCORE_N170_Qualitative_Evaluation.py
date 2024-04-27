@@ -1,6 +1,7 @@
 ###############################################
 ## LOAD MODULES                              ##
 ###############################################
+import os
 import numpy as np
 import scipy
 from scipy import signal
@@ -43,8 +44,14 @@ def baselineCorrect(EEG):
 
     return baselinedEEG
 
-def norm(data):
-    return (data-np.min(data))/(np.max(data)-np.min(data))
+def norm(data, neg=False):
+
+    norm_data = (data-np.min(data))/(np.max(data)-np.min(data))
+
+    if neg:
+        norm_data = (norm_data*2)-1
+
+    return norm_data
 
 def constrain(data, num_bins=10):
     #transform data that is between 0 and 1 to be between -1 and 1
@@ -302,9 +309,9 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     #######################################
 
     ax=fig.add_subplot(num_rows,3,4)
-    #plt.plot(norm(np.mean(winEEGFFT,0)[:20]-np.mean(lossEEGFFT,0)[:20]))
-    plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]))
-    plt.plot(norm(np.mean(related_EEG_FFT,0)[:20]))
+    plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]-np.mean(related_EEG_FFT,0)[:20], neg=True))
+    #plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]))
+    #plt.plot(norm(np.mean(related_EEG_FFT,0)[:20]))
 
     for i in np.arange(0,20,2):
         plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
@@ -313,12 +320,14 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     plt.xticks(np.arange(0,21,2))
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Normalized Power')
+    plt.axhline(0, color='grey',linestyle='--', linewidth=1, alpha=.3)
+    
 
     if run_gan:
         ax=fig.add_subplot(num_rows,3,5)
-        #plt.plot(norm(np.mean(winGANFFT,0)[:20]-np.mean(lossGANFFT,0)[:20]))
-        plt.plot(norm(np.mean(winGANFFT,0)[:20]))
-        plt.plot(norm(np.mean(lossGANFFT,0)[:20]))
+        plt.plot(norm(np.mean(winGANFFT,0)[:20]-np.mean(lossGANFFT,0)[:20], neg=True))
+        #plt.plot(norm(np.mean(winGANFFT,0)[:20]))
+        #plt.plot(norm(np.mean(lossGANFFT,0)[:20]))
         for i in np.arange(0,20,2):
             plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
         ax.spines.right.set_visible(False)
@@ -326,6 +335,7 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
         plt.xticks(np.arange(0,21,2))
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Normalized Power')
+        plt.axhline(0, color='grey',linestyle='--', linewidth=1, alpha=.3)
 
     if run_vae:
         ax=fig.add_subplot(num_rows,3,6)
@@ -337,6 +347,8 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
         plt.xticks(np.arange(0,21,2))
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Normalized Power')
+        plt.axhline(0, color='grey',linestyle='--', linewidth=1, alpha=.3)
+
 
     #######################################
     ## TFTs
@@ -371,18 +383,22 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     #######################################
     ## Save
     #######################################
+    if not os.path.exists('figures'):
+        os.makedirs('figures')
+        
     plt.tight_layout()
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
+
     fig.savefig(f'figures/Figure N - ERPCORE_N170_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
 
     #User inputs
-    run_TFT = True
+    run_TFT = False
     process_synthetic=True
 
-    run_gan = False
+    run_gan = True
     run_vae = False
     
     main(run_TFT=run_TFT, process_synthetic=process_synthetic, run_gan=run_gan, run_vae=run_vae)
