@@ -303,8 +303,8 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020'] #Which sample sizes to include
-    syntheticDataOptions = ['emp'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
-    classifiers = ['SVM','RF','KNN'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS WHEN RUN WITH MP, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
+    syntheticDataOptions = ['emp','gan','over','gaus','rev','neg','smooth'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    classifiers = ['SVM','RF','KNN','NN','LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS WHEN RUN WITH MP, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1] #Which electrode to predict
     num_series = 10 #Number of times to run all classifications
     component = 'N2PC' #Which component of interest
