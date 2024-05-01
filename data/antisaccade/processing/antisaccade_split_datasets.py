@@ -29,7 +29,7 @@ test_data = data[np.isin(data[:,0], test_IDs)]
 train_data = data[np.isin(data[:,0], train_IDs)]
 
 #Create headers
-headers = ['Participant_ID', 'Condition', 'Trial', 'Electrode']
+headers = ['Participant_ID', 'Condition', 'Electrode', 'Trial']
 for t in range(125):
     headers.append(f'Time{t+1}')
 
