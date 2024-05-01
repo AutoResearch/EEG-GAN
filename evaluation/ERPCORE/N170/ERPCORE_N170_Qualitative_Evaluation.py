@@ -114,7 +114,7 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     ## EMPIRICAL ##
 
     #Load EEG Data (Participant, Condition, Trial, Electrode, Time1, ...)
-    EEG_data = np.genfromtxt(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full.csv', delimiter=',', skip_header=1)[:,1:] #Removes Participant Column
+    EEG_data = np.genfromtxt(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv', delimiter=',', skip_header=1)[:,1:] #Removes Participant Column
     EEG_data = np.delete(EEG_data, 1, 1) #Delete Unused Column (Trial)
 
     #Split into conditions
@@ -125,8 +125,8 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
         ## GAN ##
         
         #Load and Process Synthetic Data (Condition, Electrode, Time0, ...)
-        gan_fn_0 = f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_c0.csv'
-        gan_fn_1 = f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_c1.csv'
+        gan_fn_0 = f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned_c0.csv'
+        gan_fn_1 = f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned_c1.csv'
         ganData0 = np.genfromtxt(gan_fn_0, delimiter=',', skip_header=1)
         ganData1 = np.genfromtxt(gan_fn_1, delimiter=',', skip_header=1)
         ganData = np.vstack((ganData0, ganData1))
@@ -309,9 +309,9 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     #######################################
 
     ax=fig.add_subplot(num_rows,3,4)
-    plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]-np.mean(related_EEG_FFT,0)[:20], neg=True))
-    #plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]))
-    #plt.plot(norm(np.mean(related_EEG_FFT,0)[:20]))
+    #plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]-np.mean(related_EEG_FFT,0)[:20], neg=True))
+    plt.plot(norm(np.mean(unrelated_EEG_FFT,0)[:20]))
+    plt.plot(norm(np.mean(related_EEG_FFT,0)[:20]))
 
     for i in np.arange(0,20,2):
         plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
@@ -325,9 +325,9 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
 
     if run_gan:
         ax=fig.add_subplot(num_rows,3,5)
-        plt.plot(norm(np.mean(winGANFFT,0)[:20]-np.mean(lossGANFFT,0)[:20], neg=True))
-        #plt.plot(norm(np.mean(winGANFFT,0)[:20]))
-        #plt.plot(norm(np.mean(lossGANFFT,0)[:20]))
+        #plt.plot(norm(np.mean(winGANFFT,0)[:20]-np.mean(lossGANFFT,0)[:20], neg=True))
+        plt.plot(norm(np.mean(winGANFFT,0)[:20]))
+        plt.plot(norm(np.mean(lossGANFFT,0)[:20]))
         for i in np.arange(0,20,2):
             plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
         ax.spines.right.set_visible(False)
@@ -390,12 +390,12 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure N - ERPCORE_N170_Evaluations.png', dpi=600)
+    fig.savefig(f'figures/Figure N - ERPCORE_N170_Evaluations Cleaned.png', dpi=600)
 
 if __name__ == '__main__':
 
     #User inputs
-    run_TFT = False
+    run_TFT = True
     process_synthetic=True
 
     run_gan = True
