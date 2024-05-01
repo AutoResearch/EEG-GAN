@@ -6,3 +6,6 @@ trained_models
 plots
 generated_samples
 data/ERPCORE/N400/Raw
+data/ERPCORE/N170/Raw
+data/ERPCORE/N2PC/Raw
+data/ERPCORE/MMN/
