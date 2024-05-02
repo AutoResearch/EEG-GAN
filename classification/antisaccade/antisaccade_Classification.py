@@ -167,7 +167,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
                 for e in range(x_.shape[-1]):
                     x_sample = x_[0,:,e]
                     if addSyntheticData == 'gaus':
-                        X_tr = x_sample + np.random.normal(0, .1, 128)
+                        X_tr = x_sample + np.random.normal(0, .1, 125)
                     elif addSyntheticData == 'rev':
                         X_tr = torch.flip(x_sample, (0,)) 
                     elif addSyntheticData == 'neg':
