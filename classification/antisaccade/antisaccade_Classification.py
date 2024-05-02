@@ -122,8 +122,8 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     ## SYNTHETIC PROCESSING                      ##
     ###############################################
     if addSyntheticData == 'gan':
-        synFilename_0 = f"generated_samples/antisaccade/Training Datasets/gan_antisaccade_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/antisaccade/Training Datasets/gan_antisaccade_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Antisaccade/Training Datasets/gan_antisaccade_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Antisaccade/Training Datasets/gan_antisaccade_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     elif addSyntheticData == 'vae':
