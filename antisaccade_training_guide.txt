@@ -1,0 +1,7 @@
+#####################ANTISACCADE#####################
+
+#### RUN AE ####
+for s in 005 010 015 020 030 060 100; do for r in 0 1 2 3 4; do python autoencoder_training_main.py data="data/antisaccade/Training Datasets/antisaccade_SS${s}_Run0${r}.csv" save_name="Antisaccade/Training Datasets/ae_antisaccade_SS${s}_Run0${r}.pt" target=time kw_channel=Electrode time_out=64 n_epochs=2000; done; done
+
+#### RUN GAN ####
+for s in 005 010 015 020 030 060 100; do for r in 0 1 2 3 4; do python gan_training_main.py ddp data="data/antisaccade/Training Datasets/antisaccade_SS${s}_Run0${r}.csv" autoencoder="trained_ae/Antisaccade/Training Datasets/ae_antisaccade_SS${s}_Run0${r}.pt" save_name="Antisaccade/Training Datasets/gan_antisaccade_SS${s}_Run0${r}.pt" patch_size=16 type=tts kw_channel=Electrode kw_conditions=Condition n_epochs=2000; done; done 
