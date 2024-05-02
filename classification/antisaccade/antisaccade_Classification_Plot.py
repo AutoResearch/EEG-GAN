@@ -180,7 +180,7 @@ def main(xLabels, data):
 if __name__ == '__main__':
 
     #Define variables
-    xLabels = [5,10,15,20]
+    xLabels = [5,10,15,20,30,60]
     data = np.arange(1,6)
 
     main(xLabels, data)
