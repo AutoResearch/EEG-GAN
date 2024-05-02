@@ -114,7 +114,7 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True, compo
     ## EMPIRICAL ##
 
     #Load EEG Data (Participant, Condition, Trial, Electrode, Time1, ...)
-    EEG_data = np.genfromtxt(f'data/ERPCORE/{component}/Full Datasets/erpcore_{component}_full.csv', delimiter=',', skip_header=1)[:,1:] #Removes Participant Column
+    EEG_data = np.genfromtxt(f'data/ERPCORE/{component}/Full Datasets/erpcore_{component}_full_cleaned.csv', delimiter=',', skip_header=1)[:,1:] #Removes Participant Column
     EEG_data = np.delete(EEG_data, 1, 1) #Delete Unused Column (Trial)
 
     #Split into conditions
@@ -125,8 +125,8 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True, compo
         ## GAN ##
         
         #Load and Process Synthetic Data (Condition, Electrode, Time0, ...)
-        gan_fn_0 = f'generated_samples/ERPCORE/{component}/Full Datasets/gan_erpcore_{component}_full_c0.csv'
-        gan_fn_1 = f'generated_samples/ERPCORE/{component}/Full Datasets/gan_erpcore_{component}_full_c1.csv'
+        gan_fn_0 = f'generated_samples/ERPCORE/{component}/Full Datasets/gan_erpcore_{component}_full_cleaned_c0.csv'
+        gan_fn_1 = f'generated_samples/ERPCORE/{component}/Full Datasets/gan_erpcore_{component}_full_cleaned_c1.csv'
         ganData0 = np.genfromtxt(gan_fn_0, delimiter=',', skip_header=1)
         ganData1 = np.genfromtxt(gan_fn_1, delimiter=',', skip_header=1)
         ganData = np.vstack((ganData0, ganData1))
@@ -228,7 +228,7 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True, compo
         lossVAEFFT = frequency_transform(fftlossvaeData)
 
     ## Time-Frequency
-    speriod = 1/100
+    speriod = 1/128
 
     #Time-Frequency Transform
     if run_TFT:
@@ -398,7 +398,7 @@ if __name__ == '__main__':
     run_TFT = False
     process_synthetic=True
 
-    run_gan = False
+    run_gan = True
     run_vae = False
 
     component = 'N2PC'

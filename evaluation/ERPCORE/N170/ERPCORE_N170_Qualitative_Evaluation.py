@@ -228,7 +228,7 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
         lossVAEFFT = frequency_transform(fftlossvaeData)
 
     ## Time-Frequency
-    speriod = 1/100
+    speriod = 1/128
 
     #Time-Frequency Transform
     if run_TFT:
