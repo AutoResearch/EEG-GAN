@@ -5,3 +5,6 @@ for s in 005 010 015 020 030 060 100; do for r in 0 1 2 3 4; do python autoencod
 
 #### RUN GAN ####
 for s in 005 010 015 020 030 060 100; do for r in 0 1 2 3 4; do python gan_training_main.py ddp data="data/antisaccade/Training Datasets/antisaccade_SS${s}_Run0${r}.csv" autoencoder="trained_ae/Antisaccade/Training Datasets/ae_antisaccade_SS${s}_Run0${r}.pt" save_name="Antisaccade/Training Datasets/gan_antisaccade_SS${s}_Run0${r}.pt" patch_size=16 type=tts kw_channel=Electrode kw_conditions=Condition n_epochs=2000; done; done 
+
+#### GENERATE SAMPLES ####
+for s in 005 010 015 020 030 060; do for r in 0 1 2 3 4; do for c in 0 1; do python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 model="trained_models/Antisaccade/Training Datasets/gan_antisaccade_SS${s}_Run0${r}.pt" path_samples="generated_samples/Antisaccade/Training Datasets/gan_antisaccade_SS${s}_Run0${r}_c${c}.csv" conditions=${c}; done; done; done
