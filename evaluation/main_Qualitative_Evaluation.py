@@ -264,13 +264,13 @@ def main():
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.2, 1.075, 'Reinforcement\nLearning', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 4:
-            plt.text(-0.2, 1.05, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.2, 1.05, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 10:
-            plt.text(-0.2, 1.05, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         
         #Labels
         if num_item > 9:
