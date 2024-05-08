@@ -10,10 +10,10 @@ import os
 ###############################################
 
 #Define function to determine filenames
-def retrieveData(prefix, classifier): 
+def retrieveData(prefix, classifier, electrodes=1): 
 
-    augData = f'{prefix}/ganPredictions_e1_{classifier}.csv'
-    empData = f'{prefix}/empPredictions_e1_{classifier}.csv'
+    augData = f'{prefix}/ganPredictions_e{electrodes}_{classifier}.csv'
+    empData = f'{prefix}/empPredictions_e{electrodes}_{classifier}.csv'
 
     return empData, augData
 
@@ -93,7 +93,7 @@ def main():
     ## SETUP FIGURE                              ##
     ###############################################
 
-    num_rows = 4
+    num_rows = 5
     fig = plt.figure(figsize=(24, 3*num_rows), dpi=600)
     fig.subplots_adjust(hspace=.3, bottom=0.2)
     plt.rcParams.update({'font.size': 5})  
@@ -107,6 +107,7 @@ def main():
     ###############################################
 
     datasets = ['classification/Reinforcement Learning/Classification Results',
+                'classification/Reinforcement Learning/Classification Results',
                 'classification/Antisaccade/Classification Results',
                 'classification/ERPCORE/N170/Classification Results',
                 'classification/ERPCORE/N2PC/Classification Results']
@@ -115,7 +116,7 @@ def main():
 
     for dataset_index, dataset in enumerate(datasets):
 
-        if dataset_index < 2:
+        if dataset_index < 3:
             xLabels = [5,10,15,20,25,30,35]
         else:
             xLabels = [5,10,15,20]
@@ -131,7 +132,10 @@ def main():
 
             #Load and plot data while extracting legend names
             legendNames = []
-            empData, augData = retrieveData(dataset, classifier)
+            if False: #dataset_index == 1: #TODO: ADD THIS BACK IN
+                empData, augData = retrieveData(dataset, classifier, electrodes=8)
+            else:
+                empData, augData = retrieveData(dataset, classifier)
 
             legendNames.append(loadAndPlot(augData,'C0','GAN-Augmented',alpha=alpha))
             legendNames.append(loadAndPlot(empData,'C1','Empirical',alpha=alpha))
@@ -146,7 +150,7 @@ def main():
             plt.xlim(2.5,22.5)
             plt.xticks(xLabels, fontsize = 10)
             #change xtick labels to ['5','10','15','20','30','60','100']
-            if dataset_index < 2:
+            if dataset_index < 3:
                 plt.xticks(np.arange(5,40,5), ['5','10','15','20','30','60','100'], fontsize = 10)
                 plt.xlim(2.5,37.5)
 
@@ -158,11 +162,11 @@ def main():
                 plt.legend(legendNames, bbox_to_anchor=(.9,1.11), frameon=False, fontsize=10)
                 
             #Plot y label on left subplot
-            if (num_item == 1 or num_item == 6 or num_item == 11 or num_item == 16):
+            if (num_item == 1 or num_item == 6 or num_item == 11 or num_item == 16 or num_item == 21):
                 plt.ylabel('Prediction Accuracy (%)', fontsize = 12)
                 
             #Plot x label on bottom subplots   
-            if (num_item > 15):
+            if (num_item > 20):
                 plt.xlabel('Sample Size', fontsize = 12)
                 
             #Add classifier titles
@@ -179,13 +183,15 @@ def main():
 
             #Row labels
             if num_item == 1:
-                plt.text(0, 1.1, 'Reinforcement\nLearning', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+                plt.text(-.25, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
             elif num_item == 6:
-                plt.text(0, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+                plt.text(-.25, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
             elif num_item == 11:
-                plt.text(0, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+                plt.text(-.25, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
             elif num_item == 16:
-                plt.text(0, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+                plt.text(-.25, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            elif num_item == 21:
+                plt.text(-.25, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         
             #Add difference bars
             ax2 = ax1.twinx()  
