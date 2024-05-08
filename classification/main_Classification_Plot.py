@@ -40,7 +40,7 @@ def loadAndPlot(filename, plotColor, legendName, alpha=1):
     else:
         xLabels = [5,10,15,20]
 
-    plt.plot(xLabels, meanData, color = plotColor, linewidth = 1, alpha=alpha)
+    plt.plot(xLabels, meanData, color = plotColor, linewidth = 2, alpha=alpha)
     plt.scatter(xLabels,meanData,label='_nolegend_', color = plotColor, s = 10, alpha=alpha, linewidths=0)
     markers, caps, bars = plt.errorbar(xLabels, meanData, semData, label='_nolegend_', color = plotColor, fmt=' ', linewidth = 1, alpha=alpha)
     [bar.set_alpha(alpha) for bar in bars]
@@ -167,15 +167,15 @@ def main():
                 
             #Add classifier titles
             if (num_item == 1):
-                plt.text(0.5, 1.33, 'Neural\nNetwork', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.3, 'Neural\nNetwork', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 2):
-                plt.text(0.5, 1.33, 'Support\nVector\nMachine', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.3, 'Support\nVector\nMachine', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 3):
-                plt.text(0.5, 1.33, 'Logistic\nRegression', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.3, 'Logistic\nRegression', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 4):
-                plt.text(0.5, 1.33, 'Random\nForest', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.3, 'Random\nForest', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 5):
-                plt.text(0.5, 1.33, 'K-Nearest\nNeighbors', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.3, 'K-Nearest\nNeighbors', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
 
             #Row labels
             if num_item == 1:
