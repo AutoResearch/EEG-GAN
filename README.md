@@ -6,6 +6,7 @@ You can find our documentation [here](https://autoresearch.github.io/EEG-GAN/)
 
 Feel free to contribute!
 
+**Package and documentation under construction -- EEG-GAN v2.0 coming soon...**
 
 
 # Running GANs on Brown's Oscar Cluster with 8GPUs (internal information for current developpers)
