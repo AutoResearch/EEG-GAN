@@ -5,6 +5,10 @@ hide:
 
 # Augmenting EEG with GANs
 
+**Package and Documentation are under construction**
+
+**EEG-GAN v2.0 coming soon!**
+
 ## <b>The GAN Package</b>
 
 We here use Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g.,  Support Vector Machine, Neural Network).
