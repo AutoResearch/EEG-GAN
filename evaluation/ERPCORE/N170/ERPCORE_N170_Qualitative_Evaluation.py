@@ -390,7 +390,7 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True):
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure N - ERPCORE_N170_Evaluations Cleaned.png', dpi=600)
+    fig.savefig(f'figures/Figure S3 - ERPCORE_N170_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
 
@@ -399,6 +399,6 @@ if __name__ == '__main__':
     process_synthetic=True
 
     run_gan = True
-    run_vae = False
+    run_vae = True
     
     main(run_TFT=run_TFT, process_synthetic=process_synthetic, run_gan=run_gan, run_vae=run_vae)

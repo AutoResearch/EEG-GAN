@@ -390,16 +390,16 @@ def main(run_TFT=True, process_synthetic=True, run_gan=True, run_vae=True, compo
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure N - ERPCORE_{component}_Evaluations.png', dpi=600)
+    fig.savefig(f'figures/Figure S4 - ERPCORE_{component}_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
 
     #User inputs
-    run_TFT = False
+    run_TFT = True
     process_synthetic=True
 
     run_gan = True
-    run_vae = False
+    run_vae = True
 
     component = 'N2PC'
     
