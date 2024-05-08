@@ -107,7 +107,7 @@ def time_frequency_transform(data, speriod=1/1000, label=''):
 ###############################################
 ## LOAD AND PROCESS DATA                     ##
 ###############################################
-def main():
+def main(try_=None):
     
     ## EMPIRICAL ##
     def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True):
@@ -223,24 +223,98 @@ def main():
 
     N170_eeg_c0, N170_eeg_c1, N170_gan_c0, N170_gan_c1, N170_vae_c0, N170_vae_c1 = load_data(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv', 
                                                                                              f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned.csv',
-                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_cleaned.csv')
+                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_try{try_}.csv')
 
     N2PC_eeg_c0, N2PC_eeg_c1, N2PC_gan_c0, N2PC_gan_c1, N2PC_vae_c0, N2PC_vae_c1 = load_data(f'data/ERPCORE/N2PC/Full Datasets/erpcore_N2PC_full_cleaned.csv', 
                                                                                              f'generated_samples/ERPCORE/N2PC/Full Datasets/gan_erpcore_N2PC_full_cleaned.csv',
                                                                                              f'generated_samples/ERPCORE/N2PC/Full Datasets/vae_erpcore_N2PC_full_cleaned.csv')
 
     #######################################
-    ## PLOT ALL
+    ## FIGURE 1
     #######################################
 
+    #Plotting Function
+    def plot_trials(c0, c1, num_item, num_rows=4):
+
+        #concatenate c0 and c1
+        data = np.vstack((c0, c1))
+
+        #Setup
+        ax1 = plt.subplot(num_rows, 3, num_item)
+
+        random_samples = np.random.choice(data.shape[0], 5, replace=False)
+        #plot 5 random trials but scale them so they don't overlap
+        for i, trial in enumerate(random_samples):
+            plt.plot(norm(filterEEG(data[trial,:]))+(i*2), color='C0')
+        ax1.spines.right.set_visible(False)
+        ax1.spines.top.set_visible(False)
+
+        #Formatting
+        if num_item >9:
+            plt.xlabel('Time (ms)', color='grey')
+        else:
+            plt.xlabel('')
+        if num_item % 3 == 1:
+            plt.ylabel('Voltage ($\mu$V)', color='grey')
+        else:
+            plt.ylabel('')
+
+        ax1.spines['bottom'].set_color('grey')
+        ax1.spines['left'].set_color('grey')
+        plt.xticks([])
+        plt.yticks([])
+
+        #Title
+        if num_item == 1:
+            plt.text(0.5, 1.2, 'Empirical', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+        elif num_item == 2:
+            plt.text(0.5, 1.2, 'GAN-Synthetic', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+        elif num_item == 3:
+            plt.text(0.5, 1.2, 'VAE-Synthetic', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+
+        #Row labels
+        if num_item == 1:
+            plt.text(-0.1, 1.1, 'Reinforcement\nLearning', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        elif num_item == 4:
+            plt.text(-0.1, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        elif num_item == 7:
+            plt.text(-0.1, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        elif num_item == 10:
+            plt.text(-0.1, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+
+    #Plot
     num_rows = 4
 
     fig = plt.figure(figsize=(12,num_rows*3))
 
+    plot_trials(REWP_eeg_c0, REWP_eeg_c1, 1)
+    plot_trials(REWP_gan_c0, REWP_gan_c1, 2)
+    plot_trials(REWP_vae_c0, REWP_vae_c1, 3)
+    plot_trials(N2P3_eeg_c0, N2P3_eeg_c1, 4)
+    plot_trials(N2P3_gan_c0, N2P3_gan_c1, 5)
+    plot_trials(N2P3_vae_c0, N2P3_vae_c1, 6)
+    plot_trials(N170_eeg_c0, N170_eeg_c1, 7,)
+    plot_trials(N170_gan_c0, N170_gan_c1, 8,)
+    plot_trials(N170_vae_c0, N170_vae_c1, 9,)
+    plot_trials(N2PC_eeg_c0, N2PC_eeg_c1, 10)
+    plot_trials(N2PC_gan_c0, N2PC_gan_c1, 11)
+    plot_trials(N2PC_vae_c0, N2PC_vae_c1, 12)
+
+    if not os.path.exists('figures'):
+        os.makedirs('figures')
+        
+    plt.tight_layout()
+    fig = plt.gcf()
+    fig.set_size_inches(12, num_rows*4)
+
+    fig.savefig(f'figures/Figure 1 - gan_trials_Evaluations.png', dpi=600)
+    plt.close()
+
     #######################################
-    ## ERPS
+    ## FIGURE 2
     #######################################
 
+    #Plotting Function
     def plot_ERP(c0, c1, num_item, ylim, num_rows=4):
 
         #Setup
@@ -290,8 +364,18 @@ def main():
            
         #Format
         plt.ylim(ylim)
+        plt.xlim([0, c0.shape[1]])
         ax1.spines.right.set_visible(False)
         ax1.spines.top.set_visible(False)
+
+        #Set xtick labels
+        if num_item < 4:
+            plt.xticks(np.linspace(0,c0.shape[1],7), ['-200', '0', '200', '400', '600', '800', '1000'])
+        else:
+            plt.xticks(np.linspace(0,c0.shape[1],6), ['-200', '0', '200', '400', '600', '800'])
+
+    #Plot
+    fig = plt.figure(figsize=(12,num_rows*3))
 
     plot_ERP(REWP_eeg_c0, REWP_eeg_c1, 1, [-2, 14])
     plot_ERP(REWP_gan_c0, REWP_gan_c1, 2, [-2, 14])
@@ -306,9 +390,7 @@ def main():
     plot_ERP(N2PC_gan_c0, N2PC_gan_c1, 11, [-3, 8])
     plot_ERP(N2PC_vae_c0, N2PC_vae_c1, 12, [-3, 8])
 
-    #######################################
-    ## Save
-    #######################################
+    #Save
     if not os.path.exists('figures'):
         os.makedirs('figures')
         
@@ -316,7 +398,11 @@ def main():
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure N - gan_Evaluations.png', dpi=600)
+    if try_:
+        fig.savefig(f'figures/Figure 2 - gan_Evaluations try {try_}.png', dpi=600)
+    else:
+        fig.savefig(f'figures/Figure 2 - gan_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
-    main()
+    for i in range(10,11):
+        main(i)
