@@ -121,16 +121,22 @@ def extractFeatures(EEG):
     
     return eegFeatures
 
-def load_synthetic(synFilename_0, synFilename_1, features):
+def load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic=None):
                         
     #Load Synthetic Data
     #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
 
-    Syn0_dataloader = Dataloader(synFilename_0, col_label='Condition', channel_label='Electrode')
+    Syn0_dataloader = Dataloader(synFilename_0, kw_conditions='Condition', kw_channel='Electrode') #TODO: Condition has 0 in header
     synData_0 = Syn0_dataloader.get_data(shuffle=False).detach().numpy()
 
-    Syn1_dataloader = Dataloader(synFilename_1, col_label='Condition', channel_label='Electrode')
+    Syn1_dataloader = Dataloader(synFilename_1, kw_conditions='Condition', kw_channel='Electrode')
     synData_1 = Syn1_dataloader.get_data(shuffle=False).detach().numpy()
+
+    if prop_synthetic is not None:
+        num_synthetic = int(np.ceil(prop_synthetic*int(synFilename_0.split('SS')[-1].split('_')[0])))
+        trials_to_keep = num_synthetic * 50 # 50 trials per participant per condition as defined in averageSynthetic function
+        synData_0 = synData_0[:trials_to_keep]
+        synData_1 = synData_1[:trials_to_keep]
 
     synData = np.concatenate((synData_0,synData_1),axis=0)
     
@@ -368,16 +374,16 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test):
     
     return optimal_params, predictScore
     
-def load_test_data(validationOrTest, electrode_number, features):
+def load_test_data(validationOrTest, electrode_number, features, component='N400'):
     if validationOrTest == 'validation':
         EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_validation.csv'
     else:
-        EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_test.csv.csv'
+        EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_test.csv'
 
     #Average data
     EEGDataTest_metadata = np.genfromtxt(EEGDataTest_fn, delimiter=',', skip_header=1)[:,:4]
     EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
-    EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, col_label='Condition', channel_label='Electrode')
+    EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, kw_conditions='Condition', kw_channel='Electrode')
     EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
         
     #Average data
