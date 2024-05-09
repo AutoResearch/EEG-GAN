@@ -9,5 +9,6 @@ for s in 005 010 015 020 030 060 100; do for r in 0 1 2 3 4; do python gan_train
 #### GENERATE SAMPLES ####
 for s in 005 010 015 020 030 060 100; do for r in 0 1 2 3 4; do for c in 0 1; do python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 model="trained_models/Antisaccade/Training Datasets/gan_antisaccade_SS${s}_Run0${r}.pt" path_samples="generated_samples/Antisaccade/Training Datasets/gan_antisaccade_SS${s}_Run0${r}_c${c}.csv" conditions=${c}; done; done; done
 
+python autoencoder_training_main.py data="data/antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv" save_name="Antisaccade/Training Datasets/ae_antisaccade_full_cleaned.pt" target=time kw_channel=Electrode time_out=64 n_epochs=2000; done; done
 
-python gan_training_main.py ddp data="data/Antisaccade/Full Datasets/antisaccade_left_full.csv" autoencoder="trained_ae/Antisaccade/Full Datasets/ae_antisaccade_full.pt" save_name="Antisaccade/Full Datasets/gan_antisaccade_full.pt" patch_size=16 type=tts kw_channel=Electrode kw_conditions=Condition n_epochs=2000
+python gan_training_main.py ddp data="data/Antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv" autoencoder="trained_ae/Antisaccade/Full Datasets/ae_antisaccade_full_cleaned.pt" save_name="Antisaccade/Full Datasets/gan_antisaccade_full_cleaned.pt" patch_size=16 type=tts kw_channel=Electrode kw_conditions=Condition n_epochs=2000
