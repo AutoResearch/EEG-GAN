@@ -110,7 +110,7 @@ def time_frequency_transform(data, speriod=1/1000, label=''):
 def main(try_=None):
     
     ## EMPIRICAL ##
-    def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True):
+    def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None):
         
         print('Loading data...')
         print(data)
@@ -118,6 +118,10 @@ def main(try_=None):
         #Load EEG Data (Participant, Condition, Trial, Electrode, Time1, ...)
         EEG_data = np.genfromtxt(data, delimiter=',', skip_header=1)[:,1:] #Removes Participant Column
         EEG_data = np.delete(EEG_data, 1, 1) #Delete Unused Column (Trial)
+
+        #Select Electrode
+        if select_electrode:
+            EEG_data = EEG_data[np.r_[EEG_data[:,1]==select_electrode],:]
 
         #Split into conditions
         c1_EEG_data = EEG_data[np.r_[EEG_data[:,0]==1],2:]  
@@ -132,7 +136,9 @@ def main(try_=None):
             ganData0 = np.genfromtxt(gan_fn_0, delimiter=',', skip_header=1)
             ganData1 = np.genfromtxt(gan_fn_1, delimiter=',', skip_header=1)
             ganData = np.vstack((ganData0, ganData1))
-            ganData = np.delete(ganData, 1,1) #Remove the electrode column but we need to keep it
+            if select_electrode:
+                ganData = ganData[np.r_[ganData[:,1]==select_electrode],:]
+            ganData = np.delete(ganData, 1, 1)
 
             #Process synthetic data
             fftTempganData = ganData
@@ -175,7 +181,9 @@ def main(try_=None):
             vaeData0 = np.genfromtxt(vae_fn_0, delimiter=',', skip_header=1)
             vaeData1 = np.genfromtxt(vae_fn_1, delimiter=',', skip_header=1)
             vaeData = np.vstack((vaeData0, vaeData1))
-            vaeData = np.delete(vaeData, 1,1) #Remove the electrode column but we need to keep it
+            if select_electrode:
+                vaeData = vaeData[np.r_[vaeData[:,1]==select_electrode],:]
+            vaeData = np.delete(vaeData, 1,1)
 
             #Process synthetic data
             if process_synthetic:
@@ -198,16 +206,24 @@ def main(try_=None):
             avgc0vaeData = np.mean(c0vaeData, axis=0)
 
             #Scale synthetic data 
-            EEGDataScale = np.max(np.mean(c1_EEG_data,axis=0))-np.min(np.mean(c1_EEG_data,axis=0))
-            EEGDataOffset = np.min(np.mean(c1_EEG_data,axis=0))
-            vaeDataScale = np.max(avgc1vaeData)-np.min(avgc1vaeData)
-            vaeDataOffset = np.min(avgc1vaeData)
+            #scale avgc1vaeData so that it is the same scale as the EEG data
 
-            avgc1vaeData = (((avgc1vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
-            avgc0vaeData = (((avgc0vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
+            combined_EEG = np.vstack((c1_EEG_data, c0_EEG_data))
+            EEGDataScale = np.max(np.mean(combined_EEG,axis=0))-np.min(np.mean(combined_EEG,axis=0))
+            EEGDataOffset = np.min(np.mean(combined_EEG,axis=0))
+
+            combined_vae = np.vstack((c1vaeData, c0vaeData))
+            vaeDataScale = np.max(combined_vae)-np.min(combined_vae)
+            vaeDataOffset = np.min(combined_vae)
+
+
+            #avgc1vaeData = (((avgc1vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
+            #avgc0vaeData = (((avgc0vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
 
             scaledc1vaeData = (((c1vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
             scaledc0vaeData = (((c0vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
+            scaledc1vaeData = c1vaeData
+            scaledc0vaeData = c0vaeData
 
         print('Data loading complete!')
     
@@ -216,14 +232,19 @@ def main(try_=None):
     REWP_eeg_c0, REWP_eeg_c1, REWP_gan_c0, REWP_gan_c1, REWP_vae_c0, REWP_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', 
                                                                                              f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e1_full.csv',
                                                                                              f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e1_full.csv')
-    
-    N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Full Datasets/antisaccade_left_full.csv', 
-                                                                                             f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full.csv',
-                                                                                             f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full.csv')
+
+    REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
+                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e8_full.csv',
+                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e8_full.csv',
+                                                                                             select_electrode=7)
+      
+    N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv', 
+                                                                                             f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full_cleaned.csv',
+                                                                                             f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full_cleaned.csv')
 
     N170_eeg_c0, N170_eeg_c1, N170_gan_c0, N170_gan_c1, N170_vae_c0, N170_vae_c1 = load_data(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv', 
                                                                                              f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned.csv',
-                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_try{try_}.csv')
+                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_cleaned.csv')
 
     N2PC_eeg_c0, N2PC_eeg_c1, N2PC_gan_c0, N2PC_gan_c1, N2PC_vae_c0, N2PC_vae_c1 = load_data(f'data/ERPCORE/N2PC/Full Datasets/erpcore_N2PC_full_cleaned.csv', 
                                                                                              f'generated_samples/ERPCORE/N2PC/Full Datasets/gan_erpcore_N2PC_full_cleaned.csv',
@@ -234,7 +255,7 @@ def main(try_=None):
     #######################################
 
     #Plotting Function
-    def plot_trials(c0, c1, num_item, num_rows=4):
+    def plot_trials(c0, c1, num_item, num_rows=5):
 
         #concatenate c0 and c1
         data = np.vstack((c0, c1))
@@ -274,31 +295,36 @@ def main(try_=None):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.1, 1.1, 'Reinforcement\nLearning', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Reinforcement\nLearning\n(1 electrodes: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 4:
-            plt.text(-0.1, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Reinforcement\nLearning\n(8 electrodes: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.1, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 10:
+            plt.text(-0.1, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        elif num_item == 13:
             plt.text(-0.1, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
 
     #Plot
-    num_rows = 4
+    num_rows = 5
 
     fig = plt.figure(figsize=(12,num_rows*3))
 
     plot_trials(REWP_eeg_c0, REWP_eeg_c1, 1)
     plot_trials(REWP_gan_c0, REWP_gan_c1, 2)
     plot_trials(REWP_vae_c0, REWP_vae_c1, 3)
-    plot_trials(N2P3_eeg_c0, N2P3_eeg_c1, 4)
-    plot_trials(N2P3_gan_c0, N2P3_gan_c1, 5)
-    plot_trials(N2P3_vae_c0, N2P3_vae_c1, 6)
-    plot_trials(N170_eeg_c0, N170_eeg_c1, 7,)
-    plot_trials(N170_gan_c0, N170_gan_c1, 8,)
-    plot_trials(N170_vae_c0, N170_vae_c1, 9,)
-    plot_trials(N2PC_eeg_c0, N2PC_eeg_c1, 10)
-    plot_trials(N2PC_gan_c0, N2PC_gan_c1, 11)
-    plot_trials(N2PC_vae_c0, N2PC_vae_c1, 12)
+    plot_trials(REWP8_eeg_c0, REWP8_eeg_c1, 4)
+    plot_trials(REWP8_gan_c0, REWP8_gan_c1, 5)
+    plot_trials(REWP8_vae_c0, REWP8_vae_c1, 6)
+    plot_trials(N2P3_eeg_c0, N2P3_eeg_c1, 7)
+    plot_trials(N2P3_gan_c0, N2P3_gan_c1, 8)
+    plot_trials(N2P3_vae_c0, N2P3_vae_c1, 9)
+    plot_trials(N170_eeg_c0, N170_eeg_c1, 10)
+    plot_trials(N170_gan_c0, N170_gan_c1, 11)
+    plot_trials(N170_vae_c0, N170_vae_c1, 12)
+    plot_trials(N2PC_eeg_c0, N2PC_eeg_c1, 13)
+    plot_trials(N2PC_gan_c0, N2PC_gan_c1, 14)
+    plot_trials(N2PC_vae_c0, N2PC_vae_c1, 15)
 
     if not os.path.exists('figures'):
         os.makedirs('figures')
@@ -315,7 +341,7 @@ def main(try_=None):
     #######################################
 
     #Plotting Function
-    def plot_ERP(c0, c1, num_item, ylim, num_rows=4):
+    def plot_ERP(c0, c1, num_item, ylim, num_rows=5):
 
         #Setup
         ax1 = plt.subplot(num_rows, 3, num_item)
@@ -338,38 +364,43 @@ def main(try_=None):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
-        elif num_item == 4:
-            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        if num_item == 4:
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 10:
+            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+        elif num_item == 13:
             plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         
         #Labels
-        if num_item > 9:
+        if num_item > 12:
             plt.xlabel('Time (ms)')
-        if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10:
+        if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
             plt.ylabel( r'Voltage ($\mu$V)')
 
         #Legend
         if num_item == 3:
             plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 6:
-            plt.legend(['Anti-Saccade', 'Pro-Saccade'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 9:
-            plt.legend(['Face', 'Car'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Anti-Saccade', 'Pro-Saccade'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 12:
+            plt.legend(['Face', 'Car'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+        elif num_item == 15:
             plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
            
         #Format
-        plt.ylim(ylim)
+        #plt.ylim(ylim)
+        plt.yticks([])
         plt.xlim([0, c0.shape[1]])
         ax1.spines.right.set_visible(False)
         ax1.spines.top.set_visible(False)
 
         #Set xtick labels
-        if num_item < 4:
+        if num_item < 7:
             plt.xticks(np.linspace(0,c0.shape[1],7), ['-200', '0', '200', '400', '600', '800', '1000'])
         else:
             plt.xticks(np.linspace(0,c0.shape[1],6), ['-200', '0', '200', '400', '600', '800'])
@@ -380,15 +411,18 @@ def main(try_=None):
     plot_ERP(REWP_eeg_c0, REWP_eeg_c1, 1, [-2, 14])
     plot_ERP(REWP_gan_c0, REWP_gan_c1, 2, [-2, 14])
     plot_ERP(REWP_vae_c0, REWP_vae_c1, 3, [-2, 14])
-    plot_ERP(N2P3_eeg_c0, N2P3_eeg_c1, 4, [-3, 2])
-    plot_ERP(N2P3_gan_c0, N2P3_gan_c1, 5, [-3, 2])
-    plot_ERP(N2P3_vae_c0, N2P3_vae_c1, 6, [-3, 2])
-    plot_ERP(N170_eeg_c0, N170_eeg_c1, 7, [-3, 10])
-    plot_ERP(N170_gan_c0, N170_gan_c1, 8, [-3, 10])
-    plot_ERP(N170_vae_c0, N170_vae_c1, 9, [-3, 10])
-    plot_ERP(N2PC_eeg_c0, N2PC_eeg_c1, 10, [-3, 8])
-    plot_ERP(N2PC_gan_c0, N2PC_gan_c1, 11, [-3, 8])
-    plot_ERP(N2PC_vae_c0, N2PC_vae_c1, 12, [-3, 8])
+    plot_ERP(REWP8_eeg_c0, REWP8_eeg_c1, 4, [-2, 14])
+    plot_ERP(REWP8_gan_c0, REWP8_gan_c1, 5, [-2, 14])
+    plot_ERP(REWP8_vae_c0, REWP8_vae_c1, 6, [-2, 14])
+    plot_ERP(N2P3_eeg_c0, N2P3_eeg_c1, 7, [-3, 2])
+    plot_ERP(N2P3_gan_c0, N2P3_gan_c1, 8, [-3, 2])
+    plot_ERP(N2P3_vae_c0, N2P3_vae_c1, 9, [-3, 2])
+    plot_ERP(N170_eeg_c0, N170_eeg_c1, 10, [-3, 10])
+    plot_ERP(N170_gan_c0, N170_gan_c1, 11, [-3, 10])
+    plot_ERP(N170_vae_c0, N170_vae_c1, 12, [-3, 10])
+    plot_ERP(N2PC_eeg_c0, N2PC_eeg_c1, 13, [-3, 8])
+    plot_ERP(N2PC_gan_c0, N2PC_gan_c1, 14, [-3, 8])
+    plot_ERP(N2PC_vae_c0, N2PC_vae_c1, 15, [-3, 8])
 
     #Save
     if not os.path.exists('figures'):
@@ -404,5 +438,4 @@ def main(try_=None):
         fig.savefig(f'figures/Figure 2 - gan_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
-    for i in range(10,11):
-        main(i)
+    main()
