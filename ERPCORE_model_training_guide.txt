@@ -34,6 +34,16 @@ python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 
 #### RUN VAE ####
 python vae_training_main.py data="data/ERPCORE/N170/Full Datasets/erpcore_N170_full.csv" save_name="trained_vae/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full.pt" kw_channel=Electrode kw_conditions=Condition n_epochs=2000
 
+#### RUN VAE & GEN SAMPLES ####
+python vae_training_main.py data="data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv" save_name="trained_vae/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full.pt" kw_channel=Electrode kw_conditions=Condition n_epochs=2000 kl_alpha=0.00005; python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 model="trained_vae/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full.pt" path_samples="generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_c0.csv" conditions=0; python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 model="trained_vae/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full.pt" path_samples="generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_c1.csv" conditions=1;
+
 #### RUN VAE GEN SAMPLES ####
 python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 model="trained_vae/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full.pt" path_samples="generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_c0.csv" conditions=0
 python generate_samples_main.py num_samples_total=2500 num_samples_parallel=250 model="trained_vae/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full.pt" path_samples="generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_c1.csv" conditions=1
+
+\
+
+NOTES:
+N2PC: KL_ALPHA = 0.000001
+N170: KL_ALPHA = 0.000002
+Antisaccade: KL_ALPHA = 0.0000025
