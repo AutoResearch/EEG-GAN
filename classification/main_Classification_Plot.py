@@ -183,9 +183,9 @@ def main():
 
             #Row labels
             if num_item == 1:
-                plt.text(-.25, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+                plt.text(-.25, 1.1, 'Reinforcement\nLearning (E1)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
             elif num_item == 6:
-                plt.text(-.25, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+                plt.text(-.25, 1.1, 'Reinforcement\nLearning (E8)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
             elif num_item == 11:
                 plt.text(-.25, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
             elif num_item == 16:
