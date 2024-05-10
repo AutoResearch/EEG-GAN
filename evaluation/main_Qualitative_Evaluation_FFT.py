@@ -284,7 +284,7 @@ def main(try_=None):
     vae_N2PC_fft_c1 = frequency_transform(N2PC_vae_c1)
 
     #######################################
-    ## FIGURE 3
+    ## FIGURE S1
     #######################################
 
     #Plotting Function
@@ -292,14 +292,14 @@ def main(try_=None):
 
         #Setup
         ax1 = plt.subplot(num_rows, 3, num_item)
-        time = np.linspace(0,c0.shape[1],c0.shape[1])
+
+        #Plot
+        #plt.plot(np.log(np.mean(c0,axis=0)[:20]))
+        #plt.plot(np.log(np.mean(c1,axis=0)[:20]))
+        plt.plot(np.mean(c0,axis=0)[:20] - np.mean(c1,axis=0)[:20])
 
         for i in np.arange(0,20,2):
             plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
-
-        #Plot
-        plt.plot(time, np.mean(c0,axis=0))
-        plt.plot(time, np.mean(c1,axis=0))
 
         #Title
         if num_item == 1:
@@ -314,23 +314,24 @@ def main(try_=None):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         if num_item == 4:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 10:
-            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 13:
-            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.1, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         
         #Labels
         if num_item > 12:
             plt.xlabel('Frequency (Hz)')
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel( r'Power ($\mu$V^2)')
+            plt.ylabel( r'Power ($\mu$$V^2$) Difference')
 
         #Legend
+        '''
         if num_item == 3:
             plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 6:
@@ -341,11 +342,12 @@ def main(try_=None):
             plt.legend(['Face', 'Car'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 15:
             plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+        '''
            
         #Format
         #plt.ylim(ylim)
         plt.yticks([])
-        plt.xlim([0, c0.shape[1]])
+        plt.xlim([0, 20])
         ax1.spines.right.set_visible(False)
         ax1.spines.top.set_visible(False)
 
@@ -380,7 +382,7 @@ def main(try_=None):
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure 3 - gan_fft_Evaluations.png', dpi=600)
+    fig.savefig(f'figures/Figure S1 - gan_fft_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
     main()
