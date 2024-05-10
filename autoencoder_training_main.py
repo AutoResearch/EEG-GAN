@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from datetime import datetime
 import warnings
 
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
+from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 from helpers.trainer import AETrainer

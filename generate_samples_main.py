@@ -45,7 +45,7 @@ def main():
         path = 'trained_models'
         file = os.path.join(path, file)
 
-    path_samples = default_args['path_samples']
+    path_samples = default_args['save_name']
     if path_samples == '':
         # Use checkpoint filename as path
         path_samples = os.path.basename(file).split('.')[0] + '.csv'
@@ -62,18 +62,14 @@ def main():
     device = torch.device('cpu')
 
     # check if column condition labels are given
-    n_conditions = len(state_dict['configuration']['kw_conditions'])
-    if state_dict['configuration']['dataloader']['kw_conditions'] and len(
-            state_dict['configuration']['dataloader']['kw_conditions']) == n_conditions:
+    n_conditions = len(state_dict['configuration']['kw_conditions']) if state_dict['configuration']['kw_conditions'] and state_dict['configuration']['kw_conditions'] != [''] else 0
+    if n_conditions > 0:        
         col_labels = state_dict['configuration']['dataloader']['kw_conditions']
     else:
-        if n_conditions > 0:
-            col_labels = [f'Condition {i}' for i in range(n_conditions)]
-        else:
-            col_labels = []
+        col_labels = []
             
     # check if channel label is given
-    if state_dict['configuration']['dataloader']['kw_channel']:
+    if not state_dict['configuration']['dataloader']['kw_channel'] in [None, '']:
         kw_channel = [state_dict['configuration']['dataloader']['kw_channel']]
     else:
         kw_channel = ['Electrode']
@@ -92,37 +88,33 @@ def main():
         channel_names = state_dict['configuration']['channel_names']
         latent_dim = state_dict['configuration']['latent_dim']
         sequence_length = state_dict['configuration']['sequence_length']
-        input_sequence_length = state_dict['configuration']['input_sequence_length']
+        # input_sequence_length = state_dict['configuration']['input_sequence_length']
 
-        assert n_conditions == len(condition), f"Number of conditions in model ({n_conditions}) does not match number of conditions given ({len(condition)})."
+        if n_conditions != len(condition):
+            raise ValueError(f"Number of conditions in model ({n_conditions}) does not match number of conditions given ({len(condition)}).")
 
-        if input_sequence_length != 0 and input_sequence_length != sequence_length:
-            raise NotImplementedError(f"Prediction case detected.\nInput sequence length ({input_sequence_length}) > 0 and != sequence length ({sequence_length}).\nPrediction is not implemented yet.")
+        # if input_sequence_length != 0 and input_sequence_length != sequence_length:
+        #     raise NotImplementedError(f"Prediction case detected.\nInput sequence length ({input_sequence_length}) > 0 and != sequence length ({sequence_length}).\nPrediction is not implemented yet.")
 
         # get data from dataset if sequence2sequence or prediction case
-        if input_sequence_length != 0:
-            dataloader = Dataloader(**state_dict['configuration']['dataloader'])
-            dataset = dataloader.get_data()
-            if n_conditions > 0:
-                raise NotImplementedError(
-                    f"Prediction or Sequence-2-Sequence case detected.\nGeneration with conditions in on of these cases is not implemented yet.\nPlease generate without conditions.")
-        else:
-            dataset = None
+        # if input_sequence_length != 0:
+        #     dataloader = Dataloader(**state_dict['configuration']['dataloader'])
+        #     dataset = dataloader.get_data()
+        #     if n_conditions > 0:
+        #         raise NotImplementedError(
+        #             f"Prediction or Sequence-2-Sequence case detected.\nGeneration with conditions in on of these cases is not implemented yet.\nPlease generate without conditions.")
+        # else:
+        #     dataset = None
 
         # define device
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # Initialize generator
         print("Initializing generator...")
-        latent_dim_in = latent_dim + n_conditions + n_channels if input_sequence_length > 0 else latent_dim + n_conditions
+        # latent_dim_in = latent_dim + n_conditions + n_channels if input_sequence_length > 0 else latent_dim + n_conditions
+        latent_dim_in = latent_dim + n_conditions
 
-        for k, v in gan_types.items():
-            if state_dict['configuration']['generator_class'] in v:
-                gan_type = k
-                break
-
-        generator, _ = init_gan(gan_type=gan_type,
-                                latent_dim_in=latent_dim_in,
+        generator, _ = init_gan(latent_dim_in=latent_dim_in,
                                 channel_in_disc=n_channels,
                                 n_channels=n_channels,
                                 n_conditions=n_conditions,
@@ -130,15 +122,14 @@ def main():
                                 device=device,
                                 hidden_dim=state_dict['configuration']['hidden_dim'],
                                 num_layers=state_dict['configuration']['num_layers'],
-                                activation=state_dict['configuration']['activation'],
-                                input_sequence_length=input_sequence_length,
+                                # activation=state_dict['configuration']['activation'],
+                                # input_sequence_length=input_sequence_length,
                                 patch_size=state_dict['configuration']['patch_size'],
                                 autoencoder=state_dict['configuration']['autoencoder'],
-                                padding=state_dict['configuration']['padding'],
+                                # padding=state_dict['configuration']['padding'],
                                 )
         generator.eval()
         if isinstance(generator, DecoderGenerator):
-            generator.padding=state_dict['configuration']['padding'] #TODO: ADD BACK
             generator.decode_output()
 
         # load generator weights
@@ -155,16 +146,7 @@ def main():
                 except ValueError:
                     raise ValueError(f"Condition {x} is not numeric.")
 
-        # create condition labels if conditions are given but differ from number of conditions in model
-        if n_conditions != len(condition):
-            if n_conditions > len(condition) and len(condition) == 1 and condition[0] == -1:
-                # if only one condition is given and it is -1, then all conditions are set to -1
-                condition = condition * n_conditions
-            else:
-                raise ValueError(
-                    f"Number of conditions in model (={n_conditions}) does not match number of conditions given ={len(condition)}.")
-
-        seq_len = max(1, input_sequence_length)
+        seq_len = 1  # max(1, input_sequence_length)
         cond_labels = torch.zeros((num_samples_parallel, seq_len, n_conditions)).to(device) + torch.tensor(condition).to(device)
         cond_labels = cond_labels.to(device)
 
@@ -177,28 +159,29 @@ def main():
         for i in range(num_sequences):
             print(f"Generating sequence {i + 1}/{num_sequences}...")
             # get input sequence by drawing randomly num_samples_parallel input sequences from dataset
-            if input_sequence_length > 0 and dataset:
-                input_sequence = dataset[np.random.randint(0, len(dataset), num_samples_parallel), :input_sequence_length, :]
-                labels_in = torch.cat((cond_labels, input_sequence), dim=1).float()
-            else:
-                labels_in = cond_labels
-                input_sequence = None
+            # if input_sequence_length > 0 and dataset:
+            #     input_sequence = dataset[np.random.randint(0, len(dataset), num_samples_parallel), :input_sequence_length, :]
+            #     labels_in = torch.cat((cond_labels, input_sequence), dim=1).float()
+            # else:
+            # input_sequence = None
+            # labels_in = cond_labels
             with torch.no_grad():
                 # draw latent variable
                 z = GANTrainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim,
                                                     sequence_length=seq_len, device=device)
                 # concat with conditions and input sequence
-                z = torch.cat((z, labels_in), dim=-1).float().to(device)
-                # generate samples            
+                z = torch.cat((z, cond_labels), dim=-1).float().to(device)
+                # generate samples
                 samples = generator(z).cpu().numpy()
             # if prediction case, concatenate input sequence and generated sequence
-            if input_sequence_length > 0 and input_sequence_length != sequence_length and input_sequence is not None:
-                samples = np.concatenate((input_sequence, samples), axis=1)
+            # if input_sequence_length > 0 and input_sequence_length != sequence_length and input_sequence is not None:
+            #     samples = np.concatenate((input_sequence, samples), axis=1)
             # reshape samples by concatenating over channels in incrementing channel name order
             new_samples = np.zeros((num_samples_parallel * n_channels, n_conditions + 1 + sequence_length))
             for j, channel in enumerate(channel_names):
-                padding = np.zeros((samples.shape[0], state_dict['configuration']['padding']))
-                new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, np.concatenate((samples[:, :, j], padding), axis=1)), axis=-1)
+                # padding = np.zeros((samples.shape[0], state_dict['configuration']['padding']))
+                # new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, np.concatenate((samples[:, :, j], padding), axis=1)), axis=-1)
+                new_samples[j::n_channels] = np.concatenate((cond_labels.cpu().numpy()[:, 0, :], np.zeros((num_samples_parallel, 1)) + channel, samples[:, :, j]), axis=-1)
             # add samples to all_samples
             all_samples[i * num_samples_parallel * n_channels:(i + 1) * num_samples_parallel * n_channels] = new_samples
 
@@ -251,7 +234,7 @@ def main():
     print("Saving samples...")
 
     # create time step labels
-    time_labels = [f'Time{i}' for i in range(sequence_length)]
+    time_labels = [f'{kw_time}{i}' for i in range(sequence_length)]
     # create dataframe
     df = pd.DataFrame(all_samples, columns=[col_labels + kw_channel + time_labels])
     df.to_csv(path_samples, index=False)

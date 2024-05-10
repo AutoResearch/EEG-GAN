@@ -204,23 +204,23 @@ class HelperVisualize(Helper):
 
     def print_help(self):
         super().print_help()
-        print('1.\tEither the keyword "checkpoint" or "csv" must be given.'
-              '\n\t1.1 If the keyword "checkpoint" is given'
-              '\n\t\t"data" must point to a pt-file.'
-              '\n\t\t"data" may point to a GAN or an Autoencoder checkpoint file.'
+        print('1.\tEither the keyword "model" or "data" must be given.'
+              '\n\t1.1 If the keyword "model" is given'
+              '\n\t\t"model" must point to a pt-file.'
+              '\n\t\t"model" may point to a GAN or an Autoencoder checkpoint file.'
               '\n\t\tthe keyword "kw_conditions" will be ignored since the conditions are taken from the checkpoint file.'
               '\n\t\tthe keyword "kw_channel" will be ignored since the samples are already sorted channel-wise.'
-              '\n\t\tthe samples will be drawn evenly from the saved samples to show the training progress.'
-              '\n\t1.2 If the keyword "csv" is given'
+              '\n\t\tthe samples are drawn evenly from the saved samples to show the training progress.'
+              '\n\t1.2 If the keyword "data" is given'
               '\n\t\t"data" must point to a csv-file.'
-              '\n\t\tthe keyword "kw_conditions" must be given to identify the condition column.'
+              '\n\t\tthe keyword "kw_conditions" must be given to identify the condition column(s).'
               '\n\t\tthe samples will be drawn randomly from the dataset.')
         print('2.\tThe keyword "loss" works only with the keyword "checkpoint".')
         print('3.\tThe keyword "average" averages either'
               '\n\tall the samples (if no condition is given)'
               '\n\talong each combination of conditions that is given. The conditions are shown in the legend.')
-        print('4.\tWhen using the keywords "pca" or "tsne" the keyword "path_comp_dataset" must be defined.'
-              '\n\tExcept for the case "checkpoint" is given and the checkpoint file is an Autoencoder file.'
+        print('4.\tWhen using the keywords "pca" or "tsne" the keyword "comp_data" must be defined.'
+              '\n\tExcept for the case "model" is given and the checkpoint file is an Autoencoder file.'
               '\n\tIn this case, the comparison dataset (original data) is taken from the Autoencoder file directly.')
         print('5.\tThe keyword "channel_plots" can be used to enhace the visualization.'
               '\n\tThis way, the channels are shown in different subplots along the columns.')
@@ -262,25 +262,19 @@ def default_inputs_training_gan():
         'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
-        'input_sequence_length': [int, 'The generator makes predictions based on the input sequence length; If -1, no prediction but sequence-to-sequence-mapping of full sequence (not implemented yet)', 0, 'Input sequence length: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'hidden_dim': [int, 'Hidden dimension of the GAN components', 16, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
         'patch_size': [int, 'Patch size of the divided sequence (only for TTS-GAN)', 20, 'Patch size: '],
-        'scheduler_warmup': [int, 'Number of epochs before the scheduler will be initiated, if applicable', 0, 'Scheduler warmup: '],
         'discriminator_lr': [float, 'Learning rate for the discriminator', 0.0001, 'Discriminator learning rate: '],
         'generator_lr': [float, 'Learning rate for the generator', 0.0001, 'Generator learning rate: '],
-        'activation': [str, 'Activation function of the generator; Only for type=ff; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
-        'type': [str, 'Type of the GAN; Options: [ff, tr, tts]', 'tts', 'GAN Type: '],
         'data': [str, 'Path to a dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'checkpoint': [str, 'Path to a pre-trained GAN', '', 'Using pre-trained GAN: '],
-        'autoencoder': [str, 'Path to a autoencoder', '', 'Using autoencoder: '],
+        'autoencoder': [str, 'Path to an autoencoder', '', 'Using autoencoder: '],
         'kw_conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
         'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
-        'lr_scheduler': [str, 'The learning rate scheduler to use; Options: [CyclicLR]', '', 'Learning rate scheduler: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],
-        'scheduler_target': [str, 'Which part of the GAN to apply the learning rate scheduler, if applicable; Options: [discriminator, generator, both]', 'both', 'LR Scheduler Target: ']
     }
 
     return kw_dict
@@ -295,10 +289,9 @@ def default_inputs_training_autoencoder():
         'checkpoint': [str, 'Path to a pre-trained AE', '', 'Using pre-trained AE: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'target': [str, 'Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;', 'full', 'Target: '],
-        # 'conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
         'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
-        'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'sigmoid', 'Activation function: '],
+        'activation': [str, 'Activation function of the AE decoder; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'sigmoid', 'Activation function: '],
         'channels_out': [int, 'Size of the encoded channels', 10, 'Encoded channels size: '],
         'time_out': [int, 'Size of the encoded timeseries', 10, 'Encoded time series size: '],
         'n_epochs': [int, 'Number of epochs to train for', 100, 'Number of epochs: '],
@@ -323,6 +316,7 @@ def default_inputs_training_vae():
         'kw_channel': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'kw_conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
         'kw_time': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
+        # TODO: check for which components of VAE the parameter 'activation' applies
         'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
         'n_epochs': [int, 'Number of epochs to train for', 1000, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
@@ -334,36 +328,8 @@ def default_inputs_training_vae():
     return kw_dict
 
 
-def default_inputs_training_classifier():
-    kw_dict = {
-        'experiment': [bool, "Use experiment's samples as dataset", False, "Use experiment's samples as dataset"],
-        'generated': [bool, 'Use generated samples as dataset', False, 'Use generated samples as dataset'],
-        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
-        'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
-        'testing': [bool, 'Only test. No training', False, 'Testing only'],
-        'load_checkpoint': [bool, 'Load a pre-trained GAN', False, 'Using a pre-trained GAN'],
-        'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
-        'batch_size': [int, 'Batch size', 128, 'Batch size: '],
-        'patch_size': [int, 'Patch size', 20, 'Patch size: '],
-        'sequence_length': [int, 'Used length of the datasets sequences; If None, then the whole sequence is used', -1, 'Total sequence length: '],
-        'sample_interval': [int, 'Interval of epochs between saving samples', 1000, 'Sample interval: '],
-        'learning_rate': [float, 'Learning rate of the GAN', 0.0001, 'Learning rate: '],
-        'data': [str, 'Path to the dataset', os.path.join('data', 'ganAverageERP_len100.csv'), 'Dataset: '],
-        'path_test': [str, 'Path to the test dataset if using generated samples', 'None', 'Test dataset: '],
-        'path_checkpoint': [str, 'Path to the checkpoint', os.path.join('trained_classifier', 'checkpoint.pt'), 'Checkpoint: '],
-        'path_critic': [str, 'Path to the trained critic', os.path.join('trained_models', 'checkpoint.pt'), 'Critic: '],
-        'ddp_backend': [str, 'Backend for the DDP-Training; "nccl" for GPU; "gloo" for CPU;', 'nccl', 'DDP backend: '],
-        'kw_conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
-        'kw_time': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-    }
-
-    return kw_dict
-
-
 def default_inputs_visualize():
     kw_dict = {
-        'checkpoint': [bool, 'Use samples from checkpoint file', False, 'Using samples from checkpoint file'],
-        'csv': [bool, 'Use samples from csv-file', False, 'Using samples from csv-file'],
         'loss': [bool, 'Plot training loss', False, 'Plotting training loss'],
         'average': [bool, 'Average over all samples to get one averaged curve (per condition, if any is given)', False, 'Averaging over all samples'],
         'pca': [bool, 'Use PCA to reduce the dimensionality of the data', False, 'Using PCA'],
@@ -371,15 +337,13 @@ def default_inputs_visualize():
         'spectogram': [bool, 'Use spectogram to visualize the frequency distribution of the data', False, 'Using spectogram'],
         'fft': [bool, 'Use a FFT-histogram to visualize the frequency distribution of the data', False, 'Using FFT-Hist'],
         'channel_plots': [bool, 'Plot each channel in a separate column', False, 'Plotting each channel in a separate column'],
-        'data': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
-        'path_comp_dataset': [str, 'Path to a csv dataset for comparison; comparison only for t-SNE or PCA;', os.path.join('data', 'ganAverageERP.csv'), 'Training dataset: '],
+        'model': [str, 'Use samples from checkpoint file', '', 'Using samples from model/checkpoint file (.pt)'],
+        'data': [str, 'Use samples from csv-file', '', 'Using samples from csv-file'],
+        'comp_data': [str, 'Path to a csv dataset for comparison; comparison only for t-SNE or PCA;', os.path.join('data', 'ganAverageERP.csv'), 'Comparison dataset: '],
         'kw_conditions': [str, '** Conditions to be used', '', 'Conditions: '],
         'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
         'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
         'n_samples': [int, 'Total number of samples to be plotted', 0, 'Number of plotted samples: '],
-        # 'n_subplots': [int, 'Number of samples in one plot', 8, 'Number of samples in one plot: '],
-        # 'starting_row': [int, 'Starting row of the dataset', 0, 'Starting to plot from row: '],
-        # 'save': [bool, 'Save the generated plots in the directory "plots" instead of showing them', False, 'Saving plots'],
         'channel_index': [int, '**Index of the channel to be plotted; If -1, all channels will be plotted;', -1, 'Index of the channels to be plotted: '],
         'tsne_perplexity': [int, 'Perplexity of t-SNE', 40, 'Perplexity of t-SNE: '],
         'tsne_iterations': [int, 'Number of iterations of t-SNE', 1000, 'Number of iterations of t-SNE: '],
@@ -390,7 +354,7 @@ def default_inputs_visualize():
 
 def default_inputs_checkpoint_to_csv():
     kw_dict = {
-        'file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'model': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'Model: '],
         'key': [str, '** Key of the checkpoint file to be saved; "losses" or "generated_samples"', 'generated_samples', 'Key: '],
     }
 
@@ -401,13 +365,12 @@ def default_inputs_generate_samples():
     kw_dict = {
         'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
         'model': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
-        'path_samples': [str, 'File where to store the generated samples; If None, then checkpoint name is used', '', 'Saving generated samples to file: '],
+        'save_name': [str, 'File where to store the generated samples; If None, then checkpoint name is used', '', 'Saving generated samples to file: '],
         'kw_time': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
         'sequence_length': [int, 'total sequence length of generated sample; if -1, then sequence length from training dataset', -1, 'Total sequence length of a generated sample: '],
         'num_samples_total': [int, 'total number of generated samples', 1000, 'Total number of generated samples: '],
         'num_samples_parallel': [int, 'number of samples generated in parallel', 50, 'Number of samples generated in parallel: '],
         'conditions': [int, '** Specific numeric conditions', None, 'Conditions: '],
-        'average': [int, 'Average over n latent variables to get an averaged one', 1, 'Average over n latent variables: '],
     }
 
     return kw_dict
@@ -415,7 +378,7 @@ def default_inputs_generate_samples():
 
 def default_inputs_get_gan_config():
     kw_dict = {
-        'path_file': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
+        'model': [str, 'File to be used', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
     }
 
     return kw_dict

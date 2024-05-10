@@ -14,7 +14,7 @@ from helpers.ddp_training import run, GANDDPTrainer
 from nn_architecture.models import TransformerGenerator, TransformerDiscriminator, FFGenerator, FFDiscriminator, TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
 from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
-from helpers.initialize_gan import gan_architectures, gan_types, init_gan
+from helpers.initialize_gan import init_gan
 from helpers import system_inputs
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
@@ -77,9 +77,9 @@ def main():
 
     # GAN configuration
     opt = {
-        'gan_type': default_args['type'],
+        # 'gan_type': default_args['type'],
         'n_epochs': default_args['n_epochs'],
-        'input_sequence_length': default_args['input_sequence_length'],
+        # 'input_sequence_length': default_args['input_sequence_length'],
         # 'seq_len_generated': default_args['seq_len_generated'],
         'checkpoint': default_args['checkpoint'],
         'data': default_args['data'],
@@ -95,7 +95,7 @@ def main():
         'sequence_length': -1,
         'hidden_dim': default_args['hidden_dim'],  # Dimension of hidden layers in discriminator and generator
         'num_layers': default_args['num_layers'],
-        'activation': default_args['activation'] if default_args['autoencoder'] is None else "tanh",
+        # 'activation': default_args['activation'] if default_args['autoencoder'] is None else "tanh",
         'latent_dim': 128,  # Dimension of the latent space
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
@@ -106,13 +106,12 @@ def main():
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
-        'lr_scheduler': default_args['lr_scheduler'],
-        'scheduler_warmup': default_args['scheduler_warmup'],
-        'scheduler_target': default_args['scheduler_target'],
+        # 'lr_scheduler': default_args['lr_scheduler'],
+        # 'scheduler_warmup': default_args['scheduler_warmup'],
+        # 'scheduler_target': default_args['scheduler_target'],
         'seed': default_args['seed'],
         'save_name': default_args['save_name'],
         'history': None,
-
     }
     
     # set a seed for reproducibility if desired
@@ -125,8 +124,8 @@ def main():
     
     # if autoencoder is used, take its activation function as the activation function for the generator
     # print warning that the activation function is overwritten with the autoencoder activation function
-    if default_args['autoencoder'] != '':
-        print(f"Warning: Since an autoencoder is used, the specified activation function {default_args['activation']} of the GAN is overwritten with the autoencoder encoding activation function 'nn.Tanh()' to ensure stability.")
+    # if default_args['autoencoder'] != '':
+    #     print(f"Warning: Since an autoencoder is used, the specified activation function {default_args['activation']} of the GAN is overwritten with the autoencoder encoding activation function 'nn.Tanh()' to ensure stability.")
     
     # Load dataset as tensor
     dataloader = Dataloader(default_args['data'],
@@ -141,39 +140,34 @@ def main():
     opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
-    if opt['input_sequence_length'] == -1:
-        opt['input_sequence_length'] = opt['sequence_length']
+    # if opt['input_sequence_length'] == -1:
+    #     opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
     ae_dict = torch.load(opt['autoencoder'], map_location=torch.device('cpu')) if opt['autoencoder'] != '' else []
-    if opt['gan_type'] == 'tts' and ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time') and ae_dict['configuration']['time_out'] % opt['patch_size']!= 0:
-        warnings.warn(
-            f"Sequence length ({ae_dict['configuration']['timeseries_out']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
-            f"The sequence length is padded with zeros to fit the condition.")
-        padding = 0
-        while (ae_dict['configuration']['timeseries_out'] + padding) % default_args['patch_size'] != 0:
-            padding += 1
-
-        padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
-        dataset = torch.cat((dataset, padding), dim=1)
-        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
-    elif opt['gan_type'] == 'tts' and opt['sequence_length'] % opt['patch_size'] != 0:
-        warnings.warn(
-            f"Sequence length ({opt['sequence_length']}) must be a multiple of patch size ({default_args['patch_size']}).\n"
-            f"The sequence length is padded with zeros to fit the condition.")
-        padding = 0
-        while (opt['sequence_length'] + padding) % default_args['patch_size'] != 0:
-            padding += 1
-        padding = torch.zeros((dataset.shape[0], padding, dataset.shape[-1]))
-        dataset = torch.cat((dataset, padding), dim=1)
-        opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
+    # check if generated sequence is a multiple of patch size   
+    encoded_sequence = False
+    def pad_warning(sequence_length, encoded_sequence=False):
+        error_msg = f"Sequence length ({sequence_length}) must be a multiple of patch size ({default_args['patch_size']})."
+        error_msg += " Please adjust the 'patch_size' or "
+        if encoded_sequence:
+            error_msg += "adjust the output sequence length of the autoencoder ('time_out'). The latter option requires a newly trained autoencoder."
+        else:
+            error_msg += "adjust the sequence length of the dataset."
+        raise ValueError(error_msg)
+    if ae_dict and (ae_dict['configuration']['target'] == 'full' or ae_dict['configuration']['target'] == 'time'):
+        generated_seq_length = ae_dict['configuration']['time_out']
+        encoded_sequence = True
     else:
-        padding = torch.zeros((dataset.shape[0], 0, dataset.shape[-1]))
-
-    opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
+        generated_seq_length = opt['sequence_length']
+    if generated_seq_length % default_args['patch_size'] != 0:
+        pad_warning(generated_seq_length, encoded_sequence)
+        
+    # opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
+    opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions']
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
-    opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
-    opt['padding'] = padding.shape[1]    
+    # opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
+    opt['sequence_length_generated'] = opt['sequence_length']
     
     # --------------------------------------------------------------------------------
     # Initialize generator, discriminator and trainer

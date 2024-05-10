@@ -7,7 +7,7 @@ from helpers import system_inputs
 def main():
     default_args = system_inputs.parse_arguments(sys.argv, kw_dict=system_inputs.default_inputs_get_gan_config())
 
-    file = default_args['path_file']
+    file = default_args['model']
 
     if file.split(os.path.sep)[0] == file:
         # use default path if no path is given

@@ -8,10 +8,9 @@ from autoencoder_training_main import main
 if __name__ == '__main__':
     configurations = {
         # configurations for normal GAN
-        'basic': ["data=data/gansMultiCondition_SHORT.csv", "channels_out=2", "time_out=10"],
-        'target_time': ["data=data/gansMultiCondition_SHORT.csv", "target=time", "time_out=10"],
-        'target_channels': ["data=data/gansMultiCondition_SHORT.csv", "target=channels", "channels_out=1"],
-        'target_full': ["data=data/gansMultiCondition_SHORT.csv", "target=full", "time_out=10", "channels_out=1"],
+        # 'target_time': ["data=data/gansMultiCondition_SHORT.csv", "target=time", "time_out=10", "save_name=ae_target_time.pt"],
+        # 'target_channels': ["data=data/gansMultiCondition_SHORT.csv", "target=channels", "channels_out=1", "save_name=ae_target_channels.pt"],
+        'target_full': ["data=data/gansMultiCondition.csv", "target=full", "time_out=10", "channels_out=1", "save_name=ae_target_full.pt"],
         # 'load_checkpoint': ["data=data/gansMultiCondition.csv", "checkpoint=x"],
     }
 
