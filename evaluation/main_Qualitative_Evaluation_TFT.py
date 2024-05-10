@@ -8,8 +8,6 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pywt
-import multiprocessing as mp
-import sklearn.manifold as sklm
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -107,7 +105,7 @@ def time_frequency_transform(data, speriod=1/1000, label=''):
 ###############################################
 ## LOAD AND PROCESS DATA                     ##
 ###############################################
-def main(try_=None):
+def main(try_=None, load_data=True):
     
     ## EMPIRICAL ##
     def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None):
@@ -229,59 +227,105 @@ def main(try_=None):
     
         return c1_EEG_data, c0_EEG_data, scaledc1ganData, scaledc0ganData, scaledc1vaeData, scaledc0vaeData
     
-    REWP_eeg_c0, REWP_eeg_c1, REWP_gan_c0, REWP_gan_c1, REWP_vae_c0, REWP_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', 
-                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e1_full.csv',
-                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e1_full.csv')
+    if not load_data: 
+        REWP_eeg_c0, REWP_eeg_c1, REWP_gan_c0, REWP_gan_c1, REWP_vae_c0, REWP_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', 
+                                                                                                f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e1_full.csv',
+                                                                                                f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e1_full.csv')
 
-    REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
-                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e8_full.csv',
-                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e8_full.csv',
-                                                                                             select_electrode=7)
-      
-    N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv', 
-                                                                                             f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full_cleaned.csv',
-                                                                                             f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full_cleaned.csv')
+        REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
+                                                                                                f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e8_full.csv',
+                                                                                                f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e8_full.csv',
+                                                                                                select_electrode=7)
+        
+        N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv', 
+                                                                                                f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full_cleaned.csv',
+                                                                                                f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full_cleaned.csv')
 
-    N170_eeg_c0, N170_eeg_c1, N170_gan_c0, N170_gan_c1, N170_vae_c0, N170_vae_c1 = load_data(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv', 
-                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned.csv',
-                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_cleaned.csv')
+        N170_eeg_c0, N170_eeg_c1, N170_gan_c0, N170_gan_c1, N170_vae_c0, N170_vae_c1 = load_data(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv', 
+                                                                                                f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned.csv',
+                                                                                                f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_cleaned.csv')
 
-    N2PC_eeg_c0, N2PC_eeg_c1, N2PC_gan_c0, N2PC_gan_c1, N2PC_vae_c0, N2PC_vae_c1 = load_data(f'data/ERPCORE/N2PC/Full Datasets/erpcore_N2PC_full_cleaned.csv', 
-                                                                                             f'generated_samples/ERPCORE/N2PC/Full Datasets/gan_erpcore_N2PC_full_cleaned.csv',
-                                                                                             f'generated_samples/ERPCORE/N2PC/Full Datasets/vae_erpcore_N2PC_full_cleaned.csv')
+        N2PC_eeg_c0, N2PC_eeg_c1, N2PC_gan_c0, N2PC_gan_c1, N2PC_vae_c0, N2PC_vae_c1 = load_data(f'data/ERPCORE/N2PC/Full Datasets/erpcore_N2PC_full_cleaned.csv', 
+                                                                                                f'generated_samples/ERPCORE/N2PC/Full Datasets/gan_erpcore_N2PC_full_cleaned.csv',
+                                                                                                f'generated_samples/ERPCORE/N2PC/Full Datasets/vae_erpcore_N2PC_full_cleaned.csv')
 
-    frexREWP, REWP_tft_c0 = time_frequency_transform(REWP_eeg_c0, speriod=1/100)
-    _, REWP_tft_c1 = time_frequency_transform(REWP_eeg_c1, speriod=1/100)
-    _, REWP8_tft_c0 = time_frequency_transform(REWP8_eeg_c0, speriod=1/100)
-    _, REWP8_tft_c1 = time_frequency_transform(REWP8_eeg_c1, speriod=1/100)
-    frexN2P3, N2P3_tft_c0 = time_frequency_transform(N2P3_eeg_c0, speriod=1/125)
-    _, N2P3_tft_c1 = time_frequency_transform(N2P3_eeg_c1, speriod=1/125)
-    frexN170, N170_tft_c0 = time_frequency_transform(N170_eeg_c0, speriod=1/128)
-    _, N170_tft_c1 = time_frequency_transform(N170_eeg_c1, speriod=1/128)
-    frexN2PC, N2PC_tft_c0 = time_frequency_transform(N2PC_eeg_c0, speriod=1/128)
-    _, N2PC_tft_c1 = time_frequency_transform(N2PC_eeg_c1, speriod=1/128)
+        frexREWP, REWP_tft_c0 = time_frequency_transform(REWP_eeg_c0, speriod=1/100)
+        _, REWP_tft_c1 = time_frequency_transform(REWP_eeg_c1, speriod=1/100)
+        _, REWP8_tft_c0 = time_frequency_transform(REWP8_eeg_c0, speriod=1/100)
+        _, REWP8_tft_c1 = time_frequency_transform(REWP8_eeg_c1, speriod=1/100)
+        frexN2P3, N2P3_tft_c0 = time_frequency_transform(N2P3_eeg_c0, speriod=1/125)
+        _, N2P3_tft_c1 = time_frequency_transform(N2P3_eeg_c1, speriod=1/125)
+        frexN170, N170_tft_c0 = time_frequency_transform(N170_eeg_c0, speriod=1/128)
+        _, N170_tft_c1 = time_frequency_transform(N170_eeg_c1, speriod=1/128)
+        frexN2PC, N2PC_tft_c0 = time_frequency_transform(N2PC_eeg_c0, speriod=1/128)
+        _, N2PC_tft_c1 = time_frequency_transform(N2PC_eeg_c1, speriod=1/128)
 
-    _, gan_REWP_tft_c0 = time_frequency_transform(REWP_gan_c0, speriod=1/100)
-    _, gan_REWP_tft_c1 = time_frequency_transform(REWP_gan_c1, speriod=1/100)
-    _, gan_REWP8_tft_c0 = time_frequency_transform(REWP8_gan_c0, speriod=1/100)
-    _, gan_REWP8_tft_c1 = time_frequency_transform(REWP8_gan_c1, speriod=1/100)
-    _, gan_N2P3_tft_c0 = time_frequency_transform(N2P3_gan_c0, speriod=1/125)
-    _, gan_N2P3_tft_c1 = time_frequency_transform(N2P3_gan_c1, speriod=1/125)
-    _, gan_N170_tft_c0 = time_frequency_transform(N170_gan_c0, speriod=1/128)
-    _, gan_N170_tft_c1 = time_frequency_transform(N170_gan_c1, speriod=1/128)
-    _, gan_N2PC_tft_c0 = time_frequency_transform(N2PC_gan_c0, speriod=1/128)
-    _, gan_N2PC_tft_c1 = time_frequency_transform(N2PC_gan_c1, speriod=1/128)
+        _, gan_REWP_tft_c0 = time_frequency_transform(REWP_gan_c0, speriod=1/100)
+        _, gan_REWP_tft_c1 = time_frequency_transform(REWP_gan_c1, speriod=1/100)
+        _, gan_REWP8_tft_c0 = time_frequency_transform(REWP8_gan_c0, speriod=1/100)
+        _, gan_REWP8_tft_c1 = time_frequency_transform(REWP8_gan_c1, speriod=1/100)
+        _, gan_N2P3_tft_c0 = time_frequency_transform(N2P3_gan_c0, speriod=1/125)
+        _, gan_N2P3_tft_c1 = time_frequency_transform(N2P3_gan_c1, speriod=1/125)
+        _, gan_N170_tft_c0 = time_frequency_transform(N170_gan_c0, speriod=1/128)
+        _, gan_N170_tft_c1 = time_frequency_transform(N170_gan_c1, speriod=1/128)
+        _, gan_N2PC_tft_c0 = time_frequency_transform(N2PC_gan_c0, speriod=1/128)
+        _, gan_N2PC_tft_c1 = time_frequency_transform(N2PC_gan_c1, speriod=1/128)
 
-    _, vae_REWP_tft_c0 = time_frequency_transform(REWP_vae_c0, speriod=1/100)
-    _, vae_REWP_tft_c1 = time_frequency_transform(REWP_vae_c1, speriod=1/100)
-    _, vae_REWP8_tft_c0 = time_frequency_transform(REWP8_vae_c0, speriod=1/100)
-    _, vae_REWP8_tft_c1 = time_frequency_transform(REWP8_vae_c1, speriod=1/100)
-    _, vae_N2P3_tft_c0 = time_frequency_transform(N2P3_vae_c0, speriod=1/125)
-    _, vae_N2P3_tft_c1 = time_frequency_transform(N2P3_vae_c1, speriod=1/125)
-    _, vae_N170_tft_c0 = time_frequency_transform(N170_vae_c0, speriod=1/128)
-    _, vae_N170_tft_c1 = time_frequency_transform(N170_vae_c1, speriod=1/128)
-    _, vae_N2PC_tft_c0 = time_frequency_transform(N2PC_vae_c0, speriod=1/128)
-    _, vae_N2PC_tft_c1 = time_frequency_transform(N2PC_vae_c1, speriod=1/128)
+        _, vae_REWP_tft_c0 = time_frequency_transform(REWP_vae_c0, speriod=1/100)
+        _, vae_REWP_tft_c1 = time_frequency_transform(REWP_vae_c1, speriod=1/100)
+        _, vae_REWP8_tft_c0 = time_frequency_transform(REWP8_vae_c0, speriod=1/100)
+        _, vae_REWP8_tft_c1 = time_frequency_transform(REWP8_vae_c1, speriod=1/100)
+        _, vae_N2P3_tft_c0 = time_frequency_transform(N2P3_vae_c0, speriod=1/125)
+        _, vae_N2P3_tft_c1 = time_frequency_transform(N2P3_vae_c1, speriod=1/125)
+        _, vae_N170_tft_c0 = time_frequency_transform(N170_vae_c0, speriod=1/128)
+        _, vae_N170_tft_c1 = time_frequency_transform(N170_vae_c1, speriod=1/128)
+        _, vae_N2PC_tft_c0 = time_frequency_transform(N2PC_vae_c0, speriod=1/128)
+        _, vae_N2PC_tft_c1 = time_frequency_transform(N2PC_vae_c1, speriod=1/128)
+
+        #Write all data to a file
+        np.savez('data/qualitative_evaluation.npz', frexREWP=frexREWP, frexN2P3=frexN2P3, frexN170=frexN170, frexN2PC=frexN2PC, REWP_tft_c0=REWP_tft_c0, REWP_tft_c1=REWP_tft_c1, REWP8_tft_c0=REWP8_tft_c0, REWP8_tft_c1=REWP8_tft_c1, N2P3_tft_c0=N2P3_tft_c0, N2P3_tft_c1=N2P3_tft_c1, N170_tft_c0=N170_tft_c0, N170_tft_c1=N170_tft_c1, N2PC_tft_c0=N2PC_tft_c0, N2PC_tft_c1=N2PC_tft_c1, gan_REWP_tft_c0=gan_REWP_tft_c0, gan_REWP_tft_c1=gan_REWP_tft_c1, gan_REWP8_tft_c0=gan_REWP8_tft_c0, gan_REWP8_tft_c1=gan_REWP8_tft_c1, gan_N2P3_tft_c0=gan_N2P3_tft_c0, gan_N2P3_tft_c1=gan_N2P3_tft_c1, gan_N170_tft_c0=gan_N170_tft_c0, gan_N170_tft_c1=gan_N170_tft_c1, gan_N2PC_tft_c0=gan_N2PC_tft_c0, gan_N2PC_tft_c1=gan_N2PC_tft_c1, vae_REWP_tft_c0=vae_REWP_tft_c0, vae_REWP_tft_c1=vae_REWP_tft_c1, vae_REWP8_tft_c0=vae_REWP8_tft_c0, vae_REWP8_tft_c1=vae_REWP8_tft_c1, vae_N2P3_tft_c0=vae_N2P3_tft_c0, vae_N2P3_tft_c1=vae_N2P3_tft_c1, vae_N170_tft_c0=vae_N170_tft_c0, vae_N170_tft_c1=vae_N170_tft_c1, vae_N2PC_tft_c0=vae_N2PC_tft_c0, vae_N2PC_tft_c1=vae_N2PC_tft_c1)
+    
+    else:
+
+        print('Loading data...')
+        #Load data
+        temp = np.load('data/qualitative_evaluation.npz')
+        #unpack npz file
+        frexREWP = temp['frexREWP']
+        frexN2P3 = temp['frexN2P3']
+        frexN170 = temp['frexN170']
+        frexN2PC = temp['frexN2PC']
+        REWP_tft_c0 = temp['REWP_tft_c0']
+        REWP_tft_c1 = temp['REWP_tft_c1']
+        REWP8_tft_c0 = temp['REWP8_tft_c0']
+        REWP8_tft_c1 = temp['REWP8_tft_c1']
+        N2P3_tft_c0 = temp['N2P3_tft_c0']
+        N2P3_tft_c1 = temp['N2P3_tft_c1']
+        N170_tft_c0 = temp['N170_tft_c0']
+        N170_tft_c1 = temp['N170_tft_c1']
+        N2PC_tft_c0 = temp['N2PC_tft_c0']
+        N2PC_tft_c1 = temp['N2PC_tft_c1']
+        gan_REWP_tft_c0 = temp['gan_REWP_tft_c0']
+        gan_REWP_tft_c1 = temp['gan_REWP_tft_c1']
+        gan_REWP8_tft_c0 = temp['gan_REWP8_tft_c0']
+        gan_REWP8_tft_c1 = temp['gan_REWP8_tft_c1']
+        gan_N2P3_tft_c0 = temp['gan_N2P3_tft_c0']
+        gan_N2P3_tft_c1 = temp['gan_N2P3_tft_c1']
+        gan_N170_tft_c0 = temp['gan_N170_tft_c0']
+        gan_N170_tft_c1 = temp['gan_N170_tft_c1']
+        gan_N2PC_tft_c0 = temp['gan_N2PC_tft_c0']
+        gan_N2PC_tft_c1 = temp['gan_N2PC_tft_c1']
+        vae_REWP_tft_c0 = temp['vae_REWP_tft_c0']
+        vae_REWP_tft_c1 = temp['vae_REWP_tft_c1']
+        vae_REWP8_tft_c0 = temp['vae_REWP8_tft_c0']
+        vae_REWP8_tft_c1 = temp['vae_REWP8_tft_c1']
+        vae_N2P3_tft_c0 = temp['vae_N2P3_tft_c0']
+        vae_N2P3_tft_c1 = temp['vae_N2P3_tft_c1']
+        vae_N170_tft_c0 = temp['vae_N170_tft_c0']
+        vae_N170_tft_c1 = temp['vae_N170_tft_c1']
+        vae_N2PC_tft_c0 = temp['vae_N2PC_tft_c0']
+        vae_N2PC_tft_c1 = temp['vae_N2PC_tft_c1']
+        print('Data loading complete!')
 
     #######################################
     ## FIGURE S1
@@ -294,8 +338,9 @@ def main(try_=None):
         ax1 = plt.subplot(num_rows, 3, num_item)
 
         #Plot
-        time  =np.linspace(0,100,c0.shape[1])/100
-        c = constrain(norm(np.mean(c0,0) - np.mean(c1,0)),num_bins=10)
+        time = np.linspace(0,100,c0.shape[-1]+1)/100
+        print(c0.shape, c1.shape, time.shape, frex.shape)
+        c = constrain(norm(np.mean(c0,0) - np.mean(c1,0)),num_bins=20)
         im = plt.pcolormesh(time, frex, c, cmap='coolwarm')
 
         #Title
@@ -329,8 +374,11 @@ def main(try_=None):
 
         #Format
         plt.ylim([0,20])
-        plt.xticks(np.linspace(0,1,7), [int(x) for x in np.linspace(-200,1000,7)])
-
+        plt.yticks(np.linspace(0,20,5), ['0', '5', '10', '15', '20'])
+        if num_item < 7:
+            plt.xticks(np.linspace(0,1,7), ['-200', '0', '200', '400', '600', '800', '1000'])
+        else:
+            plt.xticks(np.linspace(0,1,6), ['-200', '0', '200', '400', '600', '800'])
         ax1.spines.right.set_visible(False)
         ax1.spines.top.set_visible(False)
 
@@ -338,21 +386,21 @@ def main(try_=None):
     num_rows = 5
     fig = plt.figure(figsize=(12,num_rows*3))
 
-    plot_TFT(REWP_tft_c0, REWP_tft_c1, 1, [-2, 14], frexREWP)
-    plot_TFT(gan_REWP_tft_c0, gan_REWP_tft_c1, 2, [-2, 14], frexREWP)
-    plot_TFT(vae_REWP_tft_c0, vae_REWP_tft_c1, 3, [-2, 14], frexREWP)
-    plot_TFT(REWP8_tft_c0, REWP8_tft_c1, 4, [-2, 14], frexREWP)
-    plot_TFT(gan_REWP8_tft_c0, gan_REWP8_tft_c1, 5, [-2, 14], frexREWP)
-    plot_TFT(vae_REWP8_tft_c0, vae_REWP8_tft_c1, 6, [-2, 14], frexREWP)
-    plot_TFT(N2P3_tft_c0, N2P3_tft_c1, 7, [-3, 2], frexN2P3)
-    plot_TFT(gan_N2P3_tft_c0, gan_N2P3_tft_c1, 8, [-3, 2], frexN2P3)
-    plot_TFT(vae_N2P3_tft_c0, vae_N2P3_tft_c1, 9, [-3, 2], frexN2P3)
-    plot_TFT(N170_tft_c0, N170_tft_c1, 10, [-3, 10], frexN170)
-    plot_TFT(gan_N170_tft_c0, gan_N170_tft_c1, 11, [-3, 10], frexN170)
-    plot_TFT(vae_N170_tft_c0, vae_N170_tft_c1, 12, [-3, 10], frexN170)
-    plot_TFT(N2PC_tft_c0, N2PC_tft_c1, 13, [-3, 8], frexN2PC)
-    plot_TFT(gan_N2PC_tft_c0, gan_N2PC_tft_c1, 14, [-3, 8], frexN2PC)
-    plot_TFT(vae_N2PC_tft_c0, vae_N2PC_tft_c1, 15, [-3, 8], frexN2PC)
+    plot_TFT(REWP_tft_c0, REWP_tft_c1, 1, [], frexREWP)
+    plot_TFT(gan_REWP_tft_c0, gan_REWP_tft_c1, 2, [], frexREWP)
+    plot_TFT(vae_REWP_tft_c0, vae_REWP_tft_c1, 3, [], frexREWP)
+    plot_TFT(REWP8_tft_c0, REWP8_tft_c1, 4, [], frexREWP)
+    plot_TFT(gan_REWP8_tft_c0, gan_REWP8_tft_c1, 5, [], frexREWP)
+    plot_TFT(vae_REWP8_tft_c0, vae_REWP8_tft_c1, 6, [], frexREWP)
+    plot_TFT(N2P3_tft_c0, N2P3_tft_c1, 7, [], frexN2P3)
+    plot_TFT(gan_N2P3_tft_c0, gan_N2P3_tft_c1, 8, [], frexN2P3)
+    plot_TFT(vae_N2P3_tft_c0, vae_N2P3_tft_c1, 9, [], frexN2P3)
+    plot_TFT(N170_tft_c0, N170_tft_c1, 10, [], frexN170)
+    plot_TFT(gan_N170_tft_c0, gan_N170_tft_c1, 11, [], frexN170)
+    plot_TFT(vae_N170_tft_c0, vae_N170_tft_c1, 12, [], frexN170)
+    plot_TFT(N2PC_tft_c0, N2PC_tft_c1, 13, [], frexN2PC)
+    plot_TFT(gan_N2PC_tft_c0, gan_N2PC_tft_c1, 14, [], frexN2PC)
+    plot_TFT(vae_N2PC_tft_c0, vae_N2PC_tft_c1, 15, [], frexN2PC)
 
     #Save
     if not os.path.exists('figures'):
@@ -365,4 +413,5 @@ def main(try_=None):
     fig.savefig(f'figures/Figure S2 - gan_tft_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
-    main()
+    load_data = True
+    main(load_data=load_data)
