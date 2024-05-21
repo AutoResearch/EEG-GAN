@@ -374,11 +374,11 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test):
     
     return optimal_params, predictScore
     
-def load_test_data(validationOrTest, electrode_number, features, component='N400'):
+def load_test_data(validationOrTest, electrode_number, features):
     if validationOrTest == 'validation':
-        EEGDataTest_fn = f'data/ERPCORE/{component}/Validation and Test Datasets/erpcore_{component}_validation.csv'
+        EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_validation.csv'
     else:
-        EEGDataTest_fn = f'data/ERPCORE/{component}/Validation and Test Datasets/erpcore_{component}_test.csv'
+        EEGDataTest_fn = f'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_test.csv'
 
     #Average data
     EEGDataTest_metadata = np.genfromtxt(EEGDataTest_fn, delimiter=',', skip_header=1)[:,:4]

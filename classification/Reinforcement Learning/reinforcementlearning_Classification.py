@@ -122,13 +122,13 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     ## SYNTHETIC PROCESSING                      ##
     ###############################################
     if addSyntheticData == 'gan':
-        synFilename_0 = f"generated_samples/Reinforcement Learning/Training Datasets/gan_ganTrialElectrodeERP_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Reinforcement Learning/Training Datasets/gan_ganTrialElectrodeERP_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     elif addSyntheticData == 'vae':
-        synFilename_0 = f"generated_samples/Reinforcement Learning/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Reinforcement Learning/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     ###############################################
@@ -136,7 +136,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     ###############################################s
     
     #Load empirical data
-    tempFilename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_P500_e1_SS{dataSampleSize}_Run0{run}.csv'
+    tempFilename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.csv'
     EEGData_metadata = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)[:,:4]
     EEGData_metadata_3D = EEGData_metadata[EEGData_metadata[:,3] == np.unique(EEGData_metadata[:,3])[0],:]
     EEGData_dataloader = Dataloader(tempFilename, kw_conditions='Condition', kw_channel='Electrode')
