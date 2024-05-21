@@ -139,7 +139,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     tempFilename = f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}.csv'
     EEGData_metadata = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)[:,:4]
     EEGData_metadata_3D = EEGData_metadata[EEGData_metadata[:,3] == np.unique(EEGData_metadata[:,3])[0],:]
-    EEGData_dataloader = Dataloader(tempFilename, kw_conditions='Condition', kw_channel='Electrode')
+    EEGData_dataloader = Dataloader(tempFilename, col_label='Condition', channel_label='Electrode')
     EEGData = EEGData_dataloader.get_data(shuffle=False).detach().numpy()
 
     #Oversampling analysis
@@ -301,10 +301,10 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020'] #Which sample sizes to include
-    syntheticDataOptions = ['emp','gan','over','gaus','rev','neg','smooth'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['emp','gan'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['SVM','RF','KNN','NN','LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS WHEN RUN WITH MP, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1] #Which electrode to predict
-    num_series = 10 #Number of times to run all classifications
+    num_series = 2 #Number of times to run all classifications
     prop_synthetic = 1 #Proportion of synthetic participants to generate (1 = SS, 2 = 2*SS, etc.)
 
     #Split classifiers to multiprocessing vs not

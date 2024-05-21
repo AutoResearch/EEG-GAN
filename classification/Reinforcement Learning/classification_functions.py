@@ -126,10 +126,10 @@ def load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic=None):
     #Load Synthetic Data
     #synFilename = '../GANs/GAN Generated Data/filtered_checkpoint_SS' + dataSampleSize + '_Run' + str(run).zfill(2) + '_nepochs8000'+'.csv'
 
-    Syn0_dataloader = Dataloader(synFilename_0, kw_conditions='Condition', kw_channel='Electrode') #TODO: Condition has 0 in header
+    Syn0_dataloader = Dataloader(synFilename_0, col_label='Condition', channel_label='Electrode') #TODO: Condition has 0 in header
     synData_0 = Syn0_dataloader.get_data(shuffle=False).detach().numpy()
 
-    Syn1_dataloader = Dataloader(synFilename_1, kw_conditions='Condition', kw_channel='Electrode')
+    Syn1_dataloader = Dataloader(synFilename_1, col_label='Condition', channel_label='Electrode')
     synData_1 = Syn1_dataloader.get_data(shuffle=False).detach().numpy()
 
     if prop_synthetic is not None:
@@ -383,7 +383,7 @@ def load_test_data(validationOrTest, electrode_number, features):
     #Average data
     EEGDataTest_metadata = np.genfromtxt(EEGDataTest_fn, delimiter=',', skip_header=1)[:,:4]
     EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
-    EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, kw_conditions='Condition', kw_channel='Electrode')
+    EEGDataTest_dataloader = Dataloader(EEGDataTest_fn, col_label='Condition', channel_label='Electrode')
     EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
         
     #Average data
