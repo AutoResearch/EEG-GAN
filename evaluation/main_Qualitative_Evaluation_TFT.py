@@ -340,7 +340,7 @@ def main(try_=None, load_data=True):
         #Plot
         time = np.linspace(0,100,c0.shape[-1]+1)/100
         print(c0.shape, c1.shape, time.shape, frex.shape)
-        c = constrain(norm(np.mean(c0,0) - np.mean(c1,0)),num_bins=20)
+        c = constrain(norm(np.mean(c0,0) - np.mean(c1,0)),num_bins=100)
         im = plt.pcolormesh(time, frex, c, cmap='coolwarm')
 
         #Title
@@ -356,15 +356,15 @@ def main(try_=None, load_data=True):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.1, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         if num_item == 4:
-            plt.text(-0.1, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.1, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 10:
-            plt.text(-0.1, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 13:
-            plt.text(-0.1, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         
         #Labels
         if num_item > 12:
