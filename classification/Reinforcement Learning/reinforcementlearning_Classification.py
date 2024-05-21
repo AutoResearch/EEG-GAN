@@ -15,7 +15,7 @@ from classification_functions import *
 ## DEFINE FUNCTIONS                          ##
 ###############################################
 
-def main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, classifiers, num_series, component='N400', prop_synthetic=None):
+def main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, classifiers, num_series, prop_synthetic=None):
     
     ###############################################
     ## SETUP                                     ##
@@ -54,7 +54,7 @@ def main(multiprocessing, features, validationOrTest, dataSampleSizes, synthetic
     jobs = []
     for series in range(num_series):
         for electrode_number in electrode_numbers: #Iterate through the electrodes
-            y_test, x_test = load_test_data(validationOrTest, electrode_number, features, component=component)
+            y_test, x_test = load_test_data(validationOrTest, electrode_number, features)
 
             for classifier in classifiers: #Iterate through classifiers
                 for addSyntheticData in syntheticDataOptions: #Iterate through analyses
@@ -73,7 +73,6 @@ def main(multiprocessing, features, validationOrTest, dataSampleSizes, synthetic
                                                                                 run,
                                                                                 y_test, 
                                                                                 x_test,
-                                                                                component,
                                                                                 prop_synthetic))
                                 jobs.append(job)
                             else:
@@ -89,7 +88,6 @@ def main(multiprocessing, features, validationOrTest, dataSampleSizes, synthetic
                                                                               run,
                                                                               y_test, 
                                                                               x_test,
-                                                                              component,
                                                                               prop_synthetic)
                                 
                                 write_classification(None, multiprocessing, currentFilename, toWrite)
@@ -102,7 +100,7 @@ def main(multiprocessing, features, validationOrTest, dataSampleSizes, synthetic
         pool.close()
         pool.join()
 
-def run_classification(q, multiprocessing, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, series, run, y_test, x_test, component='N400', prop_synthetic=None):
+def run_classification(q, multiprocessing, validationOrTest, features, electrode_number, classifier, addSyntheticData, dataSampleSize, series, run, y_test, x_test, prop_synthetic=None):
 
     print(f'ANALYSIS STARTED: Series = {series}, Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
@@ -124,13 +122,13 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     ## SYNTHETIC PROCESSING                      ##
     ###############################################
     if addSyntheticData == 'gan':
-        synFilename_0 = f"generated_samples/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     elif addSyntheticData == 'vae':
-        synFilename_0 = f"generated_samples/Anti-Saccade/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Anti-Saccade/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     ###############################################
@@ -303,11 +301,10 @@ if __name__ == '__main__':
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
     dataSampleSizes = ['005', '010', '015', '020'] #Which sample sizes to include
-    syntheticDataOptions = ['emp','gan','over','gaus','rev','neg','smooth'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    syntheticDataOptions = ['emp','vae','gan','over','gaus','rev','neg','smooth'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['SVM','RF','KNN','NN','LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS WHEN RUN WITH MP, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1] #Which electrode to predict
     num_series = 10 #Number of times to run all classifications
-    component = 'N2PC' #Which component of interest
     prop_synthetic = 1 #Proportion of synthetic participants to generate (1 = SS, 2 = 2*SS, etc.)
 
     #Split classifiers to multiprocessing vs not
@@ -327,7 +324,7 @@ if __name__ == '__main__':
     for i, current_classifiers in enumerate([mp_classifiers, nmp_classifiers]):
         if current_classifiers: 
             multiprocessing = True if i == 0 else False
-            main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, current_classifiers, num_series, component, prop_synthetic)
+            main(multiprocessing, features, validationOrTest, dataSampleSizes, syntheticDataOptions, current_classifiers, num_series, prop_synthetic)
 
     '''
 
