@@ -11,7 +11,7 @@ from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 import nn_architecture.losses as losses
 from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
-from nn_architecture.models import TransformerGenerator, TransformerDiscriminator, FFGenerator, FFDiscriminator, TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
+from nn_architecture.models import DecoderGenerator, EncoderDiscriminator
 
 
 class Trainer:

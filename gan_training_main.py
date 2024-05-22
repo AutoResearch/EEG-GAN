@@ -6,13 +6,10 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
-from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 from helpers.trainer import GANTrainer
 from helpers.get_master import find_free_port
 from helpers.ddp_training import run, GANDDPTrainer
-from nn_architecture.models import TransformerGenerator, TransformerDiscriminator, FFGenerator, FFDiscriminator, TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder, TransformerFlattenAutoencoder
 from helpers.dataloader import Dataloader
 from helpers.initialize_gan import init_gan
 from helpers import system_inputs
