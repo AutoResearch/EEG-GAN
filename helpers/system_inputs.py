@@ -258,7 +258,6 @@ class HelperGenerateSamples(Helper):
 def default_inputs_training_gan():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
-        'channel_recovery': [bool, 'Training regime for channel recovery', False, 'Channel recovery training regime'],
         'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
         'n_epochs': [int, 'Number of epochs', 100, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],
