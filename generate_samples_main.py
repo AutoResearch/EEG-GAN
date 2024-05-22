@@ -9,11 +9,9 @@ from torch.utils.data import DataLoader
 
 from helpers import system_inputs
 from helpers.dataloader import Dataloader
-from helpers.initialize_gan import init_gan, gan_types
+from helpers.initialize_gan import init_gan
 from helpers.trainer import GANTrainer
-from nn_architecture.models import DecoderGenerator, TransformerGenerator, AutoencoderGenerator
-from nn_architecture.ae_networks import TransformerDoubleAutoencoder, TransformerAutoencoder, \
-    TransformerFlattenAutoencoder
+from nn_architecture.models import DecoderGenerator
 from nn_architecture.vae_networks import VariationalAutoencoder
 
 #another comment
