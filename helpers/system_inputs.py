@@ -264,7 +264,7 @@ def default_inputs_training_gan():
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'hidden_dim': [int, 'Hidden dimension of the GAN components', 16, 'Hidden dimension: '],
         'num_layers': [int, 'Number of layers of the GAN components', 4, 'Number of layers: '],
-        'patch_size': [int, 'Patch size of the divided sequence (only for TTS-GAN)', 20, 'Patch size: '],
+        'patch_size': [int, 'Patch size of the divided sequence', 20, 'Patch size: '],
         'discriminator_lr': [float, 'Learning rate for the discriminator', 0.0001, 'Discriminator learning rate: '],
         'generator_lr': [float, 'Learning rate for the generator', 0.0001, 'Generator learning rate: '],
         'data': [str, 'Path to a dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
