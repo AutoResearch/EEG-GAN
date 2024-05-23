@@ -15,7 +15,7 @@ class InteractivePlot:
     def __init__(self):
 
         #Setup initial variables
-        self.selected_targets = []
+        self.targets = []
         self.available_targets, _ = retrieveData(0, 1)
 
         #Setup dataset information
@@ -38,13 +38,13 @@ class InteractivePlot:
 
         #Setup widgets
         self.select_dataset_dropdown = wd.Dropdown(options=self.datasets, value = self.datasets[0], description = 'Select Dataset', disabled = False)
-        self.select_target_dropdown = wd.Dropdown(options=[' ', 'All']+self.available_targets, value = ' ', description = 'Select', disabled = False)
-        self.remove_target_dropdown = wd.Dropdown(options=[' ']+self.selected_targets, value = ' ', description = 'Remove', disabled = False)
+        self.targets_checkboxes = [wd.Checkbox(value=False, description=avail_target) for avail_target in self.available_targets]
+        self.select_target_row = wd.VBox([wd.HBox(self.targets_checkboxes[:4]), wd.HBox(self.targets_checkboxes[4:])])
         self.centered_toggle = wd.ToggleButton(value=True, description='Centered')
 
+        for i in range(len(self.targets_checkboxes)):
+            self.targets_checkboxes[i].observe(self.change_targets) 
         self.select_dataset_dropdown.observe(self.change_dataset)
-        self.select_target_dropdown.observe(self.change_add)
-        self.remove_target_dropdown.observe(self.change_remove)
         self.centered_toggle.observe(self.change_and_refresh)
 
         #Display plot
@@ -52,23 +52,18 @@ class InteractivePlot:
 
     def refresh(self):
         clear_output()
-        prefix_options_select = [' ', 'All'] if self.available_targets else [' ']
-        self.select_target_dropdown.options = prefix_options_select+self.available_targets
-
-        prefix_options_remove = [' ', 'All'] if self.selected_targets else [' ']
-        self.remove_target_dropdown.options = prefix_options_remove+self.selected_targets
 
         display(self.select_dataset_dropdown) #Display the widget for use
-        display(self.select_target_dropdown) #Display the widget for use
-        display(self.remove_target_dropdown) #Display the widget for use
         display(self.centered_toggle) #Display the widget for use
-        print(f"Selected methods: {', '.join(self.selected_targets)}")
+        display(self.select_target_row)
 
-        plot_main(targets=self.selected_targets, center_toggle=self.centered_toggle.value, filename_prefix=self.filename_prefix, x_max=self.x_max, electrodes=self.electrode)
-        #plot_main(self.component, self.selected_targets, self.centered_toggle.value)
+        self.target_labels = [self.available_targets[i] for i in self.targets]
+        plot_main(targets=self.target_labels, center_toggle=self.centered_toggle.value, filename_prefix=self.filename_prefix, x_max=self.x_max, electrodes=self.electrode)
 
     def change_and_refresh(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
+            #for target_checkbox in self.targets_checkboxes:
+            #    self.targets_checkboxes[i].value = self.centered_toggle.value
             self.refresh()
 
     def change_dataset(self, change):
@@ -78,27 +73,14 @@ class InteractivePlot:
             self.x_max = self.x_maxes[dataset_index]
             self.electrode = self.electrodes[dataset_index]
             self.available_targets, _ = retrieveData(0, 1)
-            self.selected_targets = []
             self.refresh()
 
-    def change_add(self, change):
-        if change['type'] == 'change' and change['name'] == 'value' and self.select_target_dropdown.value != ' ':
-            if self.select_target_dropdown.value == 'All':
-                self.selected_targets, _ = retrieveData(0, 1)
-                self.available_targets = []
-            else:
-                self.selected_targets.append(self.select_target_dropdown.value)
-                self.available_targets.remove(self.select_target_dropdown.value)
-            self.refresh()
-
-    def change_remove(self, change):
-        if change['type'] == 'change' and change['name'] == 'value' and self.remove_target_dropdown.value != ' ':
-            if self.remove_target_dropdown.value == 'All':
-                self.selected_targets = []
-                self.available_targets, _ = retrieveData(0, 1)
-            else:
-                self.selected_targets.remove(self.remove_target_dropdown.value)
-                self.available_targets.append(self.remove_target_dropdown.value)
+    def change_targets(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            self.targets = []
+            for i, target_checkbox in enumerate(self.targets_checkboxes):
+                if target_checkbox.value:
+                    self.targets.append(i)
             self.refresh()
 
 ###############################################
@@ -168,7 +150,6 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
 def plotDiffData(target, reference, analysis_names, filenames):
 
     meanDataDSSyn_SynP100 = []
-
     target_index = [i for i,f in enumerate(analysis_names) if target == f][0]
     target_filename = filenames[target_index]
 
