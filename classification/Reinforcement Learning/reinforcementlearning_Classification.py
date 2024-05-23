@@ -127,8 +127,8 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     elif addSyntheticData == 'vae':
-        synFilename_0 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Reinforcement Learning/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Reinforcement Learning/Training Datasets/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Reinforcement Learning/Training Datasets/vae_e{electrode_number}_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     ###############################################
@@ -300,11 +300,11 @@ if __name__ == '__main__':
     #Determine inputs
     features = False #Datatype: False = Full Data, True = Features data
     validationOrTest = 'validation' #'validation' or 'test' set to predict
-    dataSampleSizes = ['005', '010', '015', '020'] #Which sample sizes to include
-    syntheticDataOptions = ['emp','gan'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
+    dataSampleSizes = ['005', '010', '015', '020', '030', '060', '100'] #Which sample sizes to include
+    syntheticDataOptions = ['emp','gan',]#'vae','over','gaus','rev','neg','smooth'] #['emp','gan','vae','over','gaus','rev','neg','smooth'] #The code will iterate through this list. emp = empirical classifications, gan = gan-augmented classifications, vae = vae-augmented classification, over = oversampling classification
     classifiers = ['SVM','RF','KNN','NN','LR'] #The code will iterate through this list #NOTE NN AND LR USE THEIR OWN MULTIPROCESSING AND SLOWS THINGS WHEN RUN WITH MP, SO SHOULD BE RUN ONLY ALONE OR TOGETHER
     electrode_numbers = [1] #Which electrode to predict
-    num_series = 2 #Number of times to run all classifications
+    num_series = 3 #Number of times to run all classifications
     prop_synthetic = 1 #Proportion of synthetic participants to generate (1 = SS, 2 = 2*SS, etc.)
 
     #Split classifiers to multiprocessing vs not
