@@ -12,19 +12,42 @@ from IPython.display import clear_output
 
 class InteractivePlot:
 
-    def __init__(self, component):
+    def __init__(self):
 
+        #Setup initial variables
         self.selected_targets = []
         self.available_targets, _ = retrieveData(0, 1)
-        self.component = component
 
+        #Setup dataset information
+        self.datasets = ['Reinforcement Learning (1E)', 
+                         'Reinforcement Learning (8E)', 
+                         'Antisaccade', 
+                         'Face Perception', 
+                         'Visual Search']
+        self.filename_prefixes = ['Reinforcement Learning/', 
+                     'Reinforcement Learning/',
+                     'Antisaccade/',
+                     'ERPCORE/N170/',
+                     'ERPCORE/N2PC/']
+        self.x_maxes = [100, 100, 100, 20, 20]
+        self.electrodes = [1, 8, 1, 1, 1]
+
+        self.filename_prefix = 'Reinforcement Learning/'
+        self.x_max = 100
+        self.electrode = 1
+
+        #Setup widgets
+        self.select_dataset_dropdown = wd.Dropdown(options=self.datasets, value = self.datasets[0], description = 'Select Dataset', disabled = False)
         self.select_target_dropdown = wd.Dropdown(options=[' ', 'All']+self.available_targets, value = ' ', description = 'Select', disabled = False)
         self.remove_target_dropdown = wd.Dropdown(options=[' ']+self.selected_targets, value = ' ', description = 'Remove', disabled = False)
         self.centered_toggle = wd.ToggleButton(value=True, description='Centered')
 
+        self.select_dataset_dropdown.observe(self.change_dataset)
         self.select_target_dropdown.observe(self.change_add)
         self.remove_target_dropdown.observe(self.change_remove)
         self.centered_toggle.observe(self.change_and_refresh)
+
+        #Display plot
         self.refresh()
 
     def refresh(self):
@@ -35,14 +58,27 @@ class InteractivePlot:
         prefix_options_remove = [' ', 'All'] if self.selected_targets else [' ']
         self.remove_target_dropdown.options = prefix_options_remove+self.selected_targets
 
+        display(self.select_dataset_dropdown) #Display the widget for use
         display(self.select_target_dropdown) #Display the widget for use
         display(self.remove_target_dropdown) #Display the widget for use
         display(self.centered_toggle) #Display the widget for use
         print(f"Selected methods: {', '.join(self.selected_targets)}")
-        plot_main(self.component, self.selected_targets, self.centered_toggle.value)
+
+        plot_main(targets=self.selected_targets, center_toggle=self.centered_toggle.value, filename_prefix=self.filename_prefix, x_max=self.x_max, electrodes=self.electrode)
+        #plot_main(self.component, self.selected_targets, self.centered_toggle.value)
 
     def change_and_refresh(self, change):
         if change['type'] == 'change' and change['name'] == 'value':
+            self.refresh()
+
+    def change_dataset(self, change):
+        if change['type'] == 'change' and change['name'] == 'value':
+            dataset_index = self.datasets.index(self.select_dataset_dropdown.value)
+            self.filename_prefix = self.filename_prefixes[dataset_index]
+            self.x_max = self.x_maxes[dataset_index]
+            self.electrode = self.electrodes[dataset_index]
+            self.available_targets, _ = retrieveData(0, 1)
+            self.selected_targets = []
             self.refresh()
 
     def change_add(self, change):
@@ -70,7 +106,7 @@ class InteractivePlot:
 ###############################################
 
 #Define function to determine filenames
-def retrieveData(data, component='N400', prefix='', electrodes=1): 
+def retrieveData(data, prefix='', electrodes=1): 
     analysis_names = ['Empirical', 'GAN-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
     #analysis_names = ['Empirical', 'GAN-Augmented', 'VAE-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
 
@@ -131,6 +167,8 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
 #Define function to plot difference bars
 def plotDiffData(target, reference, analysis_names, filenames):
 
+    meanDataDSSyn_SynP100 = []
+
     target_index = [i for i,f in enumerate(analysis_names) if target == f][0]
     target_filename = filenames[target_index]
 
@@ -167,21 +205,24 @@ def plotDiffData(target, reference, analysis_names, filenames):
             meanDiff.append(meanDataDSSyn_SynP100[ss]-meanDataDS[ss])
 
     #Plot mean differences as bars with annotated labels 
+    x_range = np.arange(1,5) if len(meanDataDS) == 4 else np.arange(1,8)
     if reference:
-        plt.bar(np.arange(1,5),meanDiff,color='grey',width=.5)
+        plt.bar(x_range,meanDiff,color='grey',width=.5)
     else:
-        plt.bar(np.arange(1,5),meanDataDS,color='grey',width=.5)
+        plt.bar(x_range,meanDataDS,color='grey',width=.5)
     
-    '''
-    for i in range(len(meanDataDSSyn_SynP100)):
-        if meanDiff[i] > 0:
-            plt.annotate(str(round(meanDiff[i]))+'%', ([5,10,15,20],meanDiff[i]+.5), ha='center', color='grey', size = 3)
+    for i in range(len(meanDataDS)):
+        annotation_font_size=8
+        if reference:
+            if meanDiff[i] > 0:
+                plt.annotate(str(round(meanDiff[i]))+'%', (x_range[i],meanDiff[i]+.2), ha='center', color='grey', size = annotation_font_size)
+            else:
+                plt.annotate(str(round(meanDiff[i]))+'%', (x_range[i],.2), ha='center', color='grey', size = annotation_font_size) 
         else:
-            plt.annotate(str(round(meanDiff[i]))+'%', ([5,10,15,20],.5), ha='center', color='grey', size = 3) 
-    '''  
+            plt.annotate(str(round(meanDataDS[i]))+'%', (x_range[i],meanDataDS[i]+.5), ha='center', color='grey', size = annotation_font_size)
         
 #Main plotting function
-def plot_main(component='N400', targets=[], center_toggle=True, filename_prefix='', interactive=True, save_name=None, x_max = 20, electrodes=1):
+def plot_main(targets=[], center_toggle=True, filename_prefix='', interactive=True, save_name=None, x_max = 20, electrodes=1):
     
     ###############################################
     ## SETUP                                     ##
@@ -230,7 +271,7 @@ def plot_main(component='N400', targets=[], center_toggle=True, filename_prefix=
 
         #Load and plot data while extracting legend names
         legendNames = []
-        analysis_names, filenames = retrieveData(dat, component, filename_prefix, electrodes=electrodes)
+        analysis_names, filenames = retrieveData(dat, filename_prefix, electrodes=electrodes)
         colors = [f'C{i}' for i in range(10)]
         offsets = (np.arange(len(analysis_names)) - ((len(analysis_names)/2)-.5))/2
         for i, filename in enumerate(filenames):
@@ -324,12 +365,14 @@ def plot_main(component='N400', targets=[], center_toggle=True, filename_prefix=
             elif len(targets) >= 2:
                 plotDiffData(targets[0], targets[1], analysis_names, filenames)
             ax1.spines[['right', 'top']].set_visible(False)
-            plt.xlim(0,5)
-            plt.xticks(np.arange(1,5), ['5','10','15','20'], fontsize=fontsize-2)
+            x_range = np.arange(1,5) if x_max == 20 else np.arange(1,8)
+            x_ticks = ['5','10','15','20'] if x_max == 20 else ['5','10','15','20','30','60','100']
+            plt.xlim(0,len(x_ticks)+1)
+            plt.xticks(x_range, x_ticks, fontsize=fontsize-2)
 
             if len(targets) >= 2:
-                plt.ylim(0,15)
-                plt.yticks(np.arange(0,15,5), fontsize=fontsize-2)
+                plt.ylim(0,20)
+                plt.yticks(np.arange(0,20,5), fontsize=fontsize-2)
             else:
                 plt.ylim(50,ylims)
                 plt.yticks(np.arange(50,ylims,5), fontsize=fontsize-2)
@@ -338,7 +381,7 @@ def plot_main(component='N400', targets=[], center_toggle=True, filename_prefix=
                 if len(targets) == 1:
                     ax1.annotate(f'{targets[0]}',(0.55,ylims), fontsize = fontsize)
                 elif len(targets) >= 2:
-                    ax1.annotate(f"{targets[0].replace('-Augmented','')} - {targets[1].replace('-Augmented','')}",(0.55,15), fontsize = fontsize)
+                    ax1.annotate(f"{targets[1].replace('-Augmented','')} - {targets[0].replace('-Augmented','')}",(0.55,15), fontsize = fontsize)
                 else:
                     ax1.annotate(f'Select an Analysis',(0.55,ylims), fontsize = fontsize)
             elif dat == 5:
