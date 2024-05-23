@@ -70,19 +70,19 @@ class InteractivePlot:
 ###############################################
 
 #Define function to determine filenames
-def retrieveData(data, component='N400', prefix=''): 
+def retrieveData(data, component='N400', prefix='', electrodes=1): 
     analysis_names = ['Empirical', 'GAN-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
     #analysis_names = ['Empirical', 'GAN-Augmented', 'VAE-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
 
     filenames= [
-        f'{prefix}Classification Results/empPredictions_e1_NN.csv',
-        f'{prefix}Classification Results/ganPredictions_e1_NN.csv',
-        #f'{prefix}Classification Results/vaePredictions_e1_NN.csv',
-        f'{prefix}Classification Results/overPredictions_e1_NN.csv',
-        f'{prefix}Classification Results/gausPredictions_e1_NN.csv',
-        f'{prefix}Classification Results/negPredictions_e1_NN.csv',
-        f'{prefix}Classification Results/revPredictions_e1_NN.csv',
-        f'{prefix}Classification Results/smoothPredictions_e1_NN.csv',
+        f'{prefix}Classification Results/empPredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/ganPredictions_e{electrodes}_NN.csv',
+        #f'{prefix}Classification Results/vaePredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/overPredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/gausPredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/negPredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/revPredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/smoothPredictions_e{electrodes}_NN.csv',
     ]
 
     if data == 1:
@@ -115,7 +115,7 @@ def loadAndPlot(filename, plotColor, legendName, selected=False, alpha=1, select
         semData.append((np.std(data[ssIndex,3]))/np.sqrt(len(data[ssIndex,3]))) #Standard error of the mean
         
     #Plot Data
-    x_axis_scale = [5, 10, 15, 20]
+    x_axis_scale = [5, 10, 15, 20] if len(meanData) == 4 else [5, 10, 15, 20, 25, 30, 35]
     if selected:
         selected_offset = offset * center_toggle
         plt.plot(x_axis_scale+selected_offset, meanData, color = plotColor, linewidth = 1, alpha=selected_alpha, label='_nolegend_')
@@ -181,14 +181,14 @@ def plotDiffData(target, reference, analysis_names, filenames):
     '''  
         
 #Main plotting function
-def plot_main(component='N400', targets=None, center_toggle=True, filename_prefix='', interactive=True, save_name=None):
+def plot_main(component='N400', targets=[], center_toggle=True, filename_prefix='', interactive=True, save_name=None, x_max = 20, electrodes=1):
     
     ###############################################
     ## SETUP                                     ##
     ###############################################
 
     #Determine the sample sizes of interest
-    xLabels = [5,10,15,20]
+    xLabels = [5,10,15,20] if x_max == 20 else [5,10,15,20,30,60,100]
     data = np.arange(1,6)
         
     ###############################################
@@ -197,7 +197,7 @@ def plot_main(component='N400', targets=None, center_toggle=True, filename_prefi
 
     #Figure Parameters
     ylims = 80
-    xlims = 22.5
+    xlims = 22.5 if x_max == 20 else 37.5
     alpha = .6
     alpha_selected = .8
     alpha_targets = .1
@@ -230,7 +230,7 @@ def plot_main(component='N400', targets=None, center_toggle=True, filename_prefi
 
         #Load and plot data while extracting legend names
         legendNames = []
-        analysis_names, filenames = retrieveData(dat, component, filename_prefix)
+        analysis_names, filenames = retrieveData(dat, component, filename_prefix, electrodes=electrodes)
         colors = [f'C{i}' for i in range(10)]
         offsets = (np.arange(len(analysis_names)) - ((len(analysis_names)/2)-.5))/2
         for i, filename in enumerate(filenames):
@@ -260,7 +260,7 @@ def plot_main(component='N400', targets=None, center_toggle=True, filename_prefi
                                             selected=False))
 
         #Format plot
-        x_axis_scale = [5, 10, 15, 20]
+        x_axis_scale = [5, 10, 15, 20] if x_max == 20 else [5, 10, 15, 20, 25, 30, 35]
         plt.ylim(45,ylims)
         plt.xlim(2.5, xlims)
         if interactive:
