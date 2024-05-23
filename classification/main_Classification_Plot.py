@@ -98,7 +98,7 @@ def main():
     fig.subplots_adjust(hspace=.3, bottom=0.2)
     plt.rcParams.update({'font.size': 5})  
 
-    ylims = 75
+    ylims = 80
     alpha = 1
     fontsize = 6
 
@@ -132,7 +132,7 @@ def main():
 
             #Load and plot data while extracting legend names
             legendNames = []
-            if False: #dataset_index == 1: #TODO: ADD THIS BACK IN
+            if dataset_index == 1: #TODO: ADD THIS BACK IN
                 empData, augData = retrieveData(dataset, classifier, electrodes=8)
             else:
                 empData, augData = retrieveData(dataset, classifier)
