@@ -129,8 +129,8 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     elif addSyntheticData == 'vae':
-        synFilename_0 = f"generated_samples/Anti-Saccade/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Anti-Saccade/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/ERPCORE/{component}/Training Datasets/vae_erpcore_{component}_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/ERPCORE/{component}/Training Datasets/vae_erpcore_{component}_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     ###############################################
