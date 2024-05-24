@@ -6,7 +6,7 @@ hide:
 # Research
 
 ## <b>Augmenting EEG with Generative Adversarial Networks Enhances Brain Decoding Across Classifiers and Sample Sizes</b>
-### <i>Williams, Weinhardt, Wirzberger, & Musslick (in press), Cognitive Science</i>
+### <i>Williams, Weinhardt, Wirzberger, & Musslick (in press), Proceedings of the Annual Meeting of the Cognitive Science Society</i>
 
 <center> [Preprint](https://osf.io){ .md-button } [Journal Print](https://cognitivesciencesociety.org/cognitive-science-journal/){ .md-button} [Data and Scripts](https://github.com/chadcwilliams/EEG-GAN_CognitiveScience2023){ .md-button } </center>
 
