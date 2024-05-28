@@ -138,7 +138,7 @@ class GANTrainer(Trainer):
             'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
             'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
             'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
-
+            'save_name': opt['save_name'] if 'save_name' in opt else '',
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
                 'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
@@ -548,6 +548,7 @@ class AETrainer(Trainer):
             'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
             'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
+            'save_name': opt['save_name'] if 'save_name' in opt else '',
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
@@ -754,6 +755,8 @@ class VAETrainer(Trainer):
             'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
+            'save_name': opt['save_name'] if 'save_name' in opt else '',
+
             # 'activation': opt['activation'],
             
             'dataloader': {
