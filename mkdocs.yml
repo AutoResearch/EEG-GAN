@@ -1,10 +1,11 @@
-site_name: EEG-GANs
+site_name: EEG-GAN
 
 theme:
   name: material
   features: 
     - navigation.path
     - navigation.indexes 
+    - tab: true
   palette:
     - scheme: default
       toggle: 
@@ -24,14 +25,20 @@ markdown_extensions:
   - attr_list
 
 plugins:
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
 
 nav: 
   - Introduction: 'index.md'
   - How To Use: 
-    - Getting Started: 'HowToUse/gettingstarted.md'
+    - Install: 'HowToUse/install.md'
     - Functions: 'HowToUse/functions.md'
     - Data Structure: 'HowToUse/datastructure.md'
     - Examples: 'HowToUse/examples.md'
   - Tutorials:
-    - Jupyter: 'Tutorials/web_gansEEGTutorial.ipynb'
+    - Notebook: 'Tutorials/web_EEG_GAN_tutorial.ipynb'
+  - Research:
+    - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
+    - EEG-GAN v2 - 2024:
+      - Manuscript: 'Research/EEG-GAN v2.md'
+      - Interactive Plot: 'Research/EEG-GAN v2 interactive.ipynb'
+  - Repository: https://github.com/AutoResearch/EEG-GAN" target="_blank
