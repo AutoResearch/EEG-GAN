@@ -19,9 +19,12 @@ def main():
     default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
 
     # set a seed for reproducibility if desired
-    if default_args['seed']:
-        torch.manual_seed(42)
-        np.random.seed(42)      
+    if default_args['seed'] is not None:
+        np.random.seed(default_args['seed'])                       
+        torch.manual_seed(default_args['seed'])                    
+        torch.cuda.manual_seed(default_args['seed'])               
+        torch.cuda.manual_seed_all(default_args['seed'])           
+        torch.backends.cudnn.deterministic = True  
     
     print('\n-----------------------------------------')
     print("System output:")
