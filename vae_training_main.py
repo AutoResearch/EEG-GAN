@@ -115,42 +115,30 @@ def main():
     print("Training VAE...")
     print('-----------------------------------------\n')
     
-    if False: #opt['ddp']:
-        NotImplementedError('Distributed training not implemented yet.')
-        '''
-        pass #Not implemented yet #TODO: IMPLEMENT THIS
-        trainer = VAEDDPTrainer(model, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
-        mp.spawn(run,
-                 args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
-                 nprocs=opt['world_size'], join=True)
-        '''
+    trainer = VAETrainer(model, opt)
+    if default_args['load_checkpoint']:
+        trainer.load_checkpoint(default_args['path_checkpoint'])
+    dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True)
+    gen_samples = trainer.training(dataset)
+
+    # save final models, optimizer states, generated samples, losses and configuration as final result
+    if not opt['save_name']:
+        path = 'trained_vae'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'vae_{trainer.epochs}ep_' + timestamp + '.pt'
+        save_filename = os.path.join(path, filename)
     else:
-        trainer = VAETrainer(model, opt)
-        if default_args['load_checkpoint']:
-            trainer.load_checkpoint(default_args['path_checkpoint'])
-        dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True)
-        gen_samples = trainer.training(dataset)
+        save_filename = opt['save_name']
+    trainer.save_checkpoint(path_checkpoint=save_filename, samples=gen_samples, update_history=True)
 
-        # save final models, optimizer states, generated samples, losses and configuration as final result
-        if not opt['save_name']:
-            path = 'trained_vae'
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'vae_{trainer.epochs}ep_' + timestamp + '.pt'
-            save_filename = os.path.join(path, filename)
-        else:
-            save_filename = opt['save_name']
-        trainer.save_checkpoint(path_checkpoint=save_filename, samples=gen_samples, update_history=True)
+    print(f"Checkpoint saved to {default_args['path_checkpoint']}.")
 
-        print(f"Checkpoint saved to {default_args['path_checkpoint']}.")
+    model = trainer.model
 
-        model = trainer.model
+    print("VAE training finished.")
+    print(f"Model states and generated samples saved to file {save_filename}.")
 
-        print("VAE training finished.")
-        print(f"Model states and generated samples saved to file {save_filename}.")
-
-        return model, opt, gen_samples
+    return model, opt, gen_samples
 
 if __name__ == '__main__':
     main()

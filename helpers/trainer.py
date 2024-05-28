@@ -47,7 +47,6 @@ class GANTrainer(Trainer):
         self.device = opt['device'] if 'device' in opt else 'cuda' if torch.cuda.is_available() else 'cpu'
         self.sequence_length = opt['sequence_length'] if 'sequence_length' in opt else 0
         self.input_sequence_length = opt['input_sequence_length'] if 'input_sequence_length' in opt else 0
-        # self.sequence_length_generated = self.sequence_length-self.input_sequence_length if self.sequence_length != self.input_sequence_length else self.sequence_length
         self.sequence_length_generated = self.sequence_length
         self.batch_size = opt['batch_size'] if 'batch_size' in opt else 32
         self.epochs = opt['n_epochs'] if 'n_epochs' in opt else 10
@@ -62,9 +61,6 @@ class GANTrainer(Trainer):
         self.channel_names = opt['channel_names'] if 'channel_names' in opt else list(range(0, self.n_channels))
         self.b1, self.b2 = 0, 0.9  # alternative values: .5, 0.999
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
-        # self.lr_scheduler = opt['lr_scheduler']
-        # self.scheduler_warmup = opt['scheduler_warmup']
-        # self.scheduler_target = opt['scheduler_target']
         self.start_time = time.time()
 
         self.generator = generator
@@ -80,16 +76,6 @@ class GANTrainer(Trainer):
                                                     lr=self.g_lr, betas=(self.b1, self.b2))
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
                                                 lr=self.d_lr, betas=(self.b1, self.b2))
-        
-        # self.generator_scheduler = None
-        # self.discriminator_scheduler = None
-        # if self.lr_scheduler.lower() == 'cycliclr':
-        #     self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.g_lr*.1, max_lr=self.g_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-        #     self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.d_lr*.1, max_lr=self.d_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-        # if self.scheduler_target.lower() == 'generator':
-        #     self.discriminator_scheduler = None
-        # if self.scheduler_target.lower() == 'discriminator':
-        #     self.generator_scheduler = None
 
         self.loss = Loss()
         if isinstance(self.loss, losses.WassersteinGradientPenaltyLoss):
@@ -109,10 +95,8 @@ class GANTrainer(Trainer):
             'model_class': 'GAN',
             'sequence_length': self.sequence_length,
             'sequence_length_generated': self.sequence_length_generated,
-            # 'input_sequence_length': self.input_sequence_length,
             'num_layers': opt['num_layers'],
             'hidden_dim': opt['hidden_dim'],
-            # 'activation': opt['activation'],
             'latent_dim': self.latent_dim,
             'batch_size': self.batch_size,
             'epochs': self.epochs,
@@ -131,9 +115,6 @@ class GANTrainer(Trainer):
             'autoencoder': opt['autoencoder'] if 'autoencoder' in opt else None,
             'n_channels': self.n_channels,
             'channel_names': self.channel_names,
-            # 'lr_scheduler': self.lr_scheduler,
-            # 'scheduler_warmup': self.scheduler_warmup,
-            # 'scheduler_target': self.scheduler_target,
             'seed': opt['seed'],
             'kw_conditions': opt['kw_conditions'] if 'kw_conditions' in opt else None,
             'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
@@ -190,13 +171,6 @@ class GANTrainer(Trainer):
                 self.d_losses.append(d_loss_batch/i_batch)
                 self.g_losses.append(g_loss_batch/i_batch)
 
-                # if self.scheduler_warmup < epoch:
-                #     if self.lr_scheduler.lower() == 'cycliclr':
-                #         if self.scheduler_target.lower() == 'generator' or self.scheduler_target.lower() == 'both':
-                #             self.generator_scheduler.step()
-                #         if self.scheduler_target.lower() == 'discriminator' or self.scheduler_target.lower() == 'both':
-                #             self.discriminator_scheduler.step()
-
                 # Save a checkpoint of the trained GAN and the generated samples every sample interval
                 if epoch % self.sample_interval == 0:
                     gen_samples.append(gen_samples_batch[np.random.randint(0, len(batch))].detach().cpu().numpy())
@@ -210,7 +184,6 @@ class GANTrainer(Trainer):
                         trigger_checkpoint_01 = True
 
                 self.trained_epochs += 1
-                #self.print_log(epoch + 1, d_loss_batch/i_batch, g_loss_batch/i_batch)
                 loop.set_postfix_str(f"D LOSS: {np.round(d_loss_batch/i_batch,6)}, G LOSS: {np.round(g_loss_batch/i_batch,6)}")
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
@@ -380,8 +353,6 @@ class GANTrainer(Trainer):
             'discriminator': discriminator.state_dict(),
             'generator_optimizer': self.generator_optimizer.state_dict(),
             'discriminator_optimizer': self.discriminator_optimizer.state_dict(),
-            # 'generator_scheduler': None if self.generator_scheduler is None else self.generator_scheduler.state_dict(),
-            # 'discriminator_scheduler': None if self.discriminator_scheduler is None else self.discriminator_scheduler.state_dict(),
             'generator_loss': self.g_losses,
             'discriminator_loss': self.d_losses,
             'samples': samples,
@@ -402,33 +373,6 @@ class GANTrainer(Trainer):
             self.discriminator.load_state_dict(state_dict['discriminator'])
             self.generator_optimizer.load_state_dict(state_dict['generator_optimizer'])
             self.discriminator_optimizer.load_state_dict(state_dict['discriminator_optimizer'])
-
-            '''
-            self.generator_scheduler = None
-            self.discriminator_scheduler = None
-            if self.lr_scheduler.lower() == 'cycliclr':
-                self.generator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.generator_optimizer, base_lr=self.g_lr*.1, max_lr=self.g_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-                self.discriminator_scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=self.discriminator_optimizer, base_lr=self.d_lr*.1, max_lr=self.d_lr, step_size_up=500, mode='exp_range', cycle_momentum=False, verbose=False)
-            elif self.lr_scheduler.lower() == 'reducelronplateau':
-                self.generator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.generator_optimizer, factor=0.1, cooldown=50, verbose=False)
-                self.discriminator_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=self.discriminator_optimizer, factor=0.1, cooldown=50, verbose=False)    
-            if self.scheduler_target.lower() == 'generator':
-                self.discriminator_scheduler = None
-            if self.scheduler_target.lower() == 'discriminator':
-                self.generator_scheduler = None
-            '''
-
-            # if self.lr_scheduler != '' and state_dict['configuration']['lr_scheduler'] != '':
-            #     if self.scheduler_target == 'generator' or self.scheduler_target == 'both':
-            #         self.generator_scheduler.load_state_dict(state_dict['generator_scheduler'])
-            #         for i in range(len(self.generator_optimizer.param_groups)):
-            #             self.generator_optimizer.param_groups[i]['lr'] = self.generator_scheduler.get_last_lr()[0]
-
-            #     if self.scheduler_target == 'discriminator' or self.scheduler_target == 'both':
-            #         self.discriminator_scheduler.load_state_dict(state_dict['discriminator_scheduler'])
-            #         for i in range(len(self.generator_optimizer.param_groups)):
-            #             self.discriminator_optimizer.param_groups[i]['lr'] = self.discriminator_scheduler.get_last_lr()[0]
-                        
             print(f"Device {self.device}:{self.rank}: Using pretrained GAN.")
         else:
             Warning("No checkpoint-file found. Using random initialization.")
@@ -536,14 +480,12 @@ class AETrainer(Trainer):
             'channels_out': opt['channels_out'] if 'channels_out' in opt else None,
             'sequence_length': opt['sequence_length'],
             'target': opt['target'] if 'target' in opt else None,
-            # 'conditions': opt['conditions'] if 'conditions' in opt else None,
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'output_dim': opt['output_dim'],
             'output_dim_2': opt['output_dim_2'],
             'num_layers': opt['num_layers'],
             'num_heads': opt['num_heads'],
-            # 'activation': opt['activation'],
             'seed': opt['seed'],
             'kw_time': opt['kw_time'] if 'kw_time' in opt else None,
             'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
@@ -597,13 +539,9 @@ class AETrainer(Trainer):
                         trigger_checkpoint_01 = True
 
                 self.trained_epochs += 1
-                #self.print_log(epoch + 1, train_loss, test_loss)
         except KeyboardInterrupt:
             # save model at KeyboardInterrupt
             print("Keyboard interrupt detected.\nCancel training and continue with further operations.")
-
-        # except Exception as error:
-        #     ValueError(f"An error occurred during training: {error}")
 
         self.manage_checkpoints(path_checkpoint, [checkpoint_01_file, checkpoint_02_file], update_history=True, samples=samples)
         return samples
@@ -618,8 +556,6 @@ class AETrainer(Trainer):
         total_loss = 0
         for batch in data:
             self.optimizer.zero_grad()
-            # inputs = nn.BatchNorm1d(batch.shape[-1])(batch.float().permute(0, 2, 1)).permute(0, 2, 1)
-            # inputs = filter(inputs.detach().cpu().numpy(), win_len=random.randint(29, 50), dtype=torch.Tensor)
             inputs = batch.float().to(self.model.device)
             outputs = self.model(inputs)
             loss = self.loss(outputs, inputs)
@@ -756,8 +692,6 @@ class VAETrainer(Trainer):
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'save_name': opt['save_name'] if 'save_name' in opt else '',
-
-            # 'activation': opt['activation'],
             
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,

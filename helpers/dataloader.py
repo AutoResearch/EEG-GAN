@@ -34,10 +34,6 @@ class Dataloader:
             if kw_channel != '':
                 channels = df[kw_channel].unique()
                 assert len(df)%len(channels)==0, f"Number of rows ({len(df)}) must be a multiple of number of channels ({len(channels)}).\nThis could be caused by missing data for some channels."
-                # if type(multichannel) == list:
-                #     channels = [channel for channel in channels if channel in multichannel]
-                #     # filter data for specified channels
-                #     df = df.loc[df[kw_channel].isin(multichannel)]
             n_channels = len(channels)
             self.channels = channels
 
@@ -55,23 +51,16 @@ class Dataloader:
                 for i, l in enumerate(kw_conditions):
                     labels[:, i] = torch.FloatTensor(df[l])
 
-            # if multichannel:
-            #     kw_channel = torch.FloatTensor(df[kw_channel])
-
             if diff_data:
                 # Diff of data
                 dataset = dataset[:, 1:] - dataset[:, :-1]
 
-            # self.dataset_min = None
-            # self.dataset_max = None
             self.dataset_min = torch.min(dataset)
             self.dataset_max = torch.max(dataset)
             if norm_data:
                 # Normalize data
                 dataset = (dataset - self.dataset_min) / (self.dataset_max - self.dataset_min)
 
-            # self.dataset_mean = None
-            # self.dataset_std = None
             self.dataset_mean = dataset.mean(dim=0).unsqueeze(0)
             self.dataset_std = dataset.std(dim=0).unsqueeze(0)
             if std_data:

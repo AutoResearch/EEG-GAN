@@ -43,10 +43,6 @@ def plot_fft_hist(data, save=False, path_save=None):
     else:
         plt.show()
 
-    # plot nspectrum per frequency, with a semilog scale on nspectrum
-    # plt.semilogy(freq, nspectrum[10])
-    # plt.show()
-
     return xbins, ybins, h.T
 
 
@@ -54,18 +50,10 @@ def plot_spectogram(x, save=False, path_save=None):
     """Plot the spectogram of a dataset along the time axis (dim=1)."""
 
     fs = 500
-
-    # interpolate the data to have a length of fs*100
-    # x_new = np.zeros((x.shape[0], fs * 100))
-    # for i in range(x.shape[0]):
-    #     x_new[i] = np.interp(np.linspace(0, x.shape[1], fs * 100), np.arange(x.shape[1]), x[i])
-    # x = x_new
-
     f, t, Sxx = signal.spectrogram(x.T, fs)
     Sxx = np.sum(Sxx, axis=0)
 
     plt.pcolormesh(t, f, Sxx, shading='gouraud')
-    # plt.yscale('log')
     plt.ylim(10**-3, 50**1)
     plt.ylabel('Frequency [Hz]')
     plt.xlabel('Time [sec]')

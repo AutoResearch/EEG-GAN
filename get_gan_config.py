@@ -21,5 +21,4 @@ def main():
     print('\n')
 
 if __name__ == "__main__":
-    # sys.argv = ["path_file=trained_models\gan_ddp_8000ep_tanh.pt"]
     main()
