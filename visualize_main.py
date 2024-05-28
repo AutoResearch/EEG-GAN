@@ -51,14 +51,6 @@ def main():
     elif default_args['model'] != '':
         state_dict = torch.load(default_args['model'], map_location='cpu')
         n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
-        # if n_conditions == 0 and default_args['kw_conditions'] != ['']:
-        #     dataloader = Dataloader(path=default_args['comp_data'],
-        #                         norm_data=True,
-        #                         kw_time=default_args['kw_time'],
-        #                         kw_conditions=default_args['kw_conditions'],
-        #                         kw_channel=default_args['kw_channel'], )
-        #     n_conditions = dataloader.get_labels()[:, :, 0].numpy().shape[-1]
-        # sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
         data = np.concatenate(state_dict['samples'])
         if len(data.shape) == 2:
             data = data.reshape((1, data.shape[0], data.shape[1]))
@@ -202,8 +194,7 @@ def main():
                         axs[jcol].plot(averaged_data[i, :, j])
                     else:
                         axs[i, jcol].plot(averaged_data[i, :, j])
-            # axs[i].set_title(f'condition {cond}')
-            # set legend at the right hand side of the plot;
+             # set legend at the right hand side of the plot;
             # legend carries the condition information
             # make graph and legend visible within the figure
             if not default_args['channel_plots']:
@@ -270,23 +261,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # sys.argv = [
-    #             # 'csv',
-    #             # 'data=generated_samples/gan_1ep_2chan_1cond.csv',
-    #             'checkpoint',
-    #             'data=trained_ae/ae_gansMultiCondition.pt',
-    #             # 'conditions=Condition',
-    #             'kw_channel=Electrode',
-    #             'n_samples=8',
-    #             # 'channel_plots',
-    #             # 'channel_index=0',
-    #             'loss',
-    #             # 'average',
-    #             # 'spectogram',
-    #             # 'fft',
-    #             'pca',
-    #             'tsne',
-    #             # 'comp_data=data/gansMultiCondition_SHORT.csv',
-    #             # 'comp_data=data/gansMultiCondition.csv',
-    # ]
     main()

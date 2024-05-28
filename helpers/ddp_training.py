@@ -44,11 +44,7 @@ class GANDDPTrainer(trainer.GANTrainer):
 
     def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None, update_history=False):
         if self.rank == 0:
-            # print(f'Rank {self.rank} is managing checkpoints.')
             super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module, samples=samples, update_history=update_history)
-        #     print(f'Rank {self.rank} finished managing checkpoints.')
-        # print(f'Rank {self.rank} reached barrier.')
-        # dist.barrier()
 
     def set_device(self, rank):
         self.rank = rank
@@ -93,8 +89,6 @@ class AEDDPTrainer(trainer.AETrainer):
         # dist.barrier()
 
     def print_log(self, current_epoch, train_loss, test_loss):
-        # if self.rank == 0:
-        # average the loss across all processes before printing
         reduce_tensor = torch.tensor([train_loss, test_loss], dtype=torch.float32, device=self.device)
         dist.all_reduce(reduce_tensor, op=dist.ReduceOp.SUM)
         reduce_tensor /= self.world_size
@@ -103,11 +97,7 @@ class AEDDPTrainer(trainer.AETrainer):
 
     def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False, samples=None):
         if self.rank == 0:
-            # print(f'Rank {self.rank} is managing checkpoints.')
             super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module, update_history=update_history, samples=samples)
-        #     print(f'Rank {self.rank} finished managing checkpoints.')
-        # print(f'Rank {self.rank} reached barrier.')
-        # dist.barrier()
 
     def set_device(self, rank):
         self.rank = rank
@@ -136,9 +126,7 @@ def run(rank, world_size, master_port, backend, trainer_ddp, opt):
 
 
 def _setup(rank, world_size, master_port, backend):
-    # print(f"Initializing process group on rank {rank}")# on master port {self.master_port}.")
-
-    os.environ['MASTER_ADDR'] = 'localhost'  # '127.0.0.1'
+    os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = str(master_port)
 
     # create default process group
@@ -152,10 +140,6 @@ def _setup_trainer(rank, trainer_ddp):
 
     # construct DDP model
     trainer_ddp.set_ddp_framework()
-
-    # load checkpoint
-    # if training.use_checkpoint:
-    #     training.load_checkpoint(training.path_checkpoint)
 
     return trainer_ddp
 
@@ -207,7 +191,7 @@ def _ddp_training(trainer_ddp, opt):
     # save checkpoint
     if trainer_ddp.rank == 0:
 
-                # save final models, optimizer states, generated samples, losses and configuration as final result
+        # save final models, optimizer states, generated samples, losses and configuration as final result
         path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         if opt['save_name'] != '':

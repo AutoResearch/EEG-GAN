@@ -29,16 +29,6 @@ def main():
     """Main function of the training process. 
     For input help use the command 'python gan_training_main.py help' in the terminal."""
     
-    # TODO: Regarding Github Issue #62 GAN Training script does not close everything properly (aka Memory Leakage after crashed training):
-    # Could not reproduce the memory leakage issue. May be an Oscar or DDP specific issue.
-    # Two approaches:
-    # 1. added a try/except clause at DDP Training level to destroy the process group if an exception occurs
-    # 2. added a torch.cuda.empty_cache() call before each training run to clear the cache
-    # First try the 1st approach. If it does not work, try the 2nd approach.
-    # Here's the 2nd approach:
-    # Try to fix the issue by emptying the cache before each training run.
-    # torch.cuda.empty_cache()
-    
     # create directory 'trained_models' if not exists
     if not os.path.exists('trained_models'):
         os.makedirs('trained_models')
@@ -74,10 +64,7 @@ def main():
 
     # GAN configuration
     opt = {
-        # 'gan_type': default_args['type'],
         'n_epochs': default_args['n_epochs'],
-        # 'input_sequence_length': default_args['input_sequence_length'],
-        # 'seq_len_generated': default_args['seq_len_generated'],
         'checkpoint': default_args['checkpoint'],
         'data': default_args['data'],
         'autoencoder': default_args['autoencoder'],
@@ -92,20 +79,15 @@ def main():
         'sequence_length': -1,
         'hidden_dim': default_args['hidden_dim'],  # Dimension of hidden layers in discriminator and generator
         'num_layers': default_args['num_layers'],
-        # 'activation': default_args['activation'] if default_args['autoencoder'] is None else "tanh",
         'latent_dim': 128,  # Dimension of the latent space
         'critic_iterations': 5,  # number of iterations of the critic per generator iteration for Wasserstein GAN
         'lambda_gp': 10,  # Gradient penalty lambda for Wasserstein GAN-GP
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu") if not ddp else torch.device("cpu"), 
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),  # number of processes for distributed training
-        # 'multichannel': default_args['multichannel'],
         'kw_channel': default_args['kw_channel'],
         'norm_data': norm_data,
         'std_data': std_data,
         'diff_data': diff_data,
-        # 'lr_scheduler': default_args['lr_scheduler'],
-        # 'scheduler_warmup': default_args['scheduler_warmup'],
-        # 'scheduler_target': default_args['scheduler_target'],
         'seed': default_args['seed'],
         'save_name': default_args['save_name'],
         'history': None,
@@ -118,11 +100,6 @@ def main():
         torch.cuda.manual_seed(opt['seed'])               
         torch.cuda.manual_seed_all(opt['seed'])           
         torch.backends.cudnn.deterministic = True  
-    
-    # if autoencoder is used, take its activation function as the activation function for the generator
-    # print warning that the activation function is overwritten with the autoencoder activation function
-    # if default_args['autoencoder'] != '':
-    #     print(f"Warning: Since an autoencoder is used, the specified activation function {default_args['activation']} of the GAN is overwritten with the autoencoder encoding activation function 'nn.Tanh()' to ensure stability.")
     
     # Load dataset as tensor
     dataloader = Dataloader(default_args['data'],
@@ -137,8 +114,6 @@ def main():
     opt['channel_names'] = dataloader.channels
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1] - dataloader.labels.shape[1]
-    # if opt['input_sequence_length'] == -1:
-    #     opt['input_sequence_length'] = opt['sequence_length']
     opt['n_samples'] = dataset.shape[0]
 
     ae_dict = torch.load(opt['autoencoder'], map_location=torch.device('cpu')) if opt['autoencoder'] != '' else []
@@ -160,10 +135,8 @@ def main():
     if generated_seq_length % default_args['patch_size'] != 0:
         pad_warning(generated_seq_length, encoded_sequence)
         
-    # opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions'] + opt['n_channels'] if opt['input_sequence_length'] > 0 else opt['latent_dim'] + opt['n_conditions']
     opt['latent_dim_in'] = opt['latent_dim'] + opt['n_conditions']
     opt['channel_in_disc'] = opt['n_channels'] + opt['n_conditions']
-    # opt['sequence_length_generated'] = opt['sequence_length'] - opt['input_sequence_length'] if opt['input_sequence_length'] != opt['sequence_length'] else opt['sequence_length']
     opt['sequence_length_generated'] = opt['sequence_length']
     
     # --------------------------------------------------------------------------------

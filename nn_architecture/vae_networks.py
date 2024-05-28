@@ -64,9 +64,6 @@ class VariationalAutoencoder(nn.Module):
         
         x = torch.flatten(x, start_dim=1)
         x = self._encode(x)
-        #x = self.activation(self.linear_enc_in(x))
-        #x = self.encoder(x)
-        #x = self.activation(self.linear_enc_out(x))
         mu = self.mu_refactor(x)
         sigma = self.sigma_refactor(x)
 
@@ -82,11 +79,6 @@ class VariationalAutoencoder(nn.Module):
     def decode(self, x):
 
         x = self._decode(x)
-        #x = self.linear_dec_in(x)
-        #x = self.decoder(x)
-        #x = self.linear_dec_out(x)
-        #x = torch.sigmoid(x)
-
         x = x.reshape((x.shape[0], int(self.input_dim/self.num_electrodes), self.num_electrodes))
 
         return x

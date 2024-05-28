@@ -94,25 +94,11 @@ def main():
         if n_conditions != len(condition):
             raise ValueError(f"Number of conditions in model ({n_conditions}) does not match number of conditions given ({len(condition)}).")
 
-        # if input_sequence_length != 0 and input_sequence_length != sequence_length:
-        #     raise NotImplementedError(f"Prediction case detected.\nInput sequence length ({input_sequence_length}) > 0 and != sequence length ({sequence_length}).\nPrediction is not implemented yet.")
-
-        # get data from dataset if sequence2sequence or prediction case
-        # if input_sequence_length != 0:
-        #     dataloader = Dataloader(**state_dict['configuration']['dataloader'])
-        #     dataset = dataloader.get_data()
-        #     if n_conditions > 0:
-        #         raise NotImplementedError(
-        #             f"Prediction or Sequence-2-Sequence case detected.\nGeneration with conditions in on of these cases is not implemented yet.\nPlease generate without conditions.")
-        # else:
-        #     dataset = None
-
         # define device
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # Initialize generator
         print("Initializing generator...")
-        # latent_dim_in = latent_dim + n_conditions + n_channels if input_sequence_length > 0 else latent_dim + n_conditions
         latent_dim_in = latent_dim + n_conditions
 
         generator, _ = init_gan(latent_dim_in=latent_dim_in,
@@ -123,11 +109,8 @@ def main():
                                 device=device,
                                 hidden_dim=state_dict['configuration']['hidden_dim'],
                                 num_layers=state_dict['configuration']['num_layers'],
-                                # activation=state_dict['configuration']['activation'],
-                                # input_sequence_length=input_sequence_length,
                                 patch_size=state_dict['configuration']['patch_size'],
                                 autoencoder=state_dict['configuration']['autoencoder'],
-                                # padding=state_dict['configuration']['padding'],
                                 )
         generator.eval()
         if isinstance(generator, DecoderGenerator):
@@ -159,13 +142,6 @@ def main():
 
         for i in range(num_sequences):
             print(f"Generating sequence {i + 1}/{num_sequences}...")
-            # get input sequence by drawing randomly num_samples_parallel input sequences from dataset
-            # if input_sequence_length > 0 and dataset:
-            #     input_sequence = dataset[np.random.randint(0, len(dataset), num_samples_parallel), :input_sequence_length, :]
-            #     labels_in = torch.cat((cond_labels, input_sequence), dim=1).float()
-            # else:
-            # input_sequence = None
-            # labels_in = cond_labels
             with torch.no_grad():
                 # draw latent variable
                 z = GANTrainer.sample_latent_variable(batch_size=num_samples_parallel, latent_dim=latent_dim,
@@ -174,9 +150,7 @@ def main():
                 z = torch.cat((z, cond_labels), dim=-1).float().to(device)
                 # generate samples
                 samples = generator(z).cpu().numpy()
-            # if prediction case, concatenate input sequence and generated sequence
-            # if input_sequence_length > 0 and input_sequence_length != sequence_length and input_sequence is not None:
-            #     samples = np.concatenate((input_sequence, samples), axis=1)
+
             # reshape samples by concatenating over channels in incrementing channel name order
             new_samples = np.zeros((num_samples_parallel * n_channels, n_conditions + 1 + sequence_length))
             for j, channel in enumerate(channel_names):
@@ -243,5 +217,4 @@ def main():
     print("Generated samples were saved to " + path_samples)
         
 if __name__ == '__main__':
-    # sys.argv = ["file=gan_1830ep.pt", "conditions=1"]
     main()
