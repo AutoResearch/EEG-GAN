@@ -130,7 +130,6 @@ if __name__ == "__main__":
     # Load data
     dataloader = Dataloader(path=ori_file, norm_data=True)
     ori_data = dataloader.get_data().unsqueeze(-1).detach().cpu().numpy()
-    # ori_data = np.load('data/real_data.npy')
     gen_data = pd.read_csv(gen_file, header=None).to_numpy()
     gen_data = gen_data.reshape(gen_data.shape[0], gen_data.shape[1], 1)
 

@@ -30,8 +30,8 @@ def generate_fake_data(n_channels=1, label_channels=False, data_path=None):
 
 def run_test_reshaping_data(data_path, n_channels, ):
     dataloader = Dataloader(data_path,
-                            kw_timestep='Time',
-                            col_label=['Condition', 'Electrode'],
+                            kw_time='Time',
+                            kw_conditions=['Condition', 'Electrode'],
                             n_channels=n_channels)
     dataset = dataloader.get_data(sequence_length=-1)
     # channel is in right dimension

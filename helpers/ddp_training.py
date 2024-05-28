@@ -44,11 +44,7 @@ class GANDDPTrainer(trainer.GANTrainer):
 
     def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, generator=None, discriminator=None, samples=None, update_history=False):
         if self.rank == 0:
-            # print(f'Rank {self.rank} is managing checkpoints.')
             super().manage_checkpoints(path_checkpoint, checkpoint_files, generator=self.generator.module, discriminator=self.discriminator.module, samples=samples, update_history=update_history)
-        #     print(f'Rank {self.rank} finished managing checkpoints.')
-        # print(f'Rank {self.rank} reached barrier.')
-        # dist.barrier()
 
     def set_device(self, rank):
         self.rank = rank
@@ -66,12 +62,10 @@ class GANDDPTrainer(trainer.GANTrainer):
         d_opt_state = self.discriminator_optimizer.state_dict()
 
         self.generator_optimizer = torch.optim.Adam(self.generator.parameters(),
-                                                    lr=self.learning_rate, betas=(self.b1, self.b2))
+                                                    lr=self.g_lr, betas=(self.b1, self.b2))
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(),
-                                                        lr=self.learning_rate, betas=(self.b1, self.b2))
+                                                        lr=self.d_lr, betas=(self.b1, self.b2))
 
-        self.generator_optimizer.load_state_dict(g_opt_state)
-        self.discriminator_optimizer.load_state_dict(d_opt_state)
 
 class AEDDPTrainer(trainer.AETrainer):
     """Trainer for conditional Wasserstein-GAN with gradient penalty.
@@ -95,8 +89,6 @@ class AEDDPTrainer(trainer.AETrainer):
         # dist.barrier()
 
     def print_log(self, current_epoch, train_loss, test_loss):
-        # if self.rank == 0:
-        # average the loss across all processes before printing
         reduce_tensor = torch.tensor([train_loss, test_loss], dtype=torch.float32, device=self.device)
         dist.all_reduce(reduce_tensor, op=dist.ReduceOp.SUM)
         reduce_tensor /= self.world_size
@@ -105,11 +97,7 @@ class AEDDPTrainer(trainer.AETrainer):
 
     def manage_checkpoints(self, path_checkpoint: str, checkpoint_files: list, model=None, update_history=False, samples=None):
         if self.rank == 0:
-            # print(f'Rank {self.rank} is managing checkpoints.')
             super().manage_checkpoints(path_checkpoint, checkpoint_files, model=self.model.module, update_history=update_history, samples=samples)
-        #     print(f'Rank {self.rank} finished managing checkpoints.')
-        # print(f'Rank {self.rank} reached barrier.')
-        # dist.barrier()
 
     def set_device(self, rank):
         self.rank = rank
@@ -124,20 +112,21 @@ class AEDDPTrainer(trainer.AETrainer):
         # safe optimizer state_dicts, init new ddp optimizer and load state_dicts
         opt_state = self.optimizer.state_dict()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-        self.optimizer.load_state_dict(opt_state)
 
 
 def run(rank, world_size, master_port, backend, trainer_ddp, opt):
-    _setup(rank, world_size, master_port, backend)
-    trainer_ddp = _setup_trainer(rank, trainer_ddp)
-    _ddp_training(trainer_ddp, opt)
-    dist.destroy_process_group()
+    try:
+        _setup(rank, world_size, master_port, backend)
+        trainer_ddp = _setup_trainer(rank, trainer_ddp)
+        _ddp_training(trainer_ddp, opt)
+        dist.destroy_process_group()
+    except Exception as error:
+        ValueError(f"Error in DDP training: {error}")
+        dist.destroy_process_group()
 
 
 def _setup(rank, world_size, master_port, backend):
-    # print(f"Initializing process group on rank {rank}")# on master port {self.master_port}.")
-
-    os.environ['MASTER_ADDR'] = 'localhost'  # '127.0.0.1'
+    os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = str(master_port)
 
     # create default process group
@@ -152,21 +141,30 @@ def _setup_trainer(rank, trainer_ddp):
     # construct DDP model
     trainer_ddp.set_ddp_framework()
 
-    # load checkpoint
-    # if training.use_checkpoint:
-    #     training.load_checkpoint(training.path_checkpoint)
-
     return trainer_ddp
 
 def _ddp_training(trainer_ddp, opt):
     # load data
     if 'conditions' not in opt:
         opt['conditions'] = ['']
-    dataloader = Dataloader(opt['path_dataset'],
-                            kw_timestep=opt['kw_timestep'],
-                            col_label=opt['conditions'],
-                            norm_data=True,
-                            channel_label=opt['channel_label'])
+    if isinstance(trainer_ddp, GANDDPTrainer):
+        dataloader = Dataloader(opt['data'],
+                            kw_time=opt['kw_time'],
+                            kw_conditions=opt['kw_conditions'],
+                            norm_data=opt['norm_data'],
+                            std_data=opt['std_data'],
+                            diff_data=opt['diff_data'],
+                            kw_channel=opt['kw_channel'])
+    elif isinstance(trainer_ddp, AEDDPTrainer):
+        dataloader = Dataloader(opt['data'],
+                            kw_time=opt['kw_time'],
+                            norm_data=opt['norm_data'],
+                            std_data=opt['std_data'],
+                            diff_data=opt['diff_data'],
+                            kw_channel=opt['kw_channel'])
+    else:
+        raise ValueError(f"Trainer type {type(trainer_ddp)} not supported.")
+    
     dataset = dataloader.get_data()
     opt['sequence_length'] = dataset.shape[2] - dataloader.labels.shape[2]
 
@@ -192,8 +190,18 @@ def _ddp_training(trainer_ddp, opt):
 
     # save checkpoint
     if trainer_ddp.rank == 0:
+
+        # save final models, optimizer states, generated samples, losses and configuration as final result
+        path = 'trained_models'
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'{model_prefix}_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
+        if opt['save_name'] != '':
+            # check if .pt extension is already included in the save_name
+            if not opt['save_name'].endswith('.pt'):
+                opt['save_name'] += '.pt'
+            filename = opt['save_name']
+        else:
+            filename = f'{model_prefix}_ddp_{trainer_ddp.epochs}ep_' + timestamp + '.pt'
+
         if isinstance(trainer_ddp, GANDDPTrainer):
             trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=gen_samples)
         elif isinstance(trainer_ddp, AEDDPTrainer):
@@ -204,5 +212,5 @@ def _ddp_training(trainer_ddp, opt):
                 samples.append(np.concatenate([inputs.unsqueeze(1).detach().cpu().numpy(), outputs.unsqueeze(1).detach().cpu().numpy()], axis=1))
             trainer_ddp.save_checkpoint(path_checkpoint=os.path.join(path, filename), samples=samples)
 
-        print("GAN training finished.")
+        print("Model training finished.")
         print(f"Model states and generated samples saved to file {os.path.join(path, filename)}.")

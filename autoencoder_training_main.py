@@ -8,8 +8,10 @@ import torch
 import torch.nn as nn
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
+from datetime import datetime
+import warnings
 
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerFlattenAutoencoder, TransformerDoubleAutoencoder, train, save
+from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
 from helpers.dataloader import Dataloader
 from helpers import system_inputs
 from helpers.trainer import AETrainer
@@ -25,17 +27,31 @@ def main():
 
     default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
     print('-----------------------------------------\n')
+    
+    # create directory 'trained_models' if not exists
+    if not os.path.exists('trained_ae'):
+        os.makedirs('trained_ae')
+        print('Directory "../trained_ae" created to store checkpoints and final model.')
+    
+    if default_args['load_checkpoint'] and default_args['checkpoint'] != '':
+        # check if checkpoint exists and otherwise take trained_models/checkpoint.pt
+        if not os.path.exists(default_args['checkpoint']):
+            print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
+            default_args['checkpoint'] = os.path.join('trained_ae', 'checkpoint.pt')
+        print(f"Resuming training from checkpoint {default_args['checkpoint']}.")
+    else:
+        default_args['checkpoint'] = os.path.join('trained_ae', 'checkpoint.pt')
 
     # User inputs
     opt = {
-        'path_dataset': default_args['path_dataset'],
-        'path_checkpoint': default_args['path_checkpoint'],
+        'data': default_args['data'],
+        'checkpoint': default_args['checkpoint'],
         'save_name': default_args['save_name'],
         'target': default_args['target'],
         'sample_interval': default_args['sample_interval'],
-        'channel_label': default_args['channel_label'],
+        'kw_channel': default_args['kw_channel'],
         'channels_out': default_args['channels_out'],
-        'timeseries_out': default_args['timeseries_out'],
+        'time_out': default_args['time_out'],
         'n_epochs': default_args['n_epochs'],
         'batch_size': default_args['batch_size'],
         'train_ratio': default_args['train_ratio'],
@@ -48,23 +64,32 @@ def main():
         'num_heads': default_args['num_heads'],
         'num_layers': default_args['num_layers'],
         'ddp': default_args['ddp'],
-        'ddp_backend': default_args['ddp_backend'],
+        'ddp_backend': "nccl",  #default_args['ddp_backend'],
         'norm_data': True,
         'std_data': False,
         'diff_data': False,
-        'kw_timestep': default_args['kw_timestep'],
+        'kw_time': default_args['kw_time'],
         'device': torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         'world_size': torch.cuda.device_count() if torch.cuda.is_available() else mp.cpu_count(),
         'history': None,
-        'trained_epochs': 0
+        'trained_epochs': 0,
+        'seed': default_args['seed'],
     }
-
+    
+    # set a seed for reproducibility if desired
+    if opt['seed'] is not None:
+        np.random.seed(opt['seed'])                       
+        torch.manual_seed(opt['seed'])                    
+        torch.cuda.manual_seed(opt['seed'])               
+        torch.cuda.manual_seed_all(opt['seed'])           
+        torch.backends.cudnn.deterministic = True
+    
     # ----------------------------------------------------------------------------------------------------------------------
     # Load, process, and split data
     # ----------------------------------------------------------------------------------------------------------------------
     
-    data = Dataloader(path=opt['path_dataset'],
-                      channel_label=opt['channel_label'], kw_timestep=opt['kw_timestep'],
+    data = Dataloader(path=opt['data'],
+                      kw_channel=opt['kw_channel'], kw_time=opt['kw_time'],
                       norm_data=opt['norm_data'], std_data=opt['std_data'], diff_data=opt['diff_data'],)
     dataset = data.get_data()
     
@@ -84,12 +109,12 @@ def main():
     opt['n_channels'] = dataset.shape[-1]
     opt['sequence_length'] = dataset.shape[1]
     opt['channels_in'] = opt['n_channels']
-    opt['timeseries_in'] = opt['sequence_length']
+    opt['time_in'] = opt['sequence_length']
 
     # Split dataset and convert to pytorch dataloader class
     test_dataset, train_dataset = split_data(dataset, opt['train_ratio'])
-    test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True)
-    train_dataloader = DataLoader(train_dataset, batch_size=opt['batch_size'], shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=opt['batch_size'], shuffle=True, pin_memory=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=opt['batch_size'], shuffle=True, pin_memory=True)
 
     # ------------------------------------------------------------------------------------------------------------------
     # Initiate and train autoencoder
@@ -97,31 +122,31 @@ def main():
 
     # Initiate autoencoder
     model_dict = None
-    if default_args['load_checkpoint'] and os.path.isfile(opt['path_checkpoint']):
-        model_dict = torch.load(opt['path_checkpoint'])
+    if default_args['load_checkpoint'] and os.path.isfile(opt['checkpoint']):
+        model_dict = torch.load(opt['checkpoint'])
 
         target_old = opt['target']
         channels_out_old = opt['channels_out']
-        timeseries_out_old = opt['timeseries_out']
+        time_out_old = opt['time_out']
 
         opt['target'] = model_dict['configuration']['target']
         opt['channels_out'] = model_dict['configuration']['channels_out']
-        opt['timeseries_out'] = model_dict['configuration']['timeseries_out']
+        opt['time_out'] = model_dict['configuration']['time_out']
         
         # Report changes to user
-        print(f"Loading model {opt['path_checkpoint']}.\n\nInhereting the following parameters:")
+        print(f"Loading model {opt['checkpoint']}.\n\nInhereting the following parameters:")
         print("parameter:\t\told value -> new value")
         print(f"target:\t\t\t{target_old} -> {opt['target']}")
         print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
-        print(f"timeseries_out:\t{timeseries_out_old} -> {opt['timeseries_out']}")
+        print(f"time_out:\t{time_out_old} -> {opt['time_out']}")
         print('-----------------------------------\n')
 
-    elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
-        raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
+    elif default_args['load_checkpoint'] and not os.path.isfile(opt['checkpoint']):
+        raise FileNotFoundError(f"Checkpoint file {opt['checkpoint']} not found.")
     
     # Add parameters for tracking
     opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
-    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['timeseries_out']
+    opt['output_dim'] = opt['channels_out'] if opt['target'] in ['channels', 'full'] else opt['time_out']
     opt['output_dim_2'] = opt['sequence_length'] if opt['target'] in ['channels'] else opt['n_channels']
     
     if opt['target'] == 'channels':
@@ -144,9 +169,9 @@ def main():
                                        activation=opt['activation']).to(opt['device'])
     elif opt['target'] == 'full':
         model_1 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
-                                             timeseries_in=opt['timeseries_in'],
+                                             time_in=opt['time_in'],
                                              channels_out=opt['channels_out'],
-                                             timeseries_out=opt['timeseries_out'],
+                                             time_out=opt['time_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
@@ -154,9 +179,9 @@ def main():
                                              training_level=1).to(opt['device'])
         
         model_2 = TransformerDoubleAutoencoder(channels_in=opt['channels_in'],
-                                             timeseries_in=opt['timeseries_in'],
+                                             time_in=opt['time_in'],
                                              channels_out=opt['channels_out'],
-                                             timeseries_out=opt['timeseries_out'],
+                                             time_out=opt['time_out'],
                                              hidden_dim=opt['hidden_dim'],
                                              num_layers=opt['num_layers'],
                                              num_heads=opt['num_heads'],
@@ -185,16 +210,30 @@ def main():
     opt['training_levels'] = training_levels
     
     if opt['ddp']:
+        warnings.warn(f""" The default autoencoder is a small model and DDP training adds a lot of overhead when transferring data to GPUs. 
+                As such, it might be useful to test each GPU and CPU training and see what works best for your use case. 
+                Although DDP training will result in better performance than CPU with the same number of training epochs,
+                you can achieve this same performance quicker by adding epochs with CPU training.""", stacklevel=3)
         for training_level in range(1,training_levels+1):
+            opt['training_level'] = training_level
+            
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
-                model = model_1
+                trainer = AEDDPTrainer(model_1, opt)
             elif training_levels == 2 and training_level == 2:
                 print('Training the second level of the autoencoder...')
-                model = model_2
-            trainer = AEDDPTrainer(model, opt)
+                model_1_sd = trainer.model.state_dict()
+                model_1_osd = trainer.optimizer.state_dict()
+                trainer = AEDDPTrainer(model_2, opt)
+                trainer.model1_states = {
+                    'model': model_1_sd,
+                    'optimizer': model_1_osd
+                    }
+            else:
+                trainer = AEDDPTrainer(model, opt)
+                
             if default_args['load_checkpoint']:
-                trainer.load_checkpoint(default_args['path_checkpoint'])
+                trainer.load_checkpoint(default_args['checkpoint'])
             mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
                     nprocs=opt['world_size'], join=True)
             
@@ -211,13 +250,21 @@ def main():
             
             if training_levels == 2 and training_level == 1:
                 print('Training the first level of the autoencoder...')
-                model = model_1
+                trainer = AETrainer(model_1, opt)
             elif training_levels == 2 and training_level == 2:
                 print('Training the second level of the autoencoder...')
-                model = model_2
-            trainer = AETrainer(model, opt)
+                model_1_sd = trainer.model.state_dict()
+                model_1_osd = trainer.optimizer.state_dict()
+                trainer = AETrainer(model_2, opt)
+                trainer.model1_states = {
+                    'model': model_1_sd,
+                    'optimizer': model_1_osd
+                    }
+            else:
+                trainer = AETrainer(model, opt)
+                
             if default_args['load_checkpoint']:
-                trainer.load_checkpoint(default_args['path_checkpoint'])
+                trainer.load_checkpoint(default_args['checkpoint'])
             samples = trainer.training(train_dataloader, test_dataloader)
 
             if training_levels == 2 and training_level == 1:
@@ -237,10 +284,17 @@ def main():
         # ----------------------------------------------------------------------------------------------------------------------
 
         # Save model
-        if opt['save_name'] is None:
-            fn = opt['path_dataset'].split('/')[-1].split('.csv')[0]
-            opt['save_name'] = os.path.join("trained_ae", f"ae_{fn}_{str(time.time()).split('.')[0]}.pt")
-    
+        path = 'trained_ae'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        if opt['save_name'] != '':
+            # check if .pt extension is already included in the save_name
+            if not opt['save_name'].endswith('.pt'):
+                opt['save_name'] += '.pt'
+            filename = opt['save_name']
+        else:
+            filename = f'ae_{trainer.epochs}ep_' + timestamp + '.pt'
+
+        opt['save_name'] = os.path.join(path, filename)
         trainer.save_checkpoint(opt['save_name'], update_history=True, samples=samples)
         print(f"Model and configuration saved in {opt['save_name']}")
 

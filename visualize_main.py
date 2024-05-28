@@ -18,45 +18,39 @@ def main():
     print('\n-----------------------------------------')
     print("System output:")
     print('-----------------------------------------\n')
-
-    if default_args['csv'] + default_args['checkpoint'] != 1:  #  + default_args['experiment']
-        raise ValueError("Please specify only one of the following arguments: csv, checkpoint")
+    
+    if default_args['data'] != '' and default_args['model'] != '':
+        raise ValueError("Please specify only one of the following arguments: data, model")
 
     if default_args['channel_index'][0] > -1 and (default_args['pca'] or default_args['tsne']):
         print("Warning: channel_index is set to a specific value, but PCA or t-SNE is enabled.\n"
               "PCA and t-SNE are only available for all channels. Ignoring channel_index.")
 
     # throw error if checkpoint but csv-file is specified
-    if default_args['checkpoint'] and default_args['path_dataset'].split('.')[-1] == 'csv':
-        raise ValueError("Inconsistent parameter specification. 'checkpoint' was specified but a csv-file was given.")
+    if default_args['model'] != '' and not default_args['model'].endswith('.pt'):
+        raise ValueError("Inconsistent parameter specification. 'model' was specified but no model-file (.pt) was given.")
+    if default_args['data'] != '' and not default_args['data'].endswith('.csv'):
+        raise ValueError("Inconsistent parameter specification. 'data' was specified but no csv-file was given.")
 
     # throw warning if checkpoint and conditions are given
-    if default_args['checkpoint'] and default_args['conditions'][0] != '':
-        warnings.warn("Conditions are given, but checkpoint is specified. Given conditions will be ignored and taken from the checkpoint file if the checkpoint file contains the conditions parameter.")
+    if default_args['model'] != '' and default_args['kw_conditions'][0] != '':
+        warnings.warn("Conditions are given, but model is specified. Given conditions will be ignored and taken from the model file if the model file contains the conditions parameter.")
 
     original_data = None
-    if default_args['csv']:
-        n_conditions = len(default_args['conditions']) if default_args['conditions'][0] != '' else 0
+    if default_args['data'] != '':
+        n_conditions = len(default_args['kw_conditions']) if default_args['kw_conditions'][0] != '' else 0
         # load data with DataLoader
-        dataloader = Dataloader(path=default_args['path_dataset'],
+        dataloader = Dataloader(path=default_args['data'],
                                 norm_data=True,
-                                kw_timestep=default_args['kw_timestep'],
-                                col_label=default_args['conditions'],
-                                channel_label=default_args['channel_label'], )
+                                kw_time=default_args['kw_time'],
+                                kw_conditions=default_args['kw_conditions'],
+                                kw_channel=default_args['kw_channel'],)
         data = dataloader.get_data(shuffle=False)[:, n_conditions:].numpy()
         conditions = dataloader.get_labels()[:, :, 0].numpy()
         random = True
-    elif default_args['checkpoint']:
-        state_dict = torch.load(default_args['path_dataset'], map_location='cpu')
+    elif default_args['model'] != '':
+        state_dict = torch.load(default_args['model'], map_location='cpu')
         n_conditions = state_dict['configuration']['n_conditions'] if 'n_conditions' in state_dict['configuration'].keys() else 0
-        if (n_conditions == 0) & (default_args['conditions'][0] != ''):
-            dataloader = Dataloader(path=default_args['path_comp_dataset'],
-                                norm_data=True,
-                                kw_timestep=default_args['kw_timestep'],
-                                col_label=default_args['conditions'],
-                                channel_label=default_args['channel_label'], )
-            n_conditions = dataloader.get_labels()[:, :, 0].numpy().shape[-1]
-        sequence_length_generated = state_dict['configuration']['sequence_length_generated'] if 'sequence_length_generated' in state_dict['configuration'].keys() else 0
         data = np.concatenate(state_dict['samples'])
         if len(data.shape) == 2:
             data = data.reshape((1, data.shape[0], data.shape[1]))
@@ -142,7 +136,7 @@ def main():
     # -----------------------------
 
     try:
-        if default_args['loss'] and not default_args['checkpoint']:
+        if default_args['loss'] and default_args['model'] == '':
             raise ValueError("Loss plotting only available for checkpoint and not csv")
         elif default_args['loss']:
             print("Plotting losses...")
@@ -200,8 +194,7 @@ def main():
                         axs[jcol].plot(averaged_data[i, :, j])
                     else:
                         axs[i, jcol].plot(averaged_data[i, :, j])
-            # axs[i].set_title(f'condition {cond}')
-            # set legend at the right hand side of the plot;
+             # set legend at the right hand side of the plot;
             # legend carries the condition information
             # make graph and legend visible within the figure
             if not default_args['channel_plots']:
@@ -221,16 +214,16 @@ def main():
     # -----------------------------
 
     if default_args['pca'] or default_args['tsne']:
-        if original_data is None and default_args['path_comp_dataset'] != '':
+        if original_data is None and default_args['comp_data'] != '':
             # load comparison data
-            dataloader_comp = Dataloader(path=default_args['path_comp_dataset'],
+            dataloader_comp = Dataloader(path=default_args['comp_data'],
                                          norm_data=True,
-                                         kw_timestep=default_args['kw_timestep'],
-                                         col_label=default_args['conditions'],
-                                         channel_label=default_args['channel_label'], )
+                                         kw_time=default_args['kw_time'],
+                                         kw_conditions=default_args['kw_conditions'],
+                                         kw_channel=default_args['kw_channel'], )
             original_data = dataloader_comp.get_data(shuffle=False)[:, n_conditions:].numpy()
-        elif original_data is None and default_args['path_comp_dataset'] == '':
-            raise ValueError("No comparison data found for PCA or t-SNE. Please specify a comparison dataset with the argument 'path_comp_dataset'.")
+        elif original_data is None and default_args['comp_data'] == '':
+            raise ValueError("No comparison data found for PCA or t-SNE. Please specify a comparison dataset with the argument 'comp_data'.")
 
         if default_args['pca']:
             print("Plotting PCA...")
@@ -268,23 +261,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # sys.argv = [
-    #             # 'csv',
-    #             # 'path_dataset=generated_samples/gan_1ep_2chan_1cond.csv',
-    #             'checkpoint',
-    #             'path_dataset=trained_ae/ae_gansMultiCondition.pt',
-    #             # 'conditions=Condition',
-    #             'channel_label=Electrode',
-    #             'n_samples=8',
-    #             # 'channel_plots',
-    #             # 'channel_index=0',
-    #             'loss',
-    #             # 'average',
-    #             # 'spectogram',
-    #             # 'fft',
-    #             'pca',
-    #             'tsne',
-    #             # 'path_comp_dataset=data/gansMultiCondition_SHORT.csv',
-    #             # 'path_comp_dataset=data/gansMultiCondition.csv',
-    # ]
     main()

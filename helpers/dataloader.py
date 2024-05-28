@@ -16,7 +16,7 @@ class Dataloader:
 
     def __init__(self, path=None,
                  diff_data=False, std_data=False, norm_data=False,
-                 kw_timestep='Time', col_label='', channel_label=None):#, multichannel: Union[bool, List[str]]=False):
+                 kw_time='Time', kw_conditions='', kw_channel=None):#, multichannel: Union[bool, List[str]]=False):
         """Load data from csv as pandas dataframe and convert to tensor.
 
         Args:
@@ -31,47 +31,36 @@ class Dataloader:
 
             # reshape and filter data based on channel specifications
             channels = [0]
-            if channel_label != '':
-                channels = df[channel_label].unique()
+            if kw_channel != '':
+                channels = df[kw_channel].unique()
                 assert len(df)%len(channels)==0, f"Number of rows ({len(df)}) must be a multiple of number of channels ({len(channels)}).\nThis could be caused by missing data for some channels."
-                # if type(multichannel) == list:
-                #     channels = [channel for channel in channels if channel in multichannel]
-                #     # filter data for specified channels
-                #     df = df.loc[df[channel_label].isin(multichannel)]
             n_channels = len(channels)
             self.channels = channels
 
             # get first column index of a time step
-            n_col_data = [index for index in range(len(df.columns)) if kw_timestep in df.columns[index]]
+            n_col_data = [index for index in range(len(df.columns)) if kw_time in df.columns[index]]
 
-            if not isinstance(col_label, list):
-                col_label = [col_label]
+            if not isinstance(kw_conditions, list):
+                kw_conditions = [kw_conditions]
 
             # Get labels and data
             dataset = torch.FloatTensor(df.to_numpy()[:, n_col_data])
-            n_labels = len(col_label) if col_label[0] != '' else 0
+            n_labels = len(kw_conditions) if kw_conditions[0] != '' else 0
             labels = torch.zeros((dataset.shape[0], n_labels))
             if n_labels:
-                for i, l in enumerate(col_label):
+                for i, l in enumerate(kw_conditions):
                     labels[:, i] = torch.FloatTensor(df[l])
-
-            # if multichannel:
-            #     channel_labels = torch.FloatTensor(df[channel_label])
 
             if diff_data:
                 # Diff of data
                 dataset = dataset[:, 1:] - dataset[:, :-1]
 
-            # self.dataset_min = None
-            # self.dataset_max = None
             self.dataset_min = torch.min(dataset)
             self.dataset_max = torch.max(dataset)
             if norm_data:
                 # Normalize data
                 dataset = (dataset - self.dataset_min) / (self.dataset_max - self.dataset_min)
 
-            # self.dataset_mean = None
-            # self.dataset_std = None
             self.dataset_mean = dataset.mean(dim=0).unsqueeze(0)
             self.dataset_std = dataset.std(dim=0).unsqueeze(0)
             if std_data:
@@ -80,7 +69,7 @@ class Dataloader:
 
             # reshape data to separate electrodes --> new shape: (trial, sequence, channel)
             if len(self.channels) > 1:
-                sort_index = df.sort_values(channel_label, kind="mergesort").index
+                sort_index = df.sort_values(kw_channel, kind="mergesort").index
                 dataset = dataset[sort_index].contiguous().view(n_channels, dataset.shape[0]//n_channels, dataset.shape[1]).permute(1, 2, 0)
                 labels = labels[sort_index].contiguous().view(n_channels, labels.shape[0]//n_channels, labels.shape[1]).permute(1, 2, 0)
             else:
