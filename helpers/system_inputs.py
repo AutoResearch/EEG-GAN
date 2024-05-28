@@ -362,7 +362,7 @@ def default_inputs_checkpoint_to_csv():
 
 def default_inputs_generate_samples():
     kw_dict = {
-        'seed': [bool, 'Set seed for reproducibility', False, 'Manual seed: '],
+        'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
         'model': [str, 'File which contains the trained model and its configuration', os.path.join('trained_models', 'checkpoint.pt'), 'File: '],
         'save_name': [str, 'File where to store the generated samples; If None, then checkpoint name is used', '', 'Saving generated samples to file: '],
         'kw_time': [str, 'Keyword for the time step of the dataset; to determine the sequence length', 'Time', 'Keyword for the time step of the dataset: '],
