@@ -12,8 +12,8 @@ import os
 #Define function to determine filenames
 def retrieveData(prefix, classifier, electrodes=1): 
 
-    augData = f'{prefix}/ganPredictions_e{electrodes}_{classifier}.csv'
-    empData = f'{prefix}/empPredictions_e{electrodes}_{classifier}.csv'
+    augData = f'{prefix}/ganPredictions_e{electrodes}_{classifier}_TestClassification.csv'
+    empData = f'{prefix}/empPredictions_e{electrodes}_{classifier}_TestClassification.csv'
 
     return empData, augData
 
@@ -213,7 +213,7 @@ def main():
     fig = plt.gcf()
     fig.set_size_inches(16, 16)
     plt.subplots_adjust(left=0.05)
-    fig.savefig(f'figures/Figure 3 - GAN Classification Results.png', dpi=600, facecolor='white', edgecolor='none')
+    fig.savefig(f'figures/Figure 4 - GAN Classification Results.png', dpi=600, facecolor='white', edgecolor='none')
 
 if __name__ == '__main__':  
     main()

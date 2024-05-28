@@ -143,18 +143,18 @@ class InteractivePlot:
 
 #Define function to determine filenames
 def retrieveData(data, prefix='', electrodes=1): 
-    analysis_names = ['Empirical', 'GAN-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
-    #analysis_names = ['Empirical', 'GAN-Augmented', 'VAE-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
+    #analysis_names = ['Empirical', 'GAN-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
+    analysis_names = ['Empirical', 'GAN-Augmented', 'VAE-Augmented', 'Oversampled-Augmented', 'Gaussian-Augmented', 'Flip-Augmented', 'Reverse-Augmented', 'Smooth-Augmented']
 
     filenames= [
-        f'{prefix}Classification Results/empPredictions_e{electrodes}_NN.csv',
-        f'{prefix}Classification Results/ganPredictions_e{electrodes}_NN.csv',
-        #f'{prefix}Classification Results/vaePredictions_e{electrodes}_NN.csv',
-        f'{prefix}Classification Results/overPredictions_e{electrodes}_NN.csv',
-        f'{prefix}Classification Results/gausPredictions_e{electrodes}_NN.csv',
-        f'{prefix}Classification Results/negPredictions_e{electrodes}_NN.csv',
-        f'{prefix}Classification Results/revPredictions_e{electrodes}_NN.csv',
-        f'{prefix}Classification Results/smoothPredictions_e{electrodes}_NN.csv',
+        f'{prefix}Classification Results/empPredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/ganPredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/vaePredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/overPredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/gausPredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/negPredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/revPredictions_e{electrodes}_NN_TestClassification.csv',
+        f'{prefix}Classification Results/smoothPredictions_e{electrodes}_NN_TestClassification.csv',
     ]
 
     if data == 1:
