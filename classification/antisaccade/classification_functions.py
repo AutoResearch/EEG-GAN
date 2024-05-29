@@ -376,9 +376,9 @@ def kNearestNeighbor(X_train, Y_train, x_test, y_test):
     
 def load_test_data(validationOrTest, electrode_number, features):
     if validationOrTest == 'validation':
-        EEGDataTest_fn = f'data/antisaccade/Validation and Test Datasets/antisaccade_validation.csv'
+        EEGDataTest_fn = f'data/Antisaccade/Validation and Test Datasets/antisaccade_validation.csv'
     else:
-        EEGDataTest_fn = f'data/antisaccade/Validation and Test Datasets/antisaccade_test.csv'
+        EEGDataTest_fn = f'data/Antisaccade/Validation and Test Datasets/antisaccade_test.csv'
 
     #Average data
     EEGDataTest_metadata = np.genfromtxt(EEGDataTest_fn, delimiter=',', skip_header=1)[:,:4]

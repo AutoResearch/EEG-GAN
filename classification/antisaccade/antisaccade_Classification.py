@@ -32,8 +32,8 @@ def main(multiprocessing, features, validationOrTest, dataSampleSizes, synthetic
         writer = pool.apply_async(write_classification, (q,))
 
     #Make Classification Results directory if it doesn't exist
-    if not os.path.exists(f'classification/antisaccade/Classification Results'):
-        os.makedirs(f'classification/antisaccade/Classification Results')
+    if not os.path.exists(f'classification/Antisaccade/Classification Results'):
+        os.makedirs(f'classification/Antisaccade/Classification Results')
 
     ###############################################
     ## REPORT                                    ##
@@ -105,7 +105,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     print(f'ANALYSIS STARTED: Series = {series}, Analysis = {addSyntheticData}, Classifier = {classifier}, Electrode = {electrode_number}, Sample Size = {dataSampleSize}, Run = {run}')
 
     #Base save file names
-    generic_filename = f'classification/antisaccade/Classification Results/XXANALYSISXXPredictions_e{electrode_number}_XXCLASSXX.csv'
+    generic_filename = f'classification/Antisaccade/Classification Results/XXANALYSISXXPredictions_e{electrode_number}_XXCLASSXX.csv'
 
     #Add features tag if applied
     if features:
@@ -127,8 +127,8 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     elif addSyntheticData == 'vae':
-        synFilename_0 = f"generated_samples/Anti-Saccade/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c0.csv"
-        synFilename_1 = f"generated_samples/Anti-Saccade/antisaccade_vae_e{electrode_number}_gaze_SS{dataSampleSize}_Run0{run}_c1.csv"
+        synFilename_0 = f"generated_samples/Antisaccade/Training Datasets/vae_antisaccade_SS{dataSampleSize}_Run0{run}_c0.csv"
+        synFilename_1 = f"generated_samples/Antisaccade/Training Datasets/vae_antisaccade_SS{dataSampleSize}_Run0{run}_c1.csv"
         syn_Y_train, syn_X_train = load_synthetic(synFilename_0, synFilename_1, features, prop_synthetic)
 
     ###############################################
@@ -136,7 +136,7 @@ def run_classification(q, multiprocessing, validationOrTest, features, electrode
     ###############################################s
     
     #Load empirical data
-    tempFilename = f'data/antisaccade/Training Datasets/antisaccade_SS{dataSampleSize}_Run0{run}.csv'
+    tempFilename = f'data/Antisaccade/Training Datasets/antisaccade_SS{dataSampleSize}_Run0{run}.csv'
     EEGData_metadata = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)[:,:4]
     EEGData_metadata_3D = EEGData_metadata[EEGData_metadata[:,2] == np.unique(EEGData_metadata[:,2])[0],:]
     EEGData_dataloader = Dataloader(tempFilename, kw_conditions='Condition', kw_channel='Electrode')
