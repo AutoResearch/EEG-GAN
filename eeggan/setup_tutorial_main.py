@@ -17,21 +17,21 @@ def main():
         open(path+url.split('/')[-1], 'wb').write(r.content)
     
     #Download each file
-    url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/main/data/gansEEGTrainingData.csv'
+    url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/dev/eeggan/data/eeggan_training_example.csv'
     path = 'data/'
     download_file(path, url)
     
-    url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/main/data/gansEEGValidationData.csv'
+    url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/dev/eeggan/data/eeggan_validation_example.csv'
     path = 'data/'
     download_file(path, url)
 
-    url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/main/generated_samples/gansEEGSyntheticData.csv'
-    path = 'generated_samples/'
-    download_file(path, url)
+    #url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/main/generated_samples/gansEEGSyntheticData.csv'
+    #path = 'generated_samples/'
+    #download_file(path, url)
     
-    url = 'https://github.com/AutoResearch/EEG-GAN/raw/main/trained_models/gansEEGModel.pt'
-    path = 'trained_models/'
-    download_file(path, url)
+    #url = 'https://github.com/AutoResearch/EEG-GAN/raw/main/trained_models/gansEEGModel.pt'
+    #path = 'trained_models/'
+    #download_file(path, url)
 
 if __name__ == '__main__':
     main()
