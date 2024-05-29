@@ -6,6 +6,7 @@ from .gan_training_main import main as gan_training_main
 from .generate_samples_main import main as generate_samples_main
 from .visualize_main import main as visualize_main
 from .vae_training_main import main as vae_training_main
+from .setup_tutorial_main import main as setup_tutorial_main
 
 def main():
 
@@ -37,6 +38,8 @@ def main():
         generate_samples_main(args)
     elif command.lower() == 'visualize':
         visualize_main(args)
+    elif command.lower() == 'setup_tutorial':
+        setup_tutorial_main()
     else:
         ValueError(f'Unrecognized command: {command}. Available commands are: gan_training, autoencoder_training, vae_training, generate_samples, visualize. ')
         sys.exit(1)
