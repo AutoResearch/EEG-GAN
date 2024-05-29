@@ -4,6 +4,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import scale
+import random as rnd
+
+from helpers.dataloader import Dataloader
 
 ## EMPIRICAL ##
 
@@ -168,6 +171,26 @@ def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synt
 
     return c1_PIDs, c0_PIDs, c1_EEG_data, c0_EEG_data, scaledc1ganData, scaledc0ganData, scaledc1vaeData, scaledc0vaeData
 
+def load_test_data(file_path):
+
+    #Average data
+    EEGDataTest_metadata = np.genfromtxt(file_path, delimiter=',', skip_header=1)[:,:4]
+    EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
+    EEGDataTest_dataloader = Dataloader(file_path, kw_conditions='Condition', kw_channel='Electrode')
+    EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
+        
+    #Average data
+    EEGDataTest = averageEEG(EEGDataTest_metadata_3D[:,0], EEGDataTest)
+        
+    #Create outcome variable
+    y_test = EEGDataTest[:,0,0]
+
+    #Create test variable
+    x_test = np.array([test_sample.T.flatten() for test_sample in EEGDataTest[:,1:,:]])
+    x_test = scale(x_test, axis=1) #Scale data within each trial
+
+    return y_test, x_test
+
 def averageEEG(participant_IDs, EEG):
     
     #Determine participant IDs
@@ -219,62 +242,179 @@ def neuralNetwork(X_train, Y_train, x_test, y_test):
     
     return optimal_params, predictScore
 
+def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None):
 
+    #Load test data
+    y_test, x_test = load_test_data(test_fn)
+    testShuffle = rnd.sample(range(len(x_test)),len(x_test))
+    x_test = x_test[testShuffle,:]
+    y_test = y_test[testShuffle]
+
+    #Load empirical, GAN, and VAE data
+    data_IDs_c0, data_IDs_c1, data_eeg_c0, data_eeg_c1, data_gan_c0, data_gan_c1, data_vae_c0, data_vae_c1 = load_data(emp_fn, gan_fn, vae_fn, select_electrode=electrode)
+
+    #Empirical data
+    data_eeg_c0 = np.hstack((np.zeros((data_eeg_c0.shape[0],1)), data_eeg_c0))
+    data_eeg_c1 = np.hstack((np.ones((data_eeg_c1.shape[0],1)), data_eeg_c1))
+
+    data_eeg = np.vstack((data_eeg_c0, data_eeg_c1)).reshape(-1, data_eeg_c0.shape[1], 1) 
+    data_IDs = np.hstack((data_IDs_c0, data_IDs_c1))
+
+    data_avg = averageEEG(data_IDs, data_eeg)
+    Y_train = data_avg[:,0,0]
+    X_train = scale(data_avg[:,1:,0], axis=1) #Scale across timeseries within trials
+
+    trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
+    X_train = X_train[trainShuffle,:]
+    Y_train = Y_train[trainShuffle]
+
+    #emp_optimal_params, emp_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
+
+    emp_optimal_params, emp_predictScore = 0, 100
+
+    #GAN data
+    gan_IDs = np.repeat(np.arange(0, len(data_gan_c0)/50),50)
+    gan_IDs = np.hstack((gan_IDs, gan_IDs))
+
+    data_gan_c0 = np.hstack((np.zeros((data_gan_c0.shape[0],1)), data_gan_c0))
+    data_gan_c1 = np.hstack((np.ones((data_gan_c1.shape[0],1)), data_gan_c1))
+
+    data_gan = np.vstack((data_gan_c0, data_gan_c1)).reshape(-1, data_gan_c0.shape[1], 1)
+    data_avg = averageEEG(gan_IDs, data_gan)
+    Y_train = data_avg[:,0,0]
+    X_train = scale(data_avg[:,1:,0], axis=1) #Scale across timeseries within trials
+
+    trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
+    X_train = X_train[trainShuffle,:]
+    Y_train = Y_train[trainShuffle]
+
+    #gan_optimal_params, gan_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
+
+    gan_optimal_params, gan_predictScore = 0, 100
+
+    #VAE data
+    vae_IDs = np.repeat(np.arange(0, len(data_vae_c0)/50),50)
+    vae_IDs = np.hstack((vae_IDs, vae_IDs))
+
+    data_vae_c0 = np.hstack((np.zeros((data_vae_c0.shape[0],1)), data_vae_c0))
+    data_vae_c1 = np.hstack((np.ones((data_vae_c1.shape[0],1)), data_vae_c1))
+
+    data_vae = np.vstack((data_vae_c0, data_vae_c1)).reshape(-1, data_vae_c0.shape[1], 1)
+    data_avg = averageEEG(vae_IDs, data_vae)
+    Y_train = data_avg[:,0,0]
+    X_train = scale(data_avg[:,1:,0], axis=1) #Scale across timeseries within trials
+
+    trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
+    X_train = X_train[trainShuffle,:]
+    Y_train = Y_train[trainShuffle]
+
+    #vae_optimal_params, vae_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
+
+    vae_optimal_params, vae_predictScore = 0, 100
+
+    return emp_optimal_params, emp_predictScore, gan_optimal_params, gan_predictScore, vae_optimal_params, vae_predictScore
 
 #############################################################
-## LOAD DATA ##
+## LOAD DATA AND RUN EVALUATIONS ##
 #############################################################
 
-REWP_IDs_c0, REWP_IDs_c1, REWP_eeg_c0, REWP_eeg_c1, REWP_gan_c0, REWP_gan_c1, REWP_vae_c0, REWP_vae_c1 = load_data(f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', 
-                                                                                            f'generated_samples/Reinforcement Learning/Training Datasets/gan_ep2000_p500_e1_full.csv',
-                                                                                            f'generated_samples/Reinforcement Learning/Training Datasets/vae_p500_e1_full.csv')
+#Setup save file 
+with open('evaluation/quantitative_evaluation_results.csv', 'w') as f:
+    f.write('dataset, empirical, GAN, VAE\n')
 
-REWP8_IDs_c0, REWP8_IDs_c1,REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
-                                                                                            f'generated_samples/Reinforcement Learning/Training Datasets/gan_ep2000_p500_e8_full.csv',
-                                                                                            f'generated_samples/Reinforcement Learning/Training Datasets/vae_p500_e8_full.csv',
-                                                                                            select_electrode=7)
+#Run evaluation for reinforcement learning (e1)
+dataset = 'RL1'
+for i in range(10):
+    print(f'Running evaluation {i} for {dataset}...')
+    _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
+        'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e1_test.csv', 
+        'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', 
+        'generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e1_SS100_Run00.csv',
+        'generated_samples/Reinforcement Learning/Training Datasets/vae_e1_SS100_Run00.csv')
     
-N2P3_IDs_c0, N2P3_IDs_c1, N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Training Datasets/antisaccade_left_full_cleaned.csv', 
-                                                                                            f'generated_samples/Antisaccade/Training Datasets/gan_antisaccade_full_cleaned.csv',
-                                                                                            f'generated_samples/Antisaccade/Training Datasets/vae_antisaccade_full_cleaned.csv')
+    #Save predict scores to a csv file
+    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+        f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
-N170_IDs_c0, N170_IDs_c1, N170_eeg_c0, N170_eeg_c1, N170_gan_c0, N170_gan_c1, N170_vae_c0, N170_vae_c1 = load_data(f'data/ERPCORE/N170/Training Datasets/erpcore_N170_full_cleaned.csv', 
-                                                                                            f'generated_samples/ERPCORE/N170/Training Datasets/gan_erpcore_N170_full_cleaned.csv',
-                                                                                            f'generated_samples/ERPCORE/N170/Training Datasets/vae_erpcore_N170_full_cleaned.csv')
-
-N2PC_IDs_c0, N2PC_IDs_c1, N2PC_eeg_c0, N2PC_eeg_c1, N2PC_gan_c0, N2PC_gan_c1, N2PC_vae_c0, N2PC_vae_c1 = load_data(f'data/ERPCORE/N2PC/Training Datasets/erpcore_N2PC_full_cleaned.csv', 
-                                                                                            f'generated_samples/ERPCORE/N2PC/Training Datasets/gan_erpcore_N2PC_full_cleaned.csv',
-                                                                                            f'generated_samples/ERPCORE/N2PC/Training Datasets/vae_erpcore_N2PC_full_cleaned.csv')
-
-#############################################################
-## NEURAL NETWORK ##
-#############################################################
-
-#Load empirical data
-tempFilename = f'data/ERPCORE/{component}/Training Datasets/erpcore_{component}_SS{dataSampleSize}_Run0{run}.csv'
-EEGData_metadata = np.genfromtxt(tempFilename, delimiter=',', skip_header=1)[:,:4]
-EEGData_metadata_3D = EEGData_metadata[EEGData_metadata[:,3] == np.unique(EEGData_metadata[:,3])[0],:]
-EEGData_dataloader = Dataloader(tempFilename, kw_conditions='Condition', kw_channel='Electrode')
-EEGData = EEGData_dataloader.get_data(shuffle=False).detach().numpy()
-
-
-#Average data per participant and condition
-EEGData = averageEEG(EEGData_metadata_3D[:,0], EEGData)
-
-#Extract outcome and feature data
-Y_train = EEGData[:,0,0]
-
-X_train = np.array([train_sample.T.flatten() for train_sample in EEGData[:,1:,:]])
-X_train = scale(X_train, axis=1) #Scale across timeseries within trials
-
-#Create augmented dataset
-if addSyntheticData == 'gan' or addSyntheticData == 'vae': #If this is augmented analyses
-    Y_train = np.concatenate((Y_train,syn_Y_train)) #Combine empirical and synthetic outcomes
-    X_train = np.concatenate((X_train,syn_X_train)) #Combine empirical and synthetic features
+#Run evaluation for reinforcement learning (e8)
+dataset = 'RL8'
+for i in range(10):
+    print(f'Running evaluation {i} for {dataset}...')
+    _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
+        'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e1_test.csv', 
+        'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', 
+        'generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e8_SS100_Run00.csv',
+        'generated_samples/Reinforcement Learning/Training Datasets/vae_e8_SS100_Run00.csv',
+        electrode=2)
     
-#Shuffle order of samples
-trainShuffle = rnd.sample(range(len(X_train)),len(X_train))
-X_train = X_train[trainShuffle,:]
-Y_train = Y_train[trainShuffle]
+    #Save predict scores to a csv file
+    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+        f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
-optimal_params, predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
+#Run evaluation for antisaccade
+dataset = 'AS'
+for i in range(10):
+    print(f'Running evaluation {i} for {dataset}...')
+    _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
+        'data/Antisaccade/Validation and Test Datasets/antisaccade_test.csv', 
+        'data/Antisaccade/Training Datasets/antisaccade_SS100_Run00.csv', 
+        'generated_samples/Antisaccade/Training Datasets/gan_antisaccade_SS100_Run00.csv',
+        'generated_samples/Antisaccade/Training Datasets/vae_antisaccade_SS100_Run00.csv')
+    
+    #Save predict scores to a csv file
+    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+        f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
+
+#Run evaluation for ERPCORE N170
+dataset = 'N170'
+for i in range(10):
+    print(f'Running evaluation {i} for {dataset}...')
+    _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
+        'data/ERPCORE/N170/Validation and Test Datasets/erpcore_N170_test.csv', 
+        'data/ERPCORE/N170/Training Datasets/erpcore_N170_SS020_Run00.csv', 
+        'generated_samples/ERPCORE/N170/Training Datasets/gan_erpcore_N170_SS020_Run00.csv',
+        'generated_samples/ERPCORE/N170/Training Datasets/vae_erpcore_N170_SS020_Run00.csv')
+    
+    #Save predict scores to a csv file
+    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+        f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
+
+#Run evaluation for ERPCORE N2PC
+dataset = 'N2PC'
+for i in range(10):
+    print(f'Running evaluation {i} for {dataset}...')
+    _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
+        'data/ERPCORE/N2PC/Validation and Test Datasets/erpcore_N2PC_test.csv', 
+        'data/ERPCORE/N2PC/Training Datasets/erpcore_N2PC_SS020_Run00.csv', 
+        'generated_samples/ERPCORE/N2PC/Training Datasets/gan_erpcore_N2PC_SS020_Run00.csv',
+        'generated_samples/ERPCORE/N2PC/Training Datasets/vae_erpcore_N2PC_SS020_Run00.csv')
+    
+    #Save predict scores to a csv file
+    with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
+        f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
+
+#############################################################
+## ANALYZE RESULTS ##
+#############################################################
+
+#Load data
+results = np.genfromtxt('evaluation/quantitative_evaluation_results.csv', delimiter=',', skip_header=1)
+
+#Determine average predict scores per dataset
+datasets = np.unique(results[:,0])
+emp_scores = []
+gan_scores = []
+vae_scores = []
+for dataset in datasets:
+    emp_scores.append(np.mean(results[results[:,0]==dataset,1]))
+    gan_scores.append(np.mean(results[results[:,0]==dataset,2]))
+    vae_scores.append(np.mean(results[results[:,0]==dataset,3]))
+
+#Create a table of results
+results_table = np.vstack((emp_scores, gan_scores, vae_scores)).T
+results_table = np.hstack((datasets.reshape(-1,1), results_table))
+
+#Print results
+print(results_table)
+
+
