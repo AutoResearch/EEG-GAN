@@ -36,6 +36,8 @@ nav:
     - Examples: 'HowToUse/examples.md'
   - Tutorials:
     - Notebook: 'Tutorials/web_EEG_GAN_tutorial.ipynb'
+    - Notebook: 'Tutorials/Tutorial_GAN.ipynb'
+    - Notebook: 'Tutorials/Tutorial_VAE.ipynb'
   - Research:
     - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
     - EEG-GAN v2 - 2024:
