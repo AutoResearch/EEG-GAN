@@ -18,6 +18,9 @@ def main():
         #Save file to directory
         open(path+url.split('/')[-1], 'wb').write(r.content)
 
+        #Print success message
+        print(f'{url.split("/")[-1]} has been downloaded and saved to directory {path.replace("/","")}.')
+
     #Create directories
     paths = ['data/', 'trained_ae/', 'trained_models/', 'generated_samples/', 'trained_vae/']
     for path in paths:
