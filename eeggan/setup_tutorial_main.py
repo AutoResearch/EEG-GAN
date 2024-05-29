@@ -17,6 +17,12 @@ def main():
         
         #Save file to directory
         open(path+url.split('/')[-1], 'wb').write(r.content)
+
+    #Create directories
+    paths = ['data/', 'trained_ae/', 'trained_models/', 'generated_samples/', 'trained_vae/']
+    for path in paths:
+        if not os.path.exists(path):
+            os.mkdir(path)
     
     #Download EEG Training Data
     url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/dev/eeggan/data/eeggan_training_example.csv'
