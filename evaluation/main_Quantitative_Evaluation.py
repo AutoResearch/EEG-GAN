@@ -333,7 +333,7 @@ for i in range(10):
         'generated_samples/Reinforcement Learning/Training Datasets/vae_e1_SS100_Run00.csv')
     
     #Save predict scores to a csv file
-    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+    with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
         f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
 #Run evaluation for reinforcement learning (e8)
@@ -348,7 +348,7 @@ for i in range(10):
         electrode=2)
     
     #Save predict scores to a csv file
-    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+    with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
         f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
 #Run evaluation for antisaccade
@@ -362,7 +362,7 @@ for i in range(10):
         'generated_samples/Antisaccade/Training Datasets/vae_antisaccade_SS100_Run00.csv')
     
     #Save predict scores to a csv file
-    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+    with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
         f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
 #Run evaluation for ERPCORE N170
@@ -376,7 +376,7 @@ for i in range(10):
         'generated_samples/ERPCORE/N170/Training Datasets/vae_erpcore_N170_SS020_Run00.csv')
     
     #Save predict scores to a csv file
-    with open('evaluation/quant_evaluation_results.csv', 'a') as f:
+    with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
         f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
 #Run evaluation for ERPCORE N2PC
