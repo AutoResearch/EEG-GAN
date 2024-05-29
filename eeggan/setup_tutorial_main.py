@@ -3,6 +3,8 @@ import os
 
 #Function to retrieve csv and pt files
 def main():
+
+    print('Downloading EEG-GAN tutorial files. Once completed, you will find the downloaded files in new directories that have been created during the process.')
     
     #Define file download function
     def download_file(path, url):
@@ -51,7 +53,7 @@ def main():
     #path = 'generated_samples/'
     #download_file(path, url)
 
-    
+    print('EEG-GAN tutorial files have been downloaded.')
 
 if __name__ == '__main__':
     main()
