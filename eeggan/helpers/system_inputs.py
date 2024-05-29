@@ -310,12 +310,11 @@ def default_inputs_training_vae():
         'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
         'data': [str, 'Path to the dataset', os.path.join('data', 'ganTrialElectrodeERP_p500_e1_SS100_Run00.csv'), 'Dataset: '], #TODO: REMOVE THIS
         'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
-        'save_name': [str, 'Name to save model', None, 'Model save name: '],
+        'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'kw_channel': [str, 'Column name to detect used channels', '', 'Channel label: '],
         'kw_conditions': [str, '** Conditions to be used', 'Condition', 'Conditions: '],
         'kw_time': [str, 'Keyword for the time step of the dataset', 'Time', 'Keyword for the time step of the dataset: '],
-        # TODO: check for which components of VAE the parameter 'activation' applies
         'activation': [str, 'Activation function of the AE components; Options: [relu, leakyrelu, sigmoid, tanh, linear]', 'tanh', 'Activation function: '],
         'n_epochs': [int, 'Number of epochs to train for', 1000, 'Number of epochs: '],
         'batch_size': [int, 'Batch size', 128, 'Batch size: '],

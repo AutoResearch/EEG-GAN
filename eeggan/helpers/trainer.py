@@ -692,7 +692,7 @@ class VAETrainer(Trainer):
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'save_name': opt['save_name'] if 'save_name' in opt else '',
-            
+            'activation': opt['activation'] if 'activation' in opt else 'tanh',
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
