@@ -1,6 +1,6 @@
 [project]
 name = "eeggan"
-version = "2.0.0"
+version = "2.0.0.a10"
 authors = [
   { name="Sebastian Musslick, Daniel Weinhardt, & Chad Williams", email="sebastian_musslick@brown.edu" },
 ]
@@ -26,6 +26,10 @@ dependencies = [
 "Homepage" = "https://musslick.github.io/AER_website/Research.html"
 "Repository" = "https://github.com/AutoResearch/EEG-GAN"
 "Documentation" = "https://autoresearch.github.io/EEG-GAN/"
+
+[project.scripts]
+"gan_training_main" = "eeggan.gan_training_main:main"
+"eeggan" = "eeggan.__main__:main"
 
 [build-system]
 requires = ["hatchling"]

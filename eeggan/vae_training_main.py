@@ -7,19 +7,24 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from helpers import system_inputs
-from helpers.dataloader import Dataloader
-from helpers.trainer import VAETrainer
-from helpers.get_master import find_free_port
-from helpers.ddp_training import run#, VAEDDPTrainer
-from nn_architecture.vae_networks import VariationalAutoencoder
+from eeggan.helpers import system_inputs
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers.trainer import VAETrainer
+from eeggan.helpers.get_master import find_free_port
+from eeggan.helpers.ddp_training import run#, VAEDDPTrainer
+from eeggan.nn_architecture.vae_networks import VariationalAutoencoder
 
-def main():
+def main(args=None):
     # ------------------------------------------------------------------------------------------------------------------
     # Configure training parameters
     # ------------------------------------------------------------------------------------------------------------------
 
-    default_args = system_inputs.parse_arguments(sys.argv, file='vae_training_main.py')
+    #Determine args
+    if args is None:
+        default_args = system_inputs.parse_arguments(sys.argv, file='vae_training_main.py')
+    else:
+        default_args = system_inputs.parse_arguments(args, file='vae_training_main.py')
+
     print('-----------------------------------------\n')
 
     if default_args['load_checkpoint']:

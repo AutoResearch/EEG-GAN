@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from helpers.dataloader import Dataloader
+from eeggan.helpers.dataloader import Dataloader
 # from nn_architecture.models import TtsGenerator
 
 if __name__=='__main__':

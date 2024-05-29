@@ -8,8 +8,8 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 
-import helpers.trainer as trainer
-from helpers.dataloader import Dataloader
+import eeggan.helpers.trainer as trainer
+from eeggan.helpers.dataloader import Dataloader
 
 
 class GANDDPTrainer(trainer.GANTrainer):

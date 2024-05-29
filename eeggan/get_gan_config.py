@@ -2,7 +2,7 @@ import os
 import sys
 import torch
 
-from helpers import system_inputs
+from eeggan.helpers import system_inputs
 
 def main():
     default_args = system_inputs.parse_arguments(sys.argv, kw_dict=system_inputs.default_inputs_get_gan_config())

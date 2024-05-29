@@ -11,21 +11,24 @@ from torch.utils.data import DataLoader
 from datetime import datetime
 import warnings
 
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
-from helpers.dataloader import Dataloader
-from helpers import system_inputs
-from helpers.trainer import AETrainer
-from helpers.ddp_training import AEDDPTrainer, run
-from helpers.get_master import find_free_port
+from eeggan.nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers import system_inputs
+from eeggan.helpers.trainer import AETrainer
+from eeggan.helpers.ddp_training import AEDDPTrainer, run
+from eeggan.helpers.get_master import find_free_port
 
 
-def main():
+def main(args=None):
 
     # ------------------------------------------------------------------------------------------------------------------
     # Configure training parameters
     # ------------------------------------------------------------------------------------------------------------------
-
-    default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
+    
+    if args is None:
+        default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
+    else:
+        default_args = system_inputs.parse_arguments(args, file='autoencoder_training_main.py')
     print('-----------------------------------------\n')
     
     # create directory 'trained_models' if not exists

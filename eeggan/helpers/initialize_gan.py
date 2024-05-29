@@ -1,8 +1,8 @@
 import torch
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
-from nn_architecture.models import TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
+from eeggan.nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
+from eeggan.nn_architecture.models import TTSGenerator, TTSDiscriminator, DecoderGenerator, EncoderDiscriminator
 
 
 gan_architectures = {
