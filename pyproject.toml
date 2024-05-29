@@ -1,8 +1,8 @@
 [project]
 name = "eeggan"
-version = "2.0.0.a10"
+version = "2.0.0.a11"
 authors = [
-  { name="Sebastian Musslick, Daniel Weinhardt, & Chad Williams", email="sebastian_musslick@brown.edu" },
+  { name="Autonomous Empirical Research Group", email="sebastian_musslick@brown.edu" },
 ]
 description = "This package uses Generative Adversarial Networks (GANs) to augment EEG data to enhance classification performance."
 readme = "README.md"
@@ -28,7 +28,6 @@ dependencies = [
 "Documentation" = "https://autoresearch.github.io/EEG-GAN/"
 
 [project.scripts]
-"gan_training_main" = "eeggan.gan_training_main:main"
 "eeggan" = "eeggan.__main__:main"
 
 [build-system]
