@@ -16,21 +16,25 @@ import sklearn.manifold as sklm
 ###############################################
 
 #Define Filter Function
-def filterEEG(EEG):
+def filterEEG(EEG, fs=100):
+
     #Bandpass
-    w = [x / 100 for x in [0.1, 30]]
+    w = [x / fs for x in [0.1, 30]]
     b, a = signal.butter(4, w, 'band')
-    
+
     #Notch
     b_notch, a_notch = signal.iirnotch(60, 30, 500)
 
     #Process
     if EEG.ndim == 2: #If it's two-dimensional, iterate through trials
-        tempFilteredEEG = [signal.filtfilt(b, a, EEG[trial,:]) for trial in range(len(EEG))] #Bandpass filter
-        filteredEEG = [signal.filtfilt(b_notch, a_notch, tempFilteredEEG[trial]) for trial in range(len(EEG))] #Notch filter
+        #tempFilteredEEG = [signal.filtfilt(b, a, EEG[trial,:]) for trial in range(len(EEG))] #Bandpass filter
+        #filteredEEG = [signal.filtfilt(b_notch, a_notch, tempFilteredEEG[trial]) for trial in range(len(EEG))] #Notch filter
+        filteredEEG = [signal.filtfilt(b, a, EEG[trial,:]) for trial in range(len(EEG))] #Bandpass filter
+
     else: #Else just process the single tria provided
-        tempFilteredEEG = signal.filtfilt(b, a, EEG) #Bandpass filter
-        filteredEEG = signal.filtfilt(b_notch, a_notch, tempFilteredEEG) #Notch filter
+        #tempFilteredEEG = signal.filtfilt(b, a, EEG) #Bandpass filter
+        #filteredEEG = signal.filtfilt(b_notch, a_notch, tempFilteredEEG) #Notch filter
+        filteredEEG = signal.filtfilt(b, a, EEG) #Bandpass filter
     
     return filteredEEG
 
@@ -110,7 +114,7 @@ def time_frequency_transform(data, speriod=1/1000, label=''):
 def main(try_=None):
     
     ## EMPIRICAL ##
-    def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None):
+    def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None, fs=100):
         
         print('Loading data...')
         print(data)
@@ -143,7 +147,7 @@ def main(try_=None):
             #Process synthetic data
             fftTempganData = ganData
             if process_synthetic:
-                tempganData = filterEEG(ganData[:,1:])
+                tempganData = filterEEG(ganData[:,1:], fs=fs)
                 tempganData = baselineCorrect(tempganData)
             else:
                 tempganData = ganData[:,1:]
@@ -187,7 +191,7 @@ def main(try_=None):
 
             #Process synthetic data
             if process_synthetic:
-                tempvaeData = filterEEG(vaeData[:,1:])
+                tempvaeData = filterEEG(vaeData[:,1:], fs=fs)
                 tempvaeData = baselineCorrect(tempvaeData)
             else:
                 tempvaeData = vaeData[:,1:]
@@ -231,24 +235,29 @@ def main(try_=None):
     
     REWP_eeg_c0, REWP_eeg_c1, REWP_gan_c0, REWP_gan_c1, REWP_vae_c0, REWP_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', 
                                                                                              f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e1_full.csv',
-                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e1_full.csv')
+                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e1_full.csv',
+                                                                                             fs=83.3)
 
     REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
                                                                                              f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e8_full.csv',
                                                                                              f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e8_full.csv',
-                                                                                             select_electrode=7)
+                                                                                             select_electrode=7,
+                                                                                             fs=83.3)
       
     N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv', 
                                                                                              f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full_cleaned.csv',
-                                                                                             f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full_cleaned.csv')
+                                                                                             f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full_cleaned.csv',
+                                                                                             fs=125)
 
     N170_eeg_c0, N170_eeg_c1, N170_gan_c0, N170_gan_c1, N170_vae_c0, N170_vae_c1 = load_data(f'data/ERPCORE/N170/Full Datasets/erpcore_N170_full_cleaned.csv', 
                                                                                              f'generated_samples/ERPCORE/N170/Full Datasets/gan_erpcore_N170_full_cleaned.csv',
-                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_cleaned.csv')
+                                                                                             f'generated_samples/ERPCORE/N170/Full Datasets/vae_erpcore_N170_full_cleaned.csv',
+                                                                                             fs=128)
 
     N2PC_eeg_c0, N2PC_eeg_c1, N2PC_gan_c0, N2PC_gan_c1, N2PC_vae_c0, N2PC_vae_c1 = load_data(f'data/ERPCORE/N2PC/Full Datasets/erpcore_N2PC_full_cleaned.csv', 
                                                                                              f'generated_samples/ERPCORE/N2PC/Full Datasets/gan_erpcore_N2PC_full_cleaned.csv',
-                                                                                             f'generated_samples/ERPCORE/N2PC/Full Datasets/vae_erpcore_N2PC_full_cleaned.csv')
+                                                                                             f'generated_samples/ERPCORE/N2PC/Full Datasets/vae_erpcore_N2PC_full_cleaned.csv',
+                                                                                             fs=128)
 
     REWP_fft_c0 = frequency_transform(REWP_eeg_c0)
     REWP_fft_c1 = frequency_transform(REWP_eeg_c1)
