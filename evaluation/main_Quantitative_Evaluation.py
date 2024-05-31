@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import pandas as pd
 from scipy import signal
 from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPClassifier
@@ -48,19 +50,22 @@ def norm(data, neg=False):
 
     return norm_data
 
-def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None):
+def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None, antisaccade=False):
     
     print('Loading data...')
     print(data)
 
     #Load EEG Data (Participant, Condition, Trial, Electrode, Time1, ...)
-    EEG_data = np.genfromtxt(data, delimiter=',', skip_header=1) #Removes Participant Column
+    EEG_data = np.genfromtxt(data, delimiter=',', skip_header=1)
+    if antisaccade:
+        EEG_data[:,2], EEG_data[:,3] = EEG_data[:,3].copy(), EEG_data[:,2].copy()
     EEG_PIDs = EEG_data[:,0] #Participant IDs
     EEG_data = np.delete(EEG_data, 0, 1) #Delete Participant Column
     EEG_data = np.delete(EEG_data, 1, 1) #Delete Unused Column (Trial)
 
     #Select Electrode
     if select_electrode:
+        EEG_PIDs = EEG_PIDs[np.r_[EEG_data[:,1]==select_electrode]]
         EEG_data = EEG_data[np.r_[EEG_data[:,1]==select_electrode],:]
 
     #Split into conditions
@@ -158,7 +163,6 @@ def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synt
         vaeDataScale = np.max(combined_vae)-np.min(combined_vae)
         vaeDataOffset = np.min(combined_vae)
 
-
         #avgc1vaeData = (((avgc1vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
         #avgc0vaeData = (((avgc0vaeData-vaeDataOffset)/vaeDataScale)*EEGDataScale)+EEGDataOffset
 
@@ -169,12 +173,15 @@ def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synt
 
     print('Data loading complete!')
 
-    return c1_PIDs, c0_PIDs, c1_EEG_data, c0_EEG_data, scaledc1ganData, scaledc0ganData, scaledc1vaeData, scaledc0vaeData
+    return c0_PIDs, c1_PIDs, c0_EEG_data, c1_EEG_data, scaledc0ganData, scaledc1ganData, scaledc0vaeData, scaledc1vaeData
 
-def load_test_data(file_path):
+def load_test_data(file_path, antisaccade=False):
 
     #Average data
-    EEGDataTest_metadata = np.genfromtxt(file_path, delimiter=',', skip_header=1)[:,:4]
+    EEGDataTest_metadata = np.genfromtxt(file_path, delimiter=',', skip_header=1)
+    if antisaccade:
+        EEGDataTest_metadata[:,2], EEGDataTest_metadata[:,3] = EEGDataTest_metadata[:,3].copy(), EEGDataTest_metadata[:,2].copy()
+    EEGDataTest_metadata = EEGDataTest_metadata[:,:4]
     EEGDataTest_metadata_3D = EEGDataTest_metadata[EEGDataTest_metadata[:,3] == np.unique(EEGDataTest_metadata[:,3])[0],:]
     EEGDataTest_dataloader = Dataloader(file_path, kw_conditions='Condition', kw_channel='Electrode')
     EEGDataTest = EEGDataTest_dataloader.get_data(shuffle=False).detach().numpy()
@@ -242,16 +249,16 @@ def neuralNetwork(X_train, Y_train, x_test, y_test):
     
     return optimal_params, predictScore
 
-def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None):
+def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None, antisaccade=False):
 
     #Load test data
-    y_test, x_test = load_test_data(test_fn)
+    y_test, x_test = load_test_data(test_fn, antisaccade=antisaccade)
     testShuffle = rnd.sample(range(len(x_test)),len(x_test))
     x_test = x_test[testShuffle,:]
     y_test = y_test[testShuffle]
 
     #Load empirical, GAN, and VAE data
-    data_IDs_c0, data_IDs_c1, data_eeg_c0, data_eeg_c1, data_gan_c0, data_gan_c1, data_vae_c0, data_vae_c1 = load_data(emp_fn, gan_fn, vae_fn, select_electrode=electrode)
+    data_IDs_c0, data_IDs_c1, data_eeg_c0, data_eeg_c1, data_gan_c0, data_gan_c1, data_vae_c0, data_vae_c1 = load_data(emp_fn, gan_fn, vae_fn, select_electrode=electrode, antisaccade=antisaccade)
 
     #Empirical data
     data_eeg_c0 = np.hstack((np.zeros((data_eeg_c0.shape[0],1)), data_eeg_c0))
@@ -268,9 +275,7 @@ def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None):
     X_train = X_train[trainShuffle,:]
     Y_train = Y_train[trainShuffle]
 
-    #emp_optimal_params, emp_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
-
-    emp_optimal_params, emp_predictScore = 0, 100
+    emp_optimal_params, emp_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
 
     #GAN data
     gan_IDs = np.repeat(np.arange(0, len(data_gan_c0)/50),50)
@@ -288,9 +293,7 @@ def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None):
     X_train = X_train[trainShuffle,:]
     Y_train = Y_train[trainShuffle]
 
-    #gan_optimal_params, gan_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
-
-    gan_optimal_params, gan_predictScore = 0, 100
+    gan_optimal_params, gan_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
 
     #VAE data
     vae_IDs = np.repeat(np.arange(0, len(data_vae_c0)/50),50)
@@ -308,9 +311,7 @@ def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None):
     X_train = X_train[trainShuffle,:]
     Y_train = Y_train[trainShuffle]
 
-    #vae_optimal_params, vae_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
-
-    vae_optimal_params, vae_predictScore = 0, 100
+    vae_optimal_params, vae_predictScore = neuralNetwork(X_train, Y_train, x_test, y_test)
 
     return emp_optimal_params, emp_predictScore, gan_optimal_params, gan_predictScore, vae_optimal_params, vae_predictScore
 
@@ -319,12 +320,16 @@ def run_evaluation(test_fn, emp_fn, gan_fn, vae_fn, electrode=None):
 #############################################################
 
 #Setup save file 
-with open('evaluation/quantitative_evaluation_results.csv', 'w') as f:
-    f.write('dataset, empirical, GAN, VAE\n')
+if not os.path.isfile('evaluation/quantitative_evaluation_results.csv'):
+    with open('evaluation/quantitative_evaluation_results.csv', 'w') as f:
+        f.write('dataset, empirical, GAN, VAE\n')
+
+#Setup
+number_of_runs = 0
 
 #Run evaluation for reinforcement learning (e1)
 dataset = 'RL1'
-for i in range(10):
+for i in range(number_of_runs):
     print(f'Running evaluation {i} for {dataset}...')
     _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
         'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e1_test.csv', 
@@ -338,11 +343,11 @@ for i in range(10):
 
 #Run evaluation for reinforcement learning (e8)
 dataset = 'RL8'
-for i in range(10):
+for i in range(number_of_runs):
     print(f'Running evaluation {i} for {dataset}...')
     _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
         'data/Reinforcement Learning/Validation and Test Datasets/ganTrialElectrodeERP_p500_e1_test.csv', 
-        'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e1_SS100_Run00.csv', 
+        'data/Reinforcement Learning/Training Datasets/ganTrialElectrodeERP_p500_e8_SS100_Run00.csv', 
         'generated_samples/Reinforcement Learning/Training Datasets/aegan_ep2000_p500_e8_SS100_Run00.csv',
         'generated_samples/Reinforcement Learning/Training Datasets/vae_e8_SS100_Run00.csv',
         electrode=2)
@@ -353,13 +358,14 @@ for i in range(10):
 
 #Run evaluation for antisaccade
 dataset = 'AS'
-for i in range(10):
+for i in range(number_of_runs):
     print(f'Running evaluation {i} for {dataset}...')
     _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
         'data/Antisaccade/Validation and Test Datasets/antisaccade_test.csv', 
         'data/Antisaccade/Training Datasets/antisaccade_SS100_Run00.csv', 
         'generated_samples/Antisaccade/Training Datasets/gan_antisaccade_SS100_Run00.csv',
-        'generated_samples/Antisaccade/Training Datasets/vae_antisaccade_SS100_Run00.csv')
+        'generated_samples/Antisaccade/Training Datasets/vae_antisaccade_SS100_Run00.csv',
+        antisaccade=True)
     
     #Save predict scores to a csv file
     with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
@@ -367,7 +373,7 @@ for i in range(10):
 
 #Run evaluation for ERPCORE N170
 dataset = 'N170'
-for i in range(10):
+for i in range(number_of_runs):
     print(f'Running evaluation {i} for {dataset}...')
     _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
         'data/ERPCORE/N170/Validation and Test Datasets/erpcore_N170_test.csv', 
@@ -381,7 +387,7 @@ for i in range(10):
 
 #Run evaluation for ERPCORE N2PC
 dataset = 'N2PC'
-for i in range(10):
+for i in range(number_of_runs):
     print(f'Running evaluation {i} for {dataset}...')
     _, emp_predictScore, _, gan_predictScore, _, vae_predictScore = run_evaluation(
         'data/ERPCORE/N2PC/Validation and Test Datasets/erpcore_N2PC_test.csv', 
@@ -398,9 +404,9 @@ for i in range(10):
 #############################################################
 
 #Load data
-results = np.genfromtxt('evaluation/quantitative_evaluation_results.csv', delimiter=',', skip_header=1)
+results = pd.read_csv('evaluation/quantitative_evaluation_results.csv').values
 
-#Determine average predict scores per dataset
+#Determine average predict scores per dataset and per column
 datasets = np.unique(results[:,0])
 emp_scores = []
 gan_scores = []
@@ -410,11 +416,7 @@ for dataset in datasets:
     gan_scores.append(np.mean(results[results[:,0]==dataset,2]))
     vae_scores.append(np.mean(results[results[:,0]==dataset,3]))
 
-#Create a table of results
-results_table = np.vstack((emp_scores, gan_scores, vae_scores)).T
-results_table = np.hstack((datasets.reshape(-1,1), results_table))
-
-#Print results
-print(results_table)
-
+#Create a pandas dataframe of results where rows are datasets and columns are methods
+results_df = pd.DataFrame(data={'empirical':emp_scores, 'GAN':gan_scores, 'VAE':vae_scores}, index=datasets)
+print(results_df)
 
