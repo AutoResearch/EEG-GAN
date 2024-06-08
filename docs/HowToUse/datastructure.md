@@ -1,8 +1,3 @@
----
-hide:
-    -toc
----
-
 # Data Structure
 
 We use a very simple 2-dimensional data structure where each row is a different trial-level sample that encompasses both the condition in the first column and then the EEG time series:

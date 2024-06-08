@@ -1,8 +1,3 @@
----
-hide:
-    -toc
----
-
 # EEG-GAN Examples
 
 You can run the three main functions either from terminal or as a function within your script. Below, we will provide some examples of arguments that demonstrate both.

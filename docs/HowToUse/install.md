@@ -1,7 +1,3 @@
----
-hide:
-    -toc
----
 # Installing EEG-GAN
 
 ## <b>Pre-Requisites</b>

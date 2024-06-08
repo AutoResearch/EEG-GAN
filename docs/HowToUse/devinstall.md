@@ -1,7 +1,3 @@
----
-hide:
-    -toc
----
 # Install
 
 These instructions are for developpers to install the repo locally. 

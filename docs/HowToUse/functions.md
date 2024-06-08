@@ -1,7 +1,3 @@
----
-hide:
-    -toc
----
 # GAN Package Main Functions
 
 ## <b>GAN Package Details</b>
