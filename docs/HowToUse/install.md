@@ -12,15 +12,11 @@ To install using [pip](https://pip.pypa.io/en/stable/cli/pip_download/):<br>
 
 &emsp;&emsp;```pip install eeggan```
 
-You can then import the package functions directly:
+You can then run the package functions directly in terminal or command prompt, for example:
 
-&emsp;&emsp;<i>Import functions:</i> ```from eeggan import train_gan, visualize_gan, generate_samples```<br>
-&emsp;&emsp;<i>Use function:</i> ```train_gan(argv)```
+&emsp;&emsp;<i>Train GAN:</i> ```eeggan training_gan```<br>
 
-Or indirectly: 
-
-&emsp;&emsp;<i>Import package:</i> ```import eeggan as eg```<br>
-&emsp;&emsp;<i>Use function:</i> ```eg.train_gan(argv)```
+For more information on package functions, please refer to the [Functions](./functions.md) page.
 
 <i>If you prefer, follow this [link](https://pypi.org/project/eeggan/){.new_tab} to our PyPI page to directly download wheels or source.</i>
 
@@ -29,11 +25,11 @@ Or indirectly:
 ## <b>Installing From the Source</b>
 You can install the latest GitHub version of EEG-GAN into your environment:<br>
 
-&emsp;&emsp;```pip install git+https://github.com/AutoResearch/EEG-GAN@3-release-as-pip-package```
+&emsp;&emsp;```pip install git+https://github.com/AutoResearch/EEG-GAN@main```
 
-<i>Note that our pip release is currently on the branch 3-release-as-pip-package.</i><br>
-<i>Note that the GitHub repo may be ahead of the latest pip release.</i><br>
-<i>For most stable results, we suggest you follow the Install With Pip instructions above.</i>
+<i>Note that our latest pip release will be housed on main.</i><br>
+<i>Note that the dev branch contains updates since the last release.</i><br>
+<i>For most stable results, we suggest you follow the install with pip instructions above.</i>
 
 ---
 
@@ -46,13 +42,12 @@ To update your local package:
 
 &emsp;&emsp;```git pull```
 
-<i>Note that the GitHub repo may be ahead of the latest pip release.</i> <br>
-<i>For most stable results, we suggest you follow the Install With Pip instructions above.</i>
+<i>For most stable results, we suggest you follow the install with pip instructions above.</i>
 
 ---
 
 ## <b>Dependencies</b>
-The following are the required dependencies for EEG-GAN. If you install EEG-GAN via pip, or installed EEG-GAN from the source, these are automatically installed. If you have obtained the package from the source you can install these via the requirements.txt file ```pip install -r requirements.txt``` or via the pyproject.toml file ```pip install -e .[dev]```
+The following are the required dependencies for EEG-GAN. If you install EEG-GAN via pip, or installed EEG-GAN from the source, these are automatically installed. If you have obtained the package from the source you can install these via the pyproject.toml file ```pip install .```
 
 &emsp;&emsp;[Pandas](https://pandas.pydata.org/)~=1.3.4<br>
 &emsp;&emsp;[NumPy](https://numpy.org/)~=1.21.4<br>
@@ -64,3 +59,4 @@ The following are the required dependencies for EEG-GAN. If you install EEG-GAN 
 &emsp;&emsp;[TorchAudio](https://pytorch.org/)~=0.12.1<br>
 &emsp;&emsp;[Einops](https://github.com/arogozhnikov/einops)~=0.4.1<br>
 &emsp;&emsp;[Scikit-Learn](https://scikit-learn.org/)~=1.1.2<br>
+&emsp;&emsp;[tqdm](https://tqdm.github.io/)~=4.66.1<br>
