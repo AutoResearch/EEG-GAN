@@ -1,4 +1,4 @@
-# Function Parameters
+---hide:    -toc---# Function Parameters
 
 This page contains the default parameters for the functions in the eeggan package. The parameters are organized by function and are listed in a table with the parameter name and a description of the parameter.
 

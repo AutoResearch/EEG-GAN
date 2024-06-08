@@ -2,53 +2,30 @@
 
 ## <b>GAN Package Details</b>
 
-<br><b>Functions</b><br>
-There are three main functions from the EEG-GAN package:<br>
-&emsp;&emsp;```train_gan()``` - This trains a GAN <br>
-&emsp;&emsp;```visualize_gan()``` - This visualizes components of a trained GAN, such as the training losses <br>
-&emsp;&emsp;```generate_samples()``` - This generates synthetic samples using the trained GAN<br>
+EEG-GAN is a command line interface (CLI) package that allows users to train a Generative Adversarial Network (GAN) on EEG data. Once installed, you can run `eeggan` functions `<function>` in your terminal or command prompt alongside their parameters `<params>`: `eeggan <function> <params>`. <br><br>
+
+`eeggan` has four functions:<br><br>
+&emsp;&emsp;`gan_training` - This trains a GAN <br>
+&emsp;&emsp;`autoencoder_training` - This trains an autoencoder <br>
+&emsp;&emsp;`visualize` - This visualizes components of a trained GAN, such as the training losses <br>
+&emsp;&emsp;`generate_samples` - This generates synthetic samples using the trained GAN<br>
 
 <br><b>Arguments</b><br>
 
-Each function can take a single argument ```argv```, which should be a dictionary:<br>
+Each function can be followed by function parameters. Parameters are structured in that: <br>
+&emsp;&emsp;Boolean arguments are passed as their argument name (e.g., `ddp`): <br>
+&emsp;&emsp;&emsp;&emsp;`eeggan gan_training ddp`, <br>
+&emsp;&emsp;While other arguments are passed with an equals sign `=`: <br>
+&emsp;&emsp;&emsp;&emsp;`eeggan gan_training data=data/eeg_training_data.csv`<br>
+&emsp;&emsp; Arguments are separated by a space:<br>
+&emsp;&emsp;&emsp;&emsp; `eeggan gan_training ddp data=data/eeg_training_data.csv`<br>
 
-&emsp;&emsp;```argv = dict(```<br>
-&emsp;&emsp;&emsp;```path_dataset=data\my_data.csv,```<br>
-&emsp;&emsp;&emsp;```n_epochs = 100```<br>
-&emsp;&emsp;```)```<br>
+<br><b>Parameters</b><br>
 
-&emsp;&emsp;```train_gan(argv)```
+You can use the help argument to see a list of possible parameters with a brief description:</b><br>
+&emsp;&emsp;`eeggan gan_training help`<br>
+&emsp;&emsp;`eeggan autoencoder_training help`<br>
+&emsp;&emsp;`eeggan visualize help`<br>
+&emsp;&emsp;`eeggan generate_samples help`<br>
 
-<br><b>Help</b><br>
-
-You can use the help argument to see a list of possible arguments with a brief description:</b><br>
-&emsp;&emsp;```train_gan(dict(help = True))```<br>
-&emsp;&emsp;```visualize_gan(dict(help = True))```<br>
-&emsp;&emsp;```generate_samples(dict(help = True))```<br>
-
-<details style="border-color:Grey;">
-    <summary style="background-color:transparent;"><b><font size = "4">GAN Training Help</font></b></summary>
-    <font size = "3">
-&emsp;&emsp;<code>train_gan(dict(Help = True))</code><br>
-<img src="../Images/GAN-Training-Help.png" alt=""><br>
-<img src="../Images/GAN-Training-Help-2.png" alt=""><br>
-<img src="../Images/GAN-Training-Help-3.png" alt=""><br>
-</details>
-
-<details style="border-color:Grey;">
-    <summary style="background-color:transparent;"><b><font size = "4">Visualize Help</font></b></summary>
-    <font size = "3">
-&emsp;&emsp;<code>visualize_gan(dict(Help = True))</code><br>
-<img src="../Images/Visualize-Help.png" alt=""><br>
-<img src="../Images/Visualize-Help-2.png" alt=""><br>
-<img src="../Images/Visualize-Help-3.png" alt=""><br>
-</details>
-
-<details style="border-color:Grey;">
-    <summary style="background-color:transparent;"><b><font size = "4">Generate Samples Help</font></b></summary>
-    <font size = "3">
-&emsp;&emsp;<code>generate_samples(dict(Help = True))</code><br>
-<img src="../Images/Generate-Samples-Help.png" alt=""><br>
-<img src="../Images/Generate-Samples-Help-2.png" alt=""><br>
-<img src="../Images/Generate-Samples-Help-3.png" alt="">
-</details>
+You can also see these parameters the [Parameters](../parameters) page.
