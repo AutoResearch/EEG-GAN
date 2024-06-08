@@ -1,6 +1,10 @@
 # Function Parameters
 
-This page contains the default parameters for the functions in the eeggan package. The parameters are organized by function and are listed in a table with the parameter name and a description of the parameter.## Autoencoder Training
+This page contains the default parameters for the functions in the eeggan package. The parameters are organized by function and are listed in a table with the parameter name and a description of the parameter.
+
+## Autoencoder Training
+
+The autoencoder training function is used to train an autoencoder on EEG data. The autoencoder is trained to learn a compressed representation of the data. It can be incorporated into a GAN to improve the quality of the generated samples. The function has the following parameters:
 
 |                 | Description                                                                                   | Default                      |
 |:----------------|:----------------------------------------------------------------------------------------------|:-----------------------------|
@@ -27,6 +31,8 @@ This page contains the default parameters for the functions in the eeggan packag
 
 ## GAN Training
 
+The GAN training function is used to train a Generative Adversarial Network (GAN) on EEG data. The GAN is trained to generate realistic samples of EEG data. The function has the following parameters:
+
 |                  | Description                                                                              | Default                      |
 |:-----------------|:-----------------------------------------------------------------------------------------|:-----------------------------|
 | autoencoder      | Path to an autoencoder                                                                   |                              |
@@ -49,6 +55,8 @@ This page contains the default parameters for the functions in the eeggan packag
 
 ## Visualization
 
+The visualization function is used to visualize the results of training an autoencoder or GAN. The function has the following parameters:
+
 |                 | Description                                                                              | Default                |
 |:----------------|:-----------------------------------------------------------------------------------------|:-----------------------|
 | average         | Average over all samples to get one averaged curve (per condition, if any is given)      | False                  |
@@ -70,6 +78,8 @@ This page contains the default parameters for the functions in the eeggan packag
 | tsne_perplexity | Perplexity of t-SNE                                                                      | 40                     |
 
 ## Generate Samples
+
+The generate samples function is used to generate samples of EEG data using a trained GAN. The function has the following parameters:
 
 |                      | Description                                                                                  | Default                      |
 |:---------------------|:---------------------------------------------------------------------------------------------|:-----------------------------|

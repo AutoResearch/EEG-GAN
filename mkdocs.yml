@@ -33,6 +33,7 @@ nav:
     - Install: 'HowToUse/install.md'
     - Functions: 'HowToUse/functions.md'
     - Data Structure: 'HowToUse/datastructure.md'
+    - Parameters: 'HowToUse/parameters.md'
     - Examples: 'HowToUse/examples.md'
   - Tutorials:
     - Notebook: 'Tutorials/web_EEG_GAN_tutorial.ipynb'
