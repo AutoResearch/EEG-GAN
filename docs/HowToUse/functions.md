@@ -14,7 +14,7 @@ EEG-GAN is a command line interface (CLI) package that allows users to train a G
 
 Each function can be followed by function parameters. Parameters are structured in that: <br>
 &emsp;&emsp;Boolean arguments are passed as their argument name (e.g., `ddp`): <br>
-&emsp;&emsp;&emsp;&emsp;`eeggan gan_training ddp`, <br>
+&emsp;&emsp;&emsp;&emsp;`eeggan gan_training ddp` <br>
 &emsp;&emsp;While other arguments are passed with an equals sign `=`: <br>
 &emsp;&emsp;&emsp;&emsp;`eeggan gan_training data=data/eeg_training_data.csv`<br>
 &emsp;&emsp; Arguments are separated by a space:<br>
