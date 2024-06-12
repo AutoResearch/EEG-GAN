@@ -174,6 +174,6 @@ def main(overwrite_desc=True):
         f.write(f"{generate_table.to_markdown()}\n\n")
 
 if __name__ == '__main__':
-    overwrite_desc = False #Whether to overwrite the descriptions of the default inputs
+    overwrite_desc = True #Whether to overwrite the descriptions of the default inputs
     main(overwrite_desc=overwrite_desc)
 
