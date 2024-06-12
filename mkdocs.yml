@@ -34,7 +34,6 @@ nav:
     - Functions: 'HowToUse/functions.md'
     - Data Structure: 'HowToUse/datastructure.md'
     - Parameters: 'HowToUse/parameters.md'
-    - Examples: 'HowToUse/examples.md'
   - Tutorials:
     - GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
   - Research:
