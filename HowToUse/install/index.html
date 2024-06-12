@@ -158,8 +158,6 @@
           
             
               
-                
-              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -352,8 +350,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../examples/" class="md-nav__link">
-        Examples
+      <a href="../parameters/" class="md-nav__link">
+        Parameters
       </a>
     </li>
   
@@ -405,8 +403,8 @@
   
   
     <li class="md-nav__item">
-      <a href="../../Tutorials/web_EEG_GAN_tutorial/" class="md-nav__link">
-        Notebook
+      <a href="../../Tutorials/Tutorial_AEGAN/" class="md-nav__link">
+        GAN Tutorial
       </a>
     </li>
   
@@ -522,7 +520,7 @@
   
     <li class="md-nav__item">
       <a href="../../Research/EEG-GAN%20v2%20interactive/" class="md-nav__link">
-        EEG-GAN v2.0 Classification Results
+        Online Interactive Figure
       </a>
     </li>
   
@@ -565,9 +563,7 @@
             
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -642,31 +638,27 @@
 <h2 id="install-with-pip"><b>Install With Pip</b></h2>
 <p>To install using <a href="https://pip.pypa.io/en/stable/cli/pip_download/">pip</a>:<br></p>
 <p>&emsp;&emsp;<code>pip install eeggan</code></p>
-<p>You can then import the package functions directly:</p>
-<p>&emsp;&emsp;<i>Import functions:</i> <code>from eeggan import train_gan, visualize_gan, generate_samples</code><br>
-&emsp;&emsp;<i>Use function:</i> <code>train_gan(argv)</code></p>
-<p>Or indirectly: </p>
-<p>&emsp;&emsp;<i>Import package:</i> <code>import eeggan as eg</code><br>
-&emsp;&emsp;<i>Use function:</i> <code>eg.train_gan(argv)</code></p>
+<p>You can then run the package functions directly in terminal or command prompt, for example:</p>
+<p>&emsp;&emsp;<i>Train GAN:</i> <code>eeggan training_gan</code><br></p>
+<p>For more information on package functions, please refer to the <a href="../functions/">Functions</a> page.</p>
 <p><i>If you prefer, follow this <a class="new_tab" href="https://pypi.org/project/eeggan/">link</a> to our PyPI page to directly download wheels or source.</i></p>
 <hr />
 <h2 id="installing-from-the-source"><b>Installing From the Source</b></h2>
 <p>You can install the latest GitHub version of EEG-GAN into your environment:<br></p>
-<p>&emsp;&emsp;<code>pip install git+https://github.com/AutoResearch/EEG-GAN@3-release-as-pip-package</code></p>
-<p><i>Note that our pip release is currently on the branch 3-release-as-pip-package.</i><br>
-<i>Note that the GitHub repo may be ahead of the latest pip release.</i><br>
-<i>For most stable results, we suggest you follow the Install With Pip instructions above.</i></p>
+<p>&emsp;&emsp;<code>pip install git+https://github.com/AutoResearch/EEG-GAN@main</code></p>
+<p><i>Note that our latest pip release will be housed on main.</i><br>
+<i>Note that the dev branch contains updates since the last release.</i><br>
+<i>For most stable results, we suggest you follow the install with pip instructions above.</i></p>
 <hr />
 <h2 id="obtaining-the-source"><b>Obtaining the Source</b></h2>
 <p>If you rather download the package via GitHub you can use the following command:<br></p>
 <p>&emsp;&emsp;<code>git clone https://github.com/AutoResearch/EEG-GAN.git</code></p>
 <p>To update your local package:</p>
 <p>&emsp;&emsp;<code>git pull</code></p>
-<p><i>Note that the GitHub repo may be ahead of the latest pip release.</i> <br>
-<i>For most stable results, we suggest you follow the Install With Pip instructions above.</i></p>
+<p><i>For most stable results, we suggest you follow the install with pip instructions above.</i></p>
 <hr />
 <h2 id="dependencies"><b>Dependencies</b></h2>
-<p>The following are the required dependencies for EEG-GAN. If you install EEG-GAN via pip, or installed EEG-GAN from the source, these are automatically installed. If you have obtained the package from the source you can install these via the requirements.txt file <code>pip install -r requirements.txt</code> or via the pyproject.toml file <code>pip install -e .[dev]</code></p>
+<p>The following are the required dependencies for EEG-GAN. If you install EEG-GAN via pip, or installed EEG-GAN from the source, these are automatically installed. If you have obtained the package from the source you can install these via the pyproject.toml file <code>pip install .</code></p>
 <p>&emsp;&emsp;<a href="https://pandas.pydata.org/">Pandas</a>~=1.3.4<br>
 &emsp;&emsp;<a href="https://numpy.org/">NumPy</a>~=1.21.4<br>
 &emsp;&emsp;<a href="https://matplotlib.org/">Matplotlib</a>~=3.5.0<br>
@@ -676,11 +668,10 @@
 &emsp;&emsp;<a href="https://pytorch.org/">TorchSummary</a>~=1.5.1<br>
 &emsp;&emsp;<a href="https://pytorch.org/">TorchAudio</a>~=0.12.1<br>
 &emsp;&emsp;<a href="https://github.com/arogozhnikov/einops">Einops</a>~=0.4.1<br>
-&emsp;&emsp;<a href="https://scikit-learn.org/">Scikit-Learn</a>~=1.1.2<br></p>
+&emsp;&emsp;<a href="https://scikit-learn.org/">Scikit-Learn</a>~=1.1.2<br>
+&emsp;&emsp;<a href="https://tqdm.github.io/">tqdm</a>~=4.66.1<br></p>
 
 
-
-  
 
 
 
