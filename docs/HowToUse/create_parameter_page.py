@@ -146,12 +146,7 @@ def main(overwrite_desc=True):
 
     #Load and Save Tables as an .md file
     with open("docs/HowToUse/parameters.md", "w") as f:
-        #Format the markdown file
-        f.write(f"---")
-        f.write(f"hide:")
-        f.write(f"    -toc")
-        f.write(f"---")
-    
+
         #Write the title of the markdown file
         f.write(f"# Function Parameters\n\n")
         f.write(f"This page contains the default parameters for the functions in the eeggan package. The parameters are organized by function and are listed in a table with the parameter name and a description of the parameter.\n\n")
