@@ -36,9 +36,7 @@ nav:
     - Parameters: 'HowToUse/parameters.md'
     - Examples: 'HowToUse/examples.md'
   - Tutorials:
-    - AE-GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
-    - GAN Tutorial: 'Tutorials/Tutorial_GAN.ipynb'
-    - VAE Tutorial: 'Tutorials/Tutorial_VAE.ipynb'
+    - GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
   - Research:
     - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
     - EEG-GAN v2 - 2024:
