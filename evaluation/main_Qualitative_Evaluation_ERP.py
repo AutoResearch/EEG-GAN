@@ -245,7 +245,7 @@ def main(try_=None):
                                                                                              fs=83.3)
       
     N2P3_eeg_c0, N2P3_eeg_c1, N2P3_gan_c0, N2P3_gan_c1, N2P3_vae_c0, N2P3_vae_c1 = load_data(f'data/Antisaccade/Full Datasets/antisaccade_left_full_cleaned.csv', 
-                                                                                             f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full_cleaned_try3_2.csv',
+                                                                                             f'generated_samples/Antisaccade/Full Datasets/gan_antisaccade_full_cleaned.csv',
                                                                                              f'generated_samples/Antisaccade/Full Datasets/vae_antisaccade_full_cleaned.csv',
                                                                                              fs=125)
 
