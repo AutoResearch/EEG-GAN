@@ -239,7 +239,7 @@ def main(try_=None):
                                                                                              fs=83.3)
 
     REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
-                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e8_full.csv',
+                                                                                             f'generated_samples/Reinforcement Learning/Full Datasets/aegan_ep2000_p500_e8_full.csv',
                                                                                              f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e8_full.csv',
                                                                                              select_electrode=7,
                                                                                              fs=83.3)

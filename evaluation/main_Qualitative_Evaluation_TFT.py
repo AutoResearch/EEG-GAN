@@ -109,7 +109,7 @@ def time_frequency_transform(data, speriod=1/1000, label=''):
 ###############################################
 ## LOAD AND PROCESS DATA                     ##
 ###############################################
-def main(try_=None, load_data=True):
+def main(try_=None, load=True):
     
     ## EMPIRICAL ##
     def load_data(data, gan_data, vae_data, run_gan=True, run_vae=True, process_synthetic=True, select_electrode=None, fs=100):
@@ -231,14 +231,14 @@ def main(try_=None, load_data=True):
     
         return c1_EEG_data, c0_EEG_data, scaledc1ganData, scaledc0ganData, scaledc1vaeData, scaledc0vaeData
     
-    if not load_data: 
+    if not load: 
         REWP_eeg_c0, REWP_eeg_c1, REWP_gan_c0, REWP_gan_c1, REWP_vae_c0, REWP_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e1_len100.csv', 
                                                                                                 f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e1_full.csv',
                                                                                                 f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e1_full.csv', 
                                                                                                 fs=83.3)
 
         REWP8_eeg_c0, REWP8_eeg_c1, REWP8_gan_c0, REWP8_gan_c1, REWP8_vae_c0, REWP8_vae_c1 = load_data(f'data/Reinforcement Learning/Full Datasets/ganTrialElectrodeERP_p500_e8_len100.csv', 
-                                                                                                f'generated_samples/Reinforcement Learning/Full Datasets/gan_ep2000_p500_e8_full.csv',
+                                                                                                f'generated_samples/Reinforcement Learning/Full Datasets/aegan_ep2000_p500_e8_full.csv',
                                                                                                 f'generated_samples/Reinforcement Learning/Full Datasets/vae_p500_e8_full.csv',
                                                                                                 select_electrode=7,
                                                                                                 fs=83.3)
@@ -422,5 +422,5 @@ def main(try_=None, load_data=True):
     fig.savefig(f'figures/Figure S2 - gan_tft_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
-    load_data = True
-    main(load_data=load_data)
+    load = False
+    main(load=load)
