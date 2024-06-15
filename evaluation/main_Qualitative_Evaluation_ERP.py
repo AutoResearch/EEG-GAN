@@ -260,7 +260,7 @@ def main(try_=None):
                                                                                              fs=128)
 
     #######################################
-    ## FIGURE 1
+    ## FIGURE 2
     #######################################
 
     #Plotting Function
@@ -342,11 +342,11 @@ def main(try_=None):
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure 1 - gan_trials_Evaluations.png', dpi=600)
+    fig.savefig(f'figures/Figure 2 - gan_trials_Evaluations.png', dpi=600)
     plt.close()
 
     #######################################
-    ## FIGURE 2
+    ## FIGURE 3
     #######################################
 
     #Plotting Function
@@ -442,9 +442,9 @@ def main(try_=None):
     fig.set_size_inches(12, num_rows*4)
 
     if try_:
-        fig.savefig(f'figures/Figure 2 - gan_Evaluations try {try_}.png', dpi=600)
+        fig.savefig(f'figures/Figure 3 - gan_Evaluations try {try_}.png', dpi=600)
     else:
-        fig.savefig(f'figures/Figure 2 - gan_Evaluations.png', dpi=600)
+        fig.savefig(f'figures/Figure 3 - gan_Evaluations.png', dpi=600)
 
 if __name__ == '__main__':
     main()
