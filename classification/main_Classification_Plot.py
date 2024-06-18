@@ -171,15 +171,15 @@ def main():
                 
             #Add classifier titles
             if (num_item == 1):
-                plt.text(0.5, 1.3, 'Neural\nNetwork', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.18, 'Neural\nNetwork', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 2):
-                plt.text(0.5, 1.3, 'Support\nVector\nMachine', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.18, 'Support\nVector\nMachine', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 3):
-                plt.text(0.5, 1.3, 'Logistic\nRegression', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.18, 'Logistic\nRegression', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 4):
-                plt.text(0.5, 1.3, 'Random\nForest', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.18, 'Random\nForest', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
             elif (num_item == 5):
-                plt.text(0.5, 1.3, 'K-Nearest\nNeighbors', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
+                plt.text(0.5, 1.18, 'K-Nearest\nNeighbors', horizontalalignment='center', verticalalignment='center', transform=ax1.transAxes, fontsize=16, fontweight='bold')
 
             #Row labels
             if num_item == 1:
