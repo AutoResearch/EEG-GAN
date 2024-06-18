@@ -8,7 +8,7 @@ hide:
 ## <b>Enhancing EEG Data Classification Across Diverse Contexts Using Generative Adversarial Networks</b>
 ### <i>Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick (in prep)</i>
 
-<center> [Journal Print](TBD){ .md-button} [Data and Scripts](TBD){ .md-button } </center>
+<center> [Journal Print](TBD){ .md-button} </center>
 
 #### Abstract: ####
 
