@@ -18,7 +18,7 @@ Electroencephalography (EEG) is crucial for studying cognition and is widely use
 
 <center> ![](./Images/Figure 4 - GAN Classification Results.png){: style="height:800px;width:800px"}</center> 
 
-## <b>Code and Script Availability</b>
+## <b>Script and Data Availability</b>
 
 ### Script Repos
 
