@@ -484,13 +484,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#temporary-description-for-testing" class="md-nav__link">
-    (Temporary description for testing)
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#data-augmentation" class="md-nav__link">
     Data Augmentation
   </a>
@@ -566,13 +559,6 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#temporary-description-for-testing" class="md-nav__link">
-    (Temporary description for testing)
-  </a>
-  
-</li>
       
         <li class="md-nav__item">
   <a href="#data-augmentation" class="md-nav__link">
@@ -1633,7 +1619,7 @@ Licensed under the Apache License, Version 2.0.
 <a href="https://colab.research.google.com/github/AutoResearch/EEG-GAN/blob/3-release-as-pip-package/docs/Research/EEG-GAN%20v2%20interactive.ipynb" target="_blank">
 <img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg"/>
 </a>
-<h1 id="online-interactive-figure">Online Interactive Figure<a class="anchor-link" href="#online-interactive-figure">¶</a></h1><h2 id="temporary-description-for-testing">(Temporary description for testing)<a class="anchor-link" href="#temporary-description-for-testing">¶</a></h2><p>EEG-GAN uses Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g., Support Vector Machine, Neural Network).</p>
+<h1 id="online-interactive-figure">Online Interactive Figure<a class="anchor-link" href="#online-interactive-figure">¶</a></h1><p>EEG-GAN uses Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g., Support Vector Machine, Neural Network).</p>
 <h2 id="data-augmentation">Data Augmentation<a class="anchor-link" href="#data-augmentation">¶</a></h2><p>Although we have shown GANs to be successful in augmenting classification performance, we have not thoroughly tested it's impact compared to any benchmarks... until now. The following plot will allow you to visualize the performance of our classifications across many analyses:</p>
 <br/>
 <p><u><strong>Non-Augmented</strong></u>: These are the data untouched</p>
@@ -1655,11 +1641,8 @@ Licensed under the Apache License, Version 2.0.
 <li><strong>Reverse-Augmented</strong>: Reverses the timeseries</li>
 <li><strong>Smooth-Augmented</strong>: Removes portions of the data</li>
 </ul>
-<h2 id="using-this-interactive-plot">Using This Interactive Plot<a class="anchor-link" href="#using-this-interactive-plot">¶</a></h2><p>The plot will default to a bar chart including all aforementioned analyses/augmentations across 5 classifiers (neural network, support vector machine, logistic regression, random forest, k-nearest neighbors) and 7 sample sizes (5, 10, 15, 20, 30, 60, 100). In addition, we have repeated these analyses when using different numbers of electrodes (1, 2, 8). Alongside these main plots are mini-plots (to the right), which will by default be empty.</p>
-<p>You will see three dropdowns (Electrodes, Select, Remove) and two buttons (Centered, Axis Type). The electrodes dropdown allows you to select which analyses to view, dependent on the number of electrodes.</p>
-<p>The power of this plot comes from the Select and Remove dropdowns. At start, the Select dropdown will have all possible analyses and the Remove dropdown will be empty. When you select an analysis, the plot will highlight this analysis in the form of a line chart. You can now remove this analysis using the remove dropdown. You will also notice that the plots on the right become populated when you select one or more analyses. If you select only one, then the plots simply depict the performance of that analysis. Once you have selected a second analysis, it will show the difference between the two. If you choose more than two analyses, it will display the difference of the earliest two selected.</p>
-<p>At this point, the centered button is by default unclicked. This means that when you select an analysis, it will plot the line chart respective to the corresponding bar location. If you click the centered button, it will rather place all line charts centered on the corresponding sample size, so they are easier to compare.</p>
-<p>The axis type button is also unclicked. This changes the x-axis formatting. By default, the samples sizes are equally spaced on the x-axis. This is easier to read, but technically incorrect since the different sample size conditions are not equally spaced. Clicking this button will reformat the plot to use a continuous x-axis so that the sample sizes are spaced literally (i.e., going from sample size 5 to 10 is a smaller gap than going from sample size 30 to 60).</p>
+<h2 id="using-this-interactive-plot">Using This Interactive Plot<a class="anchor-link" href="#using-this-interactive-plot">¶</a></h2><p>The plot will default to a bar chart including all aforementioned analyses/augmentations across 5 classifiers (neural network, support vector machine, logistic regression, random forest, k-nearest neighbors) and 4-7 sample sizes (5, 10, 15, 20, 30, 60, 100) for the corresponding dataset.</p>
+<p>You will see a dropdown to select the Dataset, a series of checkboxes to include or remove a data augmentation technique, two dropdown for more fine-tuned comparisons, and a checkbox to format the plots. For the comparisons, if one is selected then the plots on the right will be their absolute performance. If two are selected, then the plots will show the difference between the two.</p>
 <p>Try it out!</p>
 </div>
 </div>
