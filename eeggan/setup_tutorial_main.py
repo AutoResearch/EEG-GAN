@@ -38,29 +38,14 @@ def main():
     download_file(path, url)
 
     #Download EEG AE Model
-    #url = 'https://github.com/AutoResearch/EEG-GAN/raw/main/trained_models/aeEEGModel.pt'
-    #path = 'trained_ae/'
-    #download_file(path, url)
+    url = 'https://github.com/AutoResearch/EEG-GAN/raw/dev/eeggan/trained_ae/pretrained_autoencoder.pt'
+    path = 'trained_ae/'
+    download_file(path, url)
 
     #Download EEG GAN Model
-    #url = 'https://github.com/AutoResearch/EEG-GAN/raw/main/trained_models/gansEEGModel.pt'
-    #path = 'trained_models/'
-    #download_file(path, url)
-
-    #Download EEG GAN Synthetic Data
-    #url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/main/generated_samples/gansEEGSyntheticData.csv'
-    #path = 'generated_samples/'
-    #download_file(path, url)
-
-    #Download EEG VAE Model
-    #url = 'https://github.com/AutoResearch/EEG-GAN/raw/main/trained_models/vaeEEGModel.pt'
-    #path = 'trained_vae/'
-    #download_file(path, url)
-
-    #Download EEG VAE Synthetic Data
-    #url = 'https://raw.githubusercontent.com/AutoResearch/EEG-GAN/main/generated_samples/vaeEEGSyntheticData.csv'
-    #path = 'generated_samples/'
-    #download_file(path, url)
+    url = 'https://github.com/AutoResearch/EEG-GAN/raw/dev/eeggan/trained_models/pretrained_gan.pt'
+    path = 'trained_models/'
+    download_file(path, url)
 
     print('EEG-GAN tutorial files have been downloaded.')
 
