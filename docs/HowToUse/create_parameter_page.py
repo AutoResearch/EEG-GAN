@@ -1,6 +1,6 @@
 #Create a latex table with one column being name and the other column being description
 import pandas as pd
-from eeggan.helpers.system_inputs import default_inputs_training_autoencoder, default_inputs_training_gan, default_inputs_visualize, default_inputs_generate_samples
+from eeggan.helpers.system_inputs import default_inputs_training_autoencoder, default_inputs_training_gan, default_inputs_visualize, default_inputs_generate_samples, default_inputs_training_vae
 from collections import OrderedDict
 
 #TODO: THE DESCRIPTIONS WERE AUTO-GENERATED, SO WE NEED TO WRITE THEM OURSELVES.
@@ -24,7 +24,7 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
     '''
     if function.lower() == 'gan':
         definitions = {
-            'ddp': 'Use the distributed data parallel training paradigm for training the GAN on multiple GPUs.',
+            'ddp': '*Use the distributed data parallel training paradigm for training the GAN on multiple GPUs.',
             'seed': 'The seed to use for reproducibility.',
             'n_epochs': 'The number of epochs to train the GAN.',
             'batch_size': 'The batch size to use during training.',
@@ -45,8 +45,8 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
 
     elif function.lower() == 'autoencoder':
         definitions = {
-            'ddp': 'Use the distributed data parallel training paradigm for training the AE on multiple GPUs.',
-            'load_checkpoint': 'Whether to load a checkpoint for the autoencoder.',
+            'ddp': '*Use the distributed data parallel training paradigm for training the AE on multiple GPUs.',
+            'load_checkpoint': '*Whether to load a checkpoint for the autoencoder.',
             'seed': 'The seed to use for reproducibility.',
             'data': 'The file which holds the EEG data to train the AE on.',
             'checkpoint': 'The file which holds a pre-trained AE for further training.',
@@ -64,26 +64,44 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
             'num_layers': 'The number of hidden layers in the AE.',
             'num_heads': 'The number of attention heads to use in the transformer.',
             'train_ratio': 'The ratio of the data to use for training the AE vs. testing it.',
-            'learning_rate': 'The learning rate for the autoencoder.',
+            'learning_rate': 'The learning rate for the AE.',
+        }
+
+    elif function.lower() == 'vae':
+        definitions = {
+            'load_checkpoint': '*Whether to load a checkpoint for the autoencoder.',
+            'data': 'The file which holds the EEG data to train the VAE on.',
+            'path_checkpoint': 'The file which holds a pre-trained VAE for further training.',
+            'save_name': 'The name to save the trained VAE.',
+            'kw_time': 'The name of the time column in the data to use for training the VAE.',
+            'kw_channel': 'The name of the channel column in the data to use for training the VAE.',  
+            'activation': 'The activation function of the VAE-Decoder. Options: [`relu`, `leakyrelu`, `sigmoid`, `tanh`, `linear`]',
+            'n_epochs': 'The number of epochs to train the VAE.',
+            'batch_size': 'The batch size to use during training.',
+            'sample_interval': 'The epoch interval at which to save samples of the generated data during training.',
+            'hidden_dim': 'The dimension of the hidden layers in the VAE.',
+            'learning_rate': 'The learning rate for the VAE.',
+            'encoded_dim': 'The encoded dimension of mu and sigma used for generating new samples',
+            'kl_alpha': 'The weight of the KL divergence in the loss computation',
         }
 
     elif function.lower() == 'visualization':
         definitions = {
-            'loss': 'Whether to plot the loss of the model.',
-            'average': 'Whether to plot the average of the data.',
-            'pca': 'Whether to use PCA for visualization.',
-            'tsne': 'Whether to use t-SNE for visualization.',
-            'spectogram': 'Whether to use a spectogram for visualization.',
-            'fft': 'Whether to use FFT for visualization.',
-            'channel_plots': 'Whether to plot the channels.',
-            'model': 'The trained model to visualize.',
-            'data': 'The data to visualize.',
-            'comp_data': 'The compressed data to visualize.',
-            'kw_conditions': 'The conditions to use for visualization.',
-            'kw_time': 'The time to use for visualization.',
-            'kw_channel': 'The channel to use for visualization.',
+            'loss': '*Whether to plot the loss of the model (`model` required).',
+            'average': '*Whether to plot the average of the data.',
+            'pca': '*Whether to plot PCA for visualization (`comp_data` required).',
+            'tsne': '*Whether to plot t-SNE for visualization (`comp_data` required).',
+            'spectogram': '*Whether to plot a spectogram for visualization.',
+            'fft': '*Whether to plot FFT for visualization.',
+            'channel_plots': '*Whether to plot the channels.',
+            'model': 'The file containing the trained model with collected samples during training (only `model` or `data`).',
+            'data': 'The file containing the EEG data to visualize (only `model` or `data`).',
+            'comp_data': 'The comparison data for `pca` or `tsne` to visualize.',
+            'kw_conditions': '**The column names with the conditions.',
+            'kw_time': 'The column names containing the time steps.',
+            'kw_channel': 'The column name containing the channel label.',
             'n_samples': 'The number of samples to visualize.',
-            'channel_index': 'The index of the channel to visualize.',
+            'channel_index': '**The index of the channels to visualize.',
             'tsne_perplexity': 'The perplexity to use for t-SNE iterations.',
             'tsne_iterations': 'The number of iterations to use for t-SNE.',
         }
@@ -91,17 +109,17 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
     elif function.lower() == 'generate_samples':
         definitions = {
             'seed': 'The seed to use for reproducibility.',
-            'model': 'The trained model to use for generating samples.',
-            'save_name': 'The name to save the generated samples.',
-            'kw_time': 'The time to use for generating samples.',
+            'model': 'The file containing the trained model to use for generating samples.',
+            'save_name': 'The name for the csv file to save the generated samples.',
+            'kw_time': 'The column name for the time steps to use for generating samples.',
             'sequence_length': 'The length of the sequence to generate.',
             'num_samples_total': 'The total number of samples to generate.',
-            'num_samples_parallel': 'The number of samples to generate in parallel.',
-            'conditions': 'The conditions to use for generating samples.',
+            'num_samples_parallel': 'The number of samples to generate in parallel (to speed things up).',
+            'conditions': '**The numeric condition values to use for generating samples.',
         }
 
     else:
-        print('Invalid function name. Please enter either "GAN", "autoencoder", "visualization", or "generate_samples".')
+        print('Invalid function name. Please enter either "GAN", "autoencoder", "VAE", "visualization", or "generate_samples".')
 
     #Overwrite the descriptions of the default inputs
     for key in kw_dict.keys():
@@ -127,6 +145,14 @@ def main(overwrite_desc=True):
         kw_dict = overwrite_descriptions('GAN', kw_dict)
     #Create a latex table from the dictionary
     gan_table = create_latex_table(kw_dict)
+
+    #Get the default inputs for the training of the GAN
+    kw_dict = default_inputs_training_vae()
+    #Overwrite the descriptions of the default inputs for the GAN
+    if overwrite_desc:
+        kw_dict = overwrite_descriptions('VAE', kw_dict)
+    #Create a latex table from the dictionary
+    vae_table = create_latex_table(kw_dict)
 
     #Get the default inputs for the visualization
     kw_dict = default_inputs_visualize()
@@ -159,6 +185,10 @@ def main(overwrite_desc=True):
         f.write(f"## GAN Training\n\n")
         f.write(f"The GAN training function is used to train a Generative Adversarial Network (GAN) on EEG data. The GAN is trained to generate realistic samples of EEG data. The function has the following parameters:\n\n")
         f.write(f"{gan_table.to_markdown()}\n\n")
+
+        f.write(f"## VAE Training\n\n")
+        f.write(f"The VAE training function is used to train a Variational Autoencoder (VAE) on EEG data. The VAE is trained to generate realistic samples of EEG data. The function has the following parameters:\n\n")
+        f.write(f"{vae_table.to_markdown()}\n\n")
 
         f.write(f"## Visualization\n\n")
         f.write(f"The visualization function is used to visualize the results of training an autoencoder or GAN. The function has the following parameters:\n\n")
