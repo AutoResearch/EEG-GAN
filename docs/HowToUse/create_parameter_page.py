@@ -24,22 +24,22 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
     '''
     if function.lower() == 'gan':
         definitions = {
-            'ddp': 'Whether to use DistributedDataParallel for training the GAN.',
+            'ddp': 'Use the distributed data parallel training paradigm for training the GAN on multiple GPUs.',
             'seed': 'The seed to use for reproducibility.',
             'n_epochs': 'The number of epochs to train the GAN.',
             'batch_size': 'The batch size to use during training.',
-            'sample_interval': 'The interval at which to save samples of the generated data.',
+            'sample_interval': 'The epoch interval at which to save samples of the generated data during training.',
             'hidden_dim': 'The dimension of the hidden layers in the generator and discriminator.',
-            'num_layers': 'The number of layers in the generator and discriminator.',
-            'patch_size': 'The size of the patches used for the PatchGAN discriminator.',
+            'num_layers': 'The number of hidden layers in the generator and discriminator.',
+            'patch_size': 'The size of the patches used to split the data sequences (for more information read [this description].(https://github.com/imics-lab/tts-gan)).',
             'discriminator_lr': 'The learning rate for the discriminator.',
             'generator_lr': 'The learning rate for the generator.',
-            'data': 'The EEG data to train the GAN on.',
-            'checkpoint': 'The directory to save the model checkpoints.',
-            'autoencoder': 'The trained autoencoder to use for training the GAN.',
-            'kw_conditions': 'The conditions to use for training the GAN.',
-            'kw_time': 'The time to use for training the GAN.',
-            'kw_channel': 'The channel to use for training the GAN.',
+            'data': 'The file which holds the EEG data to train the GAN on.',
+            'checkpoint': 'The file which holds a pre-trained GAN for further training.',
+            'autoencoder': 'The file which holds the trained autoencoder to use for training the AE-GAN.',
+            'kw_conditions': '**The names of the condition columns in the data to use for training the GAN.',
+            'kw_time': 'The name of the time column to use for training the GAN.',
+            'kw_channel': 'The name of the channel column to use for training the GAN.',
             'save_name': 'The name to save the trained GAN.',
         }
 
