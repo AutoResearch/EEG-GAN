@@ -12,11 +12,13 @@ We use a very simple 2-dimensional data structure where each row is a different 
 
 ## Data Parameters
 
-The autoencoder and GAN functions require parameters to be set for the data structure. The following parameters inform the model which columns correspond to the condition(s), channels, and time series data. Other columns in the data file are ignored. Channel and Condition parameters are optional but the Time parameter is required and defaulted to `Time`.
+The autoencoder and GAN functions require parameters to be set for the data structure. The following parameters inform the model which columns correspond to the condition(s), channels, and time series data. Other columns in the data file are ignored. Channel (`kw_channel`) and Condition (`kw_condition`) parameters are optional but the Time (`kw_time`) parameter is required and defaulted to `Time`.
 
 `kw_time = 'Time'` <br>
 `kw_channel = 'Electrode'` <br>
 `kw_condition = 'Condition'` <br>
+
+The `kw_time` value corresponds to the substring which all time step columns have in common. This substring is required to be used only by the time step columns. The `kw_condition` can be given as a comma-separated list of multiple conditions e.g. `kw_condition=Condition1,Condition2`.
 
 Notes:
 <ul>
