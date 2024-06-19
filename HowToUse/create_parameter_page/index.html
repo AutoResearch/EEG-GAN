@@ -1529,7 +1529,7 @@ Licensed under the Apache License, Version 2.0.
     init_mathjax();
     </script>
 <!-- End of mathjax configuration --><div class="jupyter-wrapper"><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=9ddb7787">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=32b477f6">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1549,12 +1549,12 @@ Licensed under the Apache License, Version 2.0.
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="c1">#Create a latex table with one column being name and the other column being description</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">eeggan.helpers.system_inputs</span> <span class="kn">import</span> <span class="n">default_inputs_training_autoencoder</span><span class="p">,</span> <span class="n">default_inputs_training_gan</span><span class="p">,</span> <span class="n">default_inputs_visualize</span><span class="p">,</span> <span class="n">default_inputs_generate_samples</span>
+<span class="kn">from</span> <span class="nn">eeggan.helpers.system_inputs</span> <span class="kn">import</span> <span class="n">default_inputs_training_autoencoder</span><span class="p">,</span> <span class="n">default_inputs_training_gan</span><span class="p">,</span> <span class="n">default_inputs_visualize</span><span class="p">,</span> <span class="n">default_inputs_generate_samples</span><span class="p">,</span> <span class="n">default_inputs_training_vae</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-1">#Create a latex table with one column being name and the other column being description
 import pandas as pd
-from eeggan.helpers.system_inputs import default_inputs_training_autoencoder, default_inputs_training_gan, default_inputs_visualize, default_inputs_generate_samples
+from eeggan.helpers.system_inputs import default_inputs_training_autoencoder, default_inputs_training_gan, default_inputs_visualize, default_inputs_generate_samples, default_inputs_training_vae
 from collections import OrderedDict</div>
 </div>
 </div>
@@ -1562,7 +1562,7 @@ from collections import OrderedDict</div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9150e420">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=caa83f60">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1573,7 +1573,7 @@ from collections import OrderedDict</div>
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=3b6a680b">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=0bc84e0c">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1616,7 +1616,7 @@ def create_latex_table(kw_dict):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=670aeda8">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=8b79caa1">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1643,66 +1643,84 @@ def create_latex_table(kw_dict):
 <span class="sd">    '''</span>
     <span class="k">if</span> <span class="n">function</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'gan'</span><span class="p">:</span>
         <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'ddp'</span><span class="p">:</span> <span class="s1">'Whether to use DistributedDataParallel for training the GAN.'</span><span class="p">,</span>
+            <span class="s1">'ddp'</span><span class="p">:</span> <span class="s1">'*Use the distributed data parallel training paradigm for training the GAN on multiple GPUs.'</span><span class="p">,</span>
             <span class="s1">'seed'</span><span class="p">:</span> <span class="s1">'The seed to use for reproducibility.'</span><span class="p">,</span>
             <span class="s1">'n_epochs'</span><span class="p">:</span> <span class="s1">'The number of epochs to train the GAN.'</span><span class="p">,</span>
             <span class="s1">'batch_size'</span><span class="p">:</span> <span class="s1">'The batch size to use during training.'</span><span class="p">,</span>
-            <span class="s1">'sample_interval'</span><span class="p">:</span> <span class="s1">'The interval at which to save samples of the generated data.'</span><span class="p">,</span>
+            <span class="s1">'sample_interval'</span><span class="p">:</span> <span class="s1">'The epoch interval at which to save samples of the generated data during training.'</span><span class="p">,</span>
             <span class="s1">'hidden_dim'</span><span class="p">:</span> <span class="s1">'The dimension of the hidden layers in the generator and discriminator.'</span><span class="p">,</span>
-            <span class="s1">'num_layers'</span><span class="p">:</span> <span class="s1">'The number of layers in the generator and discriminator.'</span><span class="p">,</span>
-            <span class="s1">'patch_size'</span><span class="p">:</span> <span class="s1">'The size of the patches used for the PatchGAN discriminator.'</span><span class="p">,</span>
+            <span class="s1">'num_layers'</span><span class="p">:</span> <span class="s1">'The number of hidden layers in the generator and discriminator.'</span><span class="p">,</span>
+            <span class="s1">'patch_size'</span><span class="p">:</span> <span class="s1">'The size of the patches used to split the data sequences (for more information read the TTS-GAN description (https://github.com/imics-lab/tts-gan)).'</span><span class="p">,</span>
             <span class="s1">'discriminator_lr'</span><span class="p">:</span> <span class="s1">'The learning rate for the discriminator.'</span><span class="p">,</span>
             <span class="s1">'generator_lr'</span><span class="p">:</span> <span class="s1">'The learning rate for the generator.'</span><span class="p">,</span>
-            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The EEG data to train the GAN on.'</span><span class="p">,</span>
-            <span class="s1">'checkpoint'</span><span class="p">:</span> <span class="s1">'The directory to save the model checkpoints.'</span><span class="p">,</span>
-            <span class="s1">'autoencoder'</span><span class="p">:</span> <span class="s1">'The trained autoencoder to use for training the GAN.'</span><span class="p">,</span>
-            <span class="s1">'kw_conditions'</span><span class="p">:</span> <span class="s1">'The conditions to use for training the GAN.'</span><span class="p">,</span>
-            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The time to use for training the GAN.'</span><span class="p">,</span>
-            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The channel to use for training the GAN.'</span><span class="p">,</span>
+            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The file which holds the EEG data to train the GAN on.'</span><span class="p">,</span>
+            <span class="s1">'checkpoint'</span><span class="p">:</span> <span class="s1">'The file which holds a pre-trained GAN for further training.'</span><span class="p">,</span>
+            <span class="s1">'autoencoder'</span><span class="p">:</span> <span class="s1">'The file which holds the trained autoencoder to use for training the AE-GAN.'</span><span class="p">,</span>
+            <span class="s1">'kw_conditions'</span><span class="p">:</span> <span class="s1">'**The names of the condition columns in the data to use for training the GAN.'</span><span class="p">,</span>
+            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The name of the time column in the data to use for training the GAN.'</span><span class="p">,</span>
+            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The name of the channel column in the data to use for training the GAN.'</span><span class="p">,</span>
             <span class="s1">'save_name'</span><span class="p">:</span> <span class="s1">'The name to save the trained GAN.'</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">elif</span> <span class="n">function</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'autoencoder'</span><span class="p">:</span>
         <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'ddp'</span><span class="p">:</span> <span class="s1">'Whether to use DistributedDataParallel for training the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'load_checkpoint'</span><span class="p">:</span> <span class="s1">'Whether to load a checkpoint for the autoencoder.'</span><span class="p">,</span>
+            <span class="s1">'ddp'</span><span class="p">:</span> <span class="s1">'*Use the distributed data parallel training paradigm for training the AE on multiple GPUs.'</span><span class="p">,</span>
+            <span class="s1">'load_checkpoint'</span><span class="p">:</span> <span class="s1">'*Whether to load a checkpoint for the autoencoder.'</span><span class="p">,</span>
             <span class="s1">'seed'</span><span class="p">:</span> <span class="s1">'The seed to use for reproducibility.'</span><span class="p">,</span>
-            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The EEG data to train the autoencoder on.'</span><span class="p">,</span>
-            <span class="s1">'checkpoint'</span><span class="p">:</span> <span class="s1">'The directory to save the model checkpoints.'</span><span class="p">,</span>
-            <span class="s1">'save_name'</span><span class="p">:</span> <span class="s1">'The name to save the trained autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'target'</span><span class="p">:</span> <span class="s1">'The target to use for training the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The time to use for training the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The channel to use for training the autoencoder.'</span><span class="p">,</span>  
-            <span class="s1">'activation'</span><span class="p">:</span> <span class="s1">'The activation function to use in the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'channels_out'</span><span class="p">:</span> <span class="s1">'The number of channels in the output of the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'time_out'</span><span class="p">:</span> <span class="s1">'The number of time points in the output of the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'n_epochs'</span><span class="p">:</span> <span class="s1">'The number of epochs to train the autoencoder.'</span><span class="p">,</span>
+            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The file which holds the EEG data to train the AE on.'</span><span class="p">,</span>
+            <span class="s1">'checkpoint'</span><span class="p">:</span> <span class="s1">'The file which holds a pre-trained AE for further training.'</span><span class="p">,</span>
+            <span class="s1">'save_name'</span><span class="p">:</span> <span class="s1">'The name to save the trained AE.'</span><span class="p">,</span>
+            <span class="s1">'target'</span><span class="p">:</span> <span class="s1">'The name of the encoded dimension. Options: [`time`, `channel`, `full`]'</span><span class="p">,</span>
+            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The name of the time column in the data to use for training the AE.'</span><span class="p">,</span>
+            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The name of the channel column in the data to use for training the AE.'</span><span class="p">,</span>  
+            <span class="s1">'activation'</span><span class="p">:</span> <span class="s1">'The activation function of the AE-Decoder. Options: [`relu`, `leakyrelu`, `sigmoid`, `tanh`, `linear`]'</span><span class="p">,</span>
+            <span class="s1">'channels_out'</span><span class="p">:</span> <span class="s1">'The number of channels in the encoded output.'</span><span class="p">,</span>
+            <span class="s1">'time_out'</span><span class="p">:</span> <span class="s1">'The number of time points in the encoded output.'</span><span class="p">,</span>
+            <span class="s1">'n_epochs'</span><span class="p">:</span> <span class="s1">'The number of epochs to train the AE.'</span><span class="p">,</span>
             <span class="s1">'batch_size'</span><span class="p">:</span> <span class="s1">'The batch size to use during training.'</span><span class="p">,</span>
-            <span class="s1">'sample_interval'</span><span class="p">:</span> <span class="s1">'The interval at which to save samples of the generated data.'</span><span class="p">,</span>
-            <span class="s1">'hidden_dim'</span><span class="p">:</span> <span class="s1">'The dimension of the hidden layers in the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'num_layers'</span><span class="p">:</span> <span class="s1">'The number of layers in the autoencoder.'</span><span class="p">,</span>
+            <span class="s1">'sample_interval'</span><span class="p">:</span> <span class="s1">'The epoch interval at which to save samples of the generated data during training.'</span><span class="p">,</span>
+            <span class="s1">'hidden_dim'</span><span class="p">:</span> <span class="s1">'The dimension of the hidden layers in the AE.'</span><span class="p">,</span>
+            <span class="s1">'num_layers'</span><span class="p">:</span> <span class="s1">'The number of hidden layers in the AE.'</span><span class="p">,</span>
             <span class="s1">'num_heads'</span><span class="p">:</span> <span class="s1">'The number of attention heads to use in the transformer.'</span><span class="p">,</span>
-            <span class="s1">'train_ratio'</span><span class="p">:</span> <span class="s1">'The ratio of the data to use for training the autoencoder.'</span><span class="p">,</span>
-            <span class="s1">'learning_rate'</span><span class="p">:</span> <span class="s1">'The learning rate for the autoencoder.'</span><span class="p">,</span>
+            <span class="s1">'train_ratio'</span><span class="p">:</span> <span class="s1">'The ratio of the data to use for training the AE vs. testing it.'</span><span class="p">,</span>
+            <span class="s1">'learning_rate'</span><span class="p">:</span> <span class="s1">'The learning rate for the AE.'</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">elif</span> <span class="n">function</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'vae'</span><span class="p">:</span>
+        <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">'load_checkpoint'</span><span class="p">:</span> <span class="s1">'*Whether to load a checkpoint for the autoencoder.'</span><span class="p">,</span>
+            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The file which holds the EEG data to train the VAE on.'</span><span class="p">,</span>
+            <span class="s1">'path_checkpoint'</span><span class="p">:</span> <span class="s1">'The file which holds a pre-trained VAE for further training.'</span><span class="p">,</span>
+            <span class="s1">'save_name'</span><span class="p">:</span> <span class="s1">'The name to save the trained VAE.'</span><span class="p">,</span>
+            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The name of the time column in the data to use for training the VAE.'</span><span class="p">,</span>
+            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The name of the channel column in the data to use for training the VAE.'</span><span class="p">,</span>  
+            <span class="s1">'activation'</span><span class="p">:</span> <span class="s1">'The activation function of the VAE-Decoder. Options: [`relu`, `leakyrelu`, `sigmoid`, `tanh`, `linear`]'</span><span class="p">,</span>
+            <span class="s1">'n_epochs'</span><span class="p">:</span> <span class="s1">'The number of epochs to train the VAE.'</span><span class="p">,</span>
+            <span class="s1">'batch_size'</span><span class="p">:</span> <span class="s1">'The batch size to use during training.'</span><span class="p">,</span>
+            <span class="s1">'sample_interval'</span><span class="p">:</span> <span class="s1">'The epoch interval at which to save samples of the generated data during training.'</span><span class="p">,</span>
+            <span class="s1">'hidden_dim'</span><span class="p">:</span> <span class="s1">'The dimension of the hidden layers in the VAE.'</span><span class="p">,</span>
+            <span class="s1">'learning_rate'</span><span class="p">:</span> <span class="s1">'The learning rate for the VAE.'</span><span class="p">,</span>
+            <span class="s1">'encoded_dim'</span><span class="p">:</span> <span class="s1">'The encoded dimension of mu and sigma used for generating new samples'</span><span class="p">,</span>
+            <span class="s1">'kl_alpha'</span><span class="p">:</span> <span class="s1">'The weight of the KL divergence in the loss computation'</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">elif</span> <span class="n">function</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'visualization'</span><span class="p">:</span>
         <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'loss'</span><span class="p">:</span> <span class="s1">'Whether to plot the loss of the model.'</span><span class="p">,</span>
-            <span class="s1">'average'</span><span class="p">:</span> <span class="s1">'Whether to plot the average of the data.'</span><span class="p">,</span>
-            <span class="s1">'pca'</span><span class="p">:</span> <span class="s1">'Whether to use PCA for visualization.'</span><span class="p">,</span>
-            <span class="s1">'tsne'</span><span class="p">:</span> <span class="s1">'Whether to use t-SNE for visualization.'</span><span class="p">,</span>
-            <span class="s1">'spectogram'</span><span class="p">:</span> <span class="s1">'Whether to use a spectogram for visualization.'</span><span class="p">,</span>
-            <span class="s1">'fft'</span><span class="p">:</span> <span class="s1">'Whether to use FFT for visualization.'</span><span class="p">,</span>
-            <span class="s1">'channel_plots'</span><span class="p">:</span> <span class="s1">'Whether to plot the channels.'</span><span class="p">,</span>
-            <span class="s1">'model'</span><span class="p">:</span> <span class="s1">'The trained model to visualize.'</span><span class="p">,</span>
-            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The data to visualize.'</span><span class="p">,</span>
-            <span class="s1">'comp_data'</span><span class="p">:</span> <span class="s1">'The compressed data to visualize.'</span><span class="p">,</span>
-            <span class="s1">'kw_conditions'</span><span class="p">:</span> <span class="s1">'The conditions to use for visualization.'</span><span class="p">,</span>
-            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The time to use for visualization.'</span><span class="p">,</span>
-            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The channel to use for visualization.'</span><span class="p">,</span>
+            <span class="s1">'loss'</span><span class="p">:</span> <span class="s1">'*Whether to plot the loss of the model (`model` required).'</span><span class="p">,</span>
+            <span class="s1">'average'</span><span class="p">:</span> <span class="s1">'*Whether to plot the average of the data.'</span><span class="p">,</span>
+            <span class="s1">'pca'</span><span class="p">:</span> <span class="s1">'*Whether to plot PCA for visualization (`comp_data` required).'</span><span class="p">,</span>
+            <span class="s1">'tsne'</span><span class="p">:</span> <span class="s1">'*Whether to plot t-SNE for visualization (`comp_data` required).'</span><span class="p">,</span>
+            <span class="s1">'spectogram'</span><span class="p">:</span> <span class="s1">'*Whether to plot a spectogram for visualization.'</span><span class="p">,</span>
+            <span class="s1">'fft'</span><span class="p">:</span> <span class="s1">'*Whether to plot FFT for visualization.'</span><span class="p">,</span>
+            <span class="s1">'channel_plots'</span><span class="p">:</span> <span class="s1">'*Whether to plot the channels.'</span><span class="p">,</span>
+            <span class="s1">'model'</span><span class="p">:</span> <span class="s1">'The file containing the trained model with collected samples during training (only `model` or `data`).'</span><span class="p">,</span>
+            <span class="s1">'data'</span><span class="p">:</span> <span class="s1">'The file containing the EEG data to visualize (only `model` or `data`).'</span><span class="p">,</span>
+            <span class="s1">'comp_data'</span><span class="p">:</span> <span class="s1">'The comparison data for `pca` or `tsne` to visualize.'</span><span class="p">,</span>
+            <span class="s1">'kw_conditions'</span><span class="p">:</span> <span class="s1">'**The column names with the conditions.'</span><span class="p">,</span>
+            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The column names containing the time steps.'</span><span class="p">,</span>
+            <span class="s1">'kw_channel'</span><span class="p">:</span> <span class="s1">'The column name containing the channel label.'</span><span class="p">,</span>
             <span class="s1">'n_samples'</span><span class="p">:</span> <span class="s1">'The number of samples to visualize.'</span><span class="p">,</span>
-            <span class="s1">'channel_index'</span><span class="p">:</span> <span class="s1">'The index of the channel to visualize.'</span><span class="p">,</span>
+            <span class="s1">'channel_index'</span><span class="p">:</span> <span class="s1">'**The index of the channels to visualize.'</span><span class="p">,</span>
             <span class="s1">'tsne_perplexity'</span><span class="p">:</span> <span class="s1">'The perplexity to use for t-SNE iterations.'</span><span class="p">,</span>
             <span class="s1">'tsne_iterations'</span><span class="p">:</span> <span class="s1">'The number of iterations to use for t-SNE.'</span><span class="p">,</span>
         <span class="p">}</span>
@@ -1710,17 +1728,17 @@ def create_latex_table(kw_dict):
     <span class="k">elif</span> <span class="n">function</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">'generate_samples'</span><span class="p">:</span>
         <span class="n">definitions</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">'seed'</span><span class="p">:</span> <span class="s1">'The seed to use for reproducibility.'</span><span class="p">,</span>
-            <span class="s1">'model'</span><span class="p">:</span> <span class="s1">'The trained model to use for generating samples.'</span><span class="p">,</span>
-            <span class="s1">'save_name'</span><span class="p">:</span> <span class="s1">'The name to save the generated samples.'</span><span class="p">,</span>
-            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The time to use for generating samples.'</span><span class="p">,</span>
+            <span class="s1">'model'</span><span class="p">:</span> <span class="s1">'The file containing the trained model to use for generating samples.'</span><span class="p">,</span>
+            <span class="s1">'save_name'</span><span class="p">:</span> <span class="s1">'The name for the csv file to save the generated samples.'</span><span class="p">,</span>
+            <span class="s1">'kw_time'</span><span class="p">:</span> <span class="s1">'The column name for the time steps to use for generating samples.'</span><span class="p">,</span>
             <span class="s1">'sequence_length'</span><span class="p">:</span> <span class="s1">'The length of the sequence to generate.'</span><span class="p">,</span>
             <span class="s1">'num_samples_total'</span><span class="p">:</span> <span class="s1">'The total number of samples to generate.'</span><span class="p">,</span>
-            <span class="s1">'num_samples_parallel'</span><span class="p">:</span> <span class="s1">'The number of samples to generate in parallel.'</span><span class="p">,</span>
-            <span class="s1">'conditions'</span><span class="p">:</span> <span class="s1">'The conditions to use for generating samples.'</span><span class="p">,</span>
+            <span class="s1">'num_samples_parallel'</span><span class="p">:</span> <span class="s1">'The number of samples to generate in parallel (to speed things up).'</span><span class="p">,</span>
+            <span class="s1">'conditions'</span><span class="p">:</span> <span class="s1">'**The numeric condition values to use for generating samples.'</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">'Invalid function name. Please enter either "GAN", "autoencoder", "visualization", or "generate_samples".'</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">'Invalid function name. Please enter either "GAN", "autoencoder", "VAE", "visualization", or "generate_samples".'</span><span class="p">)</span>
 
     <span class="c1">#Overwrite the descriptions of the default inputs</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kw_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -1738,66 +1756,84 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
     '''
     if function.lower() == 'gan':
         definitions = {
-            'ddp': 'Whether to use DistributedDataParallel for training the GAN.',
+            'ddp': '*Use the distributed data parallel training paradigm for training the GAN on multiple GPUs.',
             'seed': 'The seed to use for reproducibility.',
             'n_epochs': 'The number of epochs to train the GAN.',
             'batch_size': 'The batch size to use during training.',
-            'sample_interval': 'The interval at which to save samples of the generated data.',
+            'sample_interval': 'The epoch interval at which to save samples of the generated data during training.',
             'hidden_dim': 'The dimension of the hidden layers in the generator and discriminator.',
-            'num_layers': 'The number of layers in the generator and discriminator.',
-            'patch_size': 'The size of the patches used for the PatchGAN discriminator.',
+            'num_layers': 'The number of hidden layers in the generator and discriminator.',
+            'patch_size': 'The size of the patches used to split the data sequences (for more information read the TTS-GAN description (https://github.com/imics-lab/tts-gan)).',
             'discriminator_lr': 'The learning rate for the discriminator.',
             'generator_lr': 'The learning rate for the generator.',
-            'data': 'The EEG data to train the GAN on.',
-            'checkpoint': 'The directory to save the model checkpoints.',
-            'autoencoder': 'The trained autoencoder to use for training the GAN.',
-            'kw_conditions': 'The conditions to use for training the GAN.',
-            'kw_time': 'The time to use for training the GAN.',
-            'kw_channel': 'The channel to use for training the GAN.',
+            'data': 'The file which holds the EEG data to train the GAN on.',
+            'checkpoint': 'The file which holds a pre-trained GAN for further training.',
+            'autoencoder': 'The file which holds the trained autoencoder to use for training the AE-GAN.',
+            'kw_conditions': '**The names of the condition columns in the data to use for training the GAN.',
+            'kw_time': 'The name of the time column in the data to use for training the GAN.',
+            'kw_channel': 'The name of the channel column in the data to use for training the GAN.',
             'save_name': 'The name to save the trained GAN.',
         }
 
     elif function.lower() == 'autoencoder':
         definitions = {
-            'ddp': 'Whether to use DistributedDataParallel for training the autoencoder.',
-            'load_checkpoint': 'Whether to load a checkpoint for the autoencoder.',
+            'ddp': '*Use the distributed data parallel training paradigm for training the AE on multiple GPUs.',
+            'load_checkpoint': '*Whether to load a checkpoint for the autoencoder.',
             'seed': 'The seed to use for reproducibility.',
-            'data': 'The EEG data to train the autoencoder on.',
-            'checkpoint': 'The directory to save the model checkpoints.',
-            'save_name': 'The name to save the trained autoencoder.',
-            'target': 'The target to use for training the autoencoder.',
-            'kw_time': 'The time to use for training the autoencoder.',
-            'kw_channel': 'The channel to use for training the autoencoder.',  
-            'activation': 'The activation function to use in the autoencoder.',
-            'channels_out': 'The number of channels in the output of the autoencoder.',
-            'time_out': 'The number of time points in the output of the autoencoder.',
-            'n_epochs': 'The number of epochs to train the autoencoder.',
+            'data': 'The file which holds the EEG data to train the AE on.',
+            'checkpoint': 'The file which holds a pre-trained AE for further training.',
+            'save_name': 'The name to save the trained AE.',
+            'target': 'The name of the encoded dimension. Options: [`time`, `channel`, `full`]',
+            'kw_time': 'The name of the time column in the data to use for training the AE.',
+            'kw_channel': 'The name of the channel column in the data to use for training the AE.',  
+            'activation': 'The activation function of the AE-Decoder. Options: [`relu`, `leakyrelu`, `sigmoid`, `tanh`, `linear`]',
+            'channels_out': 'The number of channels in the encoded output.',
+            'time_out': 'The number of time points in the encoded output.',
+            'n_epochs': 'The number of epochs to train the AE.',
             'batch_size': 'The batch size to use during training.',
-            'sample_interval': 'The interval at which to save samples of the generated data.',
-            'hidden_dim': 'The dimension of the hidden layers in the autoencoder.',
-            'num_layers': 'The number of layers in the autoencoder.',
+            'sample_interval': 'The epoch interval at which to save samples of the generated data during training.',
+            'hidden_dim': 'The dimension of the hidden layers in the AE.',
+            'num_layers': 'The number of hidden layers in the AE.',
             'num_heads': 'The number of attention heads to use in the transformer.',
-            'train_ratio': 'The ratio of the data to use for training the autoencoder.',
-            'learning_rate': 'The learning rate for the autoencoder.',
+            'train_ratio': 'The ratio of the data to use for training the AE vs. testing it.',
+            'learning_rate': 'The learning rate for the AE.',
+        }
+
+    elif function.lower() == 'vae':
+        definitions = {
+            'load_checkpoint': '*Whether to load a checkpoint for the autoencoder.',
+            'data': 'The file which holds the EEG data to train the VAE on.',
+            'path_checkpoint': 'The file which holds a pre-trained VAE for further training.',
+            'save_name': 'The name to save the trained VAE.',
+            'kw_time': 'The name of the time column in the data to use for training the VAE.',
+            'kw_channel': 'The name of the channel column in the data to use for training the VAE.',  
+            'activation': 'The activation function of the VAE-Decoder. Options: [`relu`, `leakyrelu`, `sigmoid`, `tanh`, `linear`]',
+            'n_epochs': 'The number of epochs to train the VAE.',
+            'batch_size': 'The batch size to use during training.',
+            'sample_interval': 'The epoch interval at which to save samples of the generated data during training.',
+            'hidden_dim': 'The dimension of the hidden layers in the VAE.',
+            'learning_rate': 'The learning rate for the VAE.',
+            'encoded_dim': 'The encoded dimension of mu and sigma used for generating new samples',
+            'kl_alpha': 'The weight of the KL divergence in the loss computation',
         }
 
     elif function.lower() == 'visualization':
         definitions = {
-            'loss': 'Whether to plot the loss of the model.',
-            'average': 'Whether to plot the average of the data.',
-            'pca': 'Whether to use PCA for visualization.',
-            'tsne': 'Whether to use t-SNE for visualization.',
-            'spectogram': 'Whether to use a spectogram for visualization.',
-            'fft': 'Whether to use FFT for visualization.',
-            'channel_plots': 'Whether to plot the channels.',
-            'model': 'The trained model to visualize.',
-            'data': 'The data to visualize.',
-            'comp_data': 'The compressed data to visualize.',
-            'kw_conditions': 'The conditions to use for visualization.',
-            'kw_time': 'The time to use for visualization.',
-            'kw_channel': 'The channel to use for visualization.',
+            'loss': '*Whether to plot the loss of the model (`model` required).',
+            'average': '*Whether to plot the average of the data.',
+            'pca': '*Whether to plot PCA for visualization (`comp_data` required).',
+            'tsne': '*Whether to plot t-SNE for visualization (`comp_data` required).',
+            'spectogram': '*Whether to plot a spectogram for visualization.',
+            'fft': '*Whether to plot FFT for visualization.',
+            'channel_plots': '*Whether to plot the channels.',
+            'model': 'The file containing the trained model with collected samples during training (only `model` or `data`).',
+            'data': 'The file containing the EEG data to visualize (only `model` or `data`).',
+            'comp_data': 'The comparison data for `pca` or `tsne` to visualize.',
+            'kw_conditions': '**The column names with the conditions.',
+            'kw_time': 'The column names containing the time steps.',
+            'kw_channel': 'The column name containing the channel label.',
             'n_samples': 'The number of samples to visualize.',
-            'channel_index': 'The index of the channel to visualize.',
+            'channel_index': '**The index of the channels to visualize.',
             'tsne_perplexity': 'The perplexity to use for t-SNE iterations.',
             'tsne_iterations': 'The number of iterations to use for t-SNE.',
         }
@@ -1805,17 +1841,17 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
     elif function.lower() == 'generate_samples':
         definitions = {
             'seed': 'The seed to use for reproducibility.',
-            'model': 'The trained model to use for generating samples.',
-            'save_name': 'The name to save the generated samples.',
-            'kw_time': 'The time to use for generating samples.',
+            'model': 'The file containing the trained model to use for generating samples.',
+            'save_name': 'The name for the csv file to save the generated samples.',
+            'kw_time': 'The column name for the time steps to use for generating samples.',
             'sequence_length': 'The length of the sequence to generate.',
             'num_samples_total': 'The total number of samples to generate.',
-            'num_samples_parallel': 'The number of samples to generate in parallel.',
-            'conditions': 'The conditions to use for generating samples.',
+            'num_samples_parallel': 'The number of samples to generate in parallel (to speed things up).',
+            'conditions': '**The numeric condition values to use for generating samples.',
         }
 
     else:
-        print('Invalid function name. Please enter either "GAN", "autoencoder", "visualization", or "generate_samples".')
+        print('Invalid function name. Please enter either "GAN", "autoencoder", "VAE", "visualization", or "generate_samples".')
 
     #Overwrite the descriptions of the default inputs
     for key in kw_dict.keys():
@@ -1829,7 +1865,7 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=aa40a606">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=4b04d163">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -1865,6 +1901,14 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
     <span class="c1">#Create a latex table from the dictionary</span>
     <span class="n">gan_table</span> <span class="o">=</span> <span class="n">create_latex_table</span><span class="p">(</span><span class="n">kw_dict</span><span class="p">)</span>
 
+    <span class="c1">#Get the default inputs for the training of the GAN</span>
+    <span class="n">kw_dict</span> <span class="o">=</span> <span class="n">default_inputs_training_vae</span><span class="p">()</span>
+    <span class="c1">#Overwrite the descriptions of the default inputs for the GAN</span>
+    <span class="k">if</span> <span class="n">overwrite_desc</span><span class="p">:</span>
+        <span class="n">kw_dict</span> <span class="o">=</span> <span class="n">overwrite_descriptions</span><span class="p">(</span><span class="s1">'VAE'</span><span class="p">,</span> <span class="n">kw_dict</span><span class="p">)</span>
+    <span class="c1">#Create a latex table from the dictionary</span>
+    <span class="n">vae_table</span> <span class="o">=</span> <span class="n">create_latex_table</span><span class="p">(</span><span class="n">kw_dict</span><span class="p">)</span>
+
     <span class="c1">#Get the default inputs for the visualization</span>
     <span class="n">kw_dict</span> <span class="o">=</span> <span class="n">default_inputs_visualize</span><span class="p">()</span>
     <span class="c1">#Overwrite the descriptions of the default inputs for the visualization</span>
@@ -1897,6 +1941,10 @@ def overwrite_descriptions(function = 'GAN', kw_dict=None):
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The GAN training function is used to train a Generative Adversarial Network (GAN) on EEG data. The GAN is trained to generate realistic samples of EEG data. The function has the following parameters:</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">gan_table</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">()</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
 
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"## VAE Training</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The VAE training function is used to train a Variational Autoencoder (VAE) on EEG data. The VAE is trained to generate realistic samples of EEG data. The function has the following parameters:</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">vae_table</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">()</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
+
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"## Visualization</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The visualization function is used to visualize the results of training an autoencoder or GAN. The function has the following parameters:</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">visualize_table</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">()</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">"</span><span class="p">)</span>
@@ -1922,6 +1970,14 @@ def main(overwrite_desc=True):
         kw_dict = overwrite_descriptions('GAN', kw_dict)
     #Create a latex table from the dictionary
     gan_table = create_latex_table(kw_dict)
+
+    #Get the default inputs for the training of the GAN
+    kw_dict = default_inputs_training_vae()
+    #Overwrite the descriptions of the default inputs for the GAN
+    if overwrite_desc:
+        kw_dict = overwrite_descriptions('VAE', kw_dict)
+    #Create a latex table from the dictionary
+    vae_table = create_latex_table(kw_dict)
 
     #Get the default inputs for the visualization
     kw_dict = default_inputs_visualize()
@@ -1955,6 +2011,10 @@ def main(overwrite_desc=True):
         f.write(f"The GAN training function is used to train a Generative Adversarial Network (GAN) on EEG data. The GAN is trained to generate realistic samples of EEG data. The function has the following parameters:\n\n")
         f.write(f"{gan_table.to_markdown()}\n\n")
 
+        f.write(f"## VAE Training\n\n")
+        f.write(f"The VAE training function is used to train a Variational Autoencoder (VAE) on EEG data. The VAE is trained to generate realistic samples of EEG data. The function has the following parameters:\n\n")
+        f.write(f"{vae_table.to_markdown()}\n\n")
+
         f.write(f"## Visualization\n\n")
         f.write(f"The visualization function is used to visualize the results of training an autoencoder or GAN. The function has the following parameters:\n\n")
         f.write(f"{visualize_table.to_markdown()}\n\n")
@@ -1968,7 +2028,7 @@ def main(overwrite_desc=True):
 </div>
 </div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=35442d0f">
+<div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs" id="cell-id=efe00032">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>

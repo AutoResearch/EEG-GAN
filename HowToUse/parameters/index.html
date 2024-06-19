@@ -71,7 +71,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#autoencoder-training" class="md-skip">
+        <a href="#function-parameters" class="md-skip">
           Skip to content
         </a>
       
@@ -287,6 +287,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           Parameters
@@ -302,6 +304,8 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
+  
+    
   
   
     <label class="md-nav__title" for="__toc">
@@ -320,6 +324,13 @@
         <li class="md-nav__item">
   <a href="#gan-training" class="md-nav__link">
     GAN Training
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vae-training" class="md-nav__link">
+    VAE Training
   </a>
   
 </li>
@@ -561,6 +572,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -578,6 +591,13 @@
         <li class="md-nav__item">
   <a href="#gan-training" class="md-nav__link">
     GAN Training
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vae-training" class="md-nav__link">
+    VAE Training
   </a>
   
 </li>
@@ -611,8 +631,7 @@
                   
 
 
-  <h1>Parameters</h1>
-
+<h1 id="function-parameters">Function Parameters</h1>
 <p>This page contains the default parameters for the functions in the eeggan package. The parameters are organized by function and are listed in a table with the parameter name and a description of the parameter.</p>
 <h2 id="autoencoder-training">Autoencoder Training</h2>
 <p>The autoencoder training function is used to train an autoencoder on EEG data. The autoencoder is trained to learn a compressed representation of the data. It can be incorporated into a GAN to improve the quality of the generated samples. The function has the following parameters:</p>
@@ -627,102 +646,102 @@
 <tbody>
 <tr>
 <td style="text-align: left;">activation</td>
-<td style="text-align: left;">Activation function of the AE decoder; Options: [relu, leakyrelu, sigmoid, tanh, linear]</td>
+<td style="text-align: left;">The activation function of the AE-Decoder. Options: [<code>relu</code>, <code>leakyrelu</code>, <code>sigmoid</code>, <code>tanh</code>, <code>linear</code>]</td>
 <td style="text-align: left;">sigmoid</td>
 </tr>
 <tr>
 <td style="text-align: left;">batch_size</td>
-<td style="text-align: left;">Batch size</td>
+<td style="text-align: left;">The batch size to use during training.</td>
 <td style="text-align: left;">128</td>
 </tr>
 <tr>
 <td style="text-align: left;">channels_out</td>
-<td style="text-align: left;">Size of the encoded channels</td>
+<td style="text-align: left;">The number of channels in the encoded output.</td>
 <td style="text-align: left;">10</td>
 </tr>
 <tr>
 <td style="text-align: left;">checkpoint</td>
-<td style="text-align: left;">Path to a pre-trained AE</td>
+<td style="text-align: left;">The file which holds a pre-trained AE for further training.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">data</td>
-<td style="text-align: left;">Path to the dataset</td>
+<td style="text-align: left;">The file which holds the EEG data to train the AE on.</td>
 <td style="text-align: left;">data\gansEEGTrainingData.csv</td>
 </tr>
 <tr>
 <td style="text-align: left;">ddp</td>
-<td style="text-align: left;">Activate distributed training</td>
+<td style="text-align: left;">*Use the distributed data parallel training paradigm for training the AE on multiple GPUs.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">hidden_dim</td>
-<td style="text-align: left;">Hidden dimension of the transformer</td>
+<td style="text-align: left;">The dimension of the hidden layers in the AE.</td>
 <td style="text-align: left;">256</td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_channel</td>
-<td style="text-align: left;">Keyword to detect used channels</td>
+<td style="text-align: left;">The name of the channel column in the data to use for training the AE.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_time</td>
-<td style="text-align: left;">Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -&gt; use Time</td>
+<td style="text-align: left;">The name of the time column in the data to use for training the AE.</td>
 <td style="text-align: left;">Time</td>
 </tr>
 <tr>
 <td style="text-align: left;">learning_rate</td>
-<td style="text-align: left;">Learning rate of the AE</td>
+<td style="text-align: left;">The learning rate for the AE.</td>
 <td style="text-align: left;">0.0001</td>
 </tr>
 <tr>
 <td style="text-align: left;">load_checkpoint</td>
-<td style="text-align: left;">Load a pre-trained AE</td>
+<td style="text-align: left;">*Whether to load a checkpoint for the autoencoder.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">n_epochs</td>
-<td style="text-align: left;">Number of epochs to train for</td>
+<td style="text-align: left;">The number of epochs to train the AE.</td>
 <td style="text-align: left;">100</td>
 </tr>
 <tr>
 <td style="text-align: left;">num_heads</td>
-<td style="text-align: left;">Number of heads of the transformer</td>
+<td style="text-align: left;">The number of attention heads to use in the transformer.</td>
 <td style="text-align: left;">8</td>
 </tr>
 <tr>
 <td style="text-align: left;">num_layers</td>
-<td style="text-align: left;">Number of layers of the transformer</td>
+<td style="text-align: left;">The number of hidden layers in the AE.</td>
 <td style="text-align: left;">2</td>
 </tr>
 <tr>
 <td style="text-align: left;">sample_interval</td>
-<td style="text-align: left;">Interval of epochs between saving samples</td>
+<td style="text-align: left;">The epoch interval at which to save samples of the generated data during training.</td>
 <td style="text-align: left;">100</td>
 </tr>
 <tr>
 <td style="text-align: left;">save_name</td>
-<td style="text-align: left;">Name to save model</td>
+<td style="text-align: left;">The name to save the trained AE.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">seed</td>
-<td style="text-align: left;">Set seed for reproducibility</td>
+<td style="text-align: left;">The seed to use for reproducibility.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">target</td>
-<td style="text-align: left;">Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;</td>
+<td style="text-align: left;">The name of the encoded dimension. Options: [<code>time</code>, <code>channel</code>, <code>full</code>]</td>
 <td style="text-align: left;">full</td>
 </tr>
 <tr>
 <td style="text-align: left;">time_out</td>
-<td style="text-align: left;">Size of the encoded timeseries</td>
+<td style="text-align: left;">The number of time points in the encoded output.</td>
 <td style="text-align: left;">10</td>
 </tr>
 <tr>
 <td style="text-align: left;">train_ratio</td>
-<td style="text-align: left;">Ratio of training data to total data</td>
+<td style="text-align: left;">The ratio of the data to use for training the AE vs. testing it.</td>
 <td style="text-align: left;">0.8</td>
 </tr>
 </tbody>
@@ -740,87 +759,175 @@
 <tbody>
 <tr>
 <td style="text-align: left;">autoencoder</td>
-<td style="text-align: left;">Path to an autoencoder</td>
+<td style="text-align: left;">The file which holds the trained autoencoder to use for training the AE-GAN.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">batch_size</td>
-<td style="text-align: left;">Batch size</td>
+<td style="text-align: left;">The batch size to use during training.</td>
 <td style="text-align: left;">128</td>
 </tr>
 <tr>
 <td style="text-align: left;">checkpoint</td>
-<td style="text-align: left;">Path to a pre-trained GAN</td>
+<td style="text-align: left;">The file which holds a pre-trained GAN for further training.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">data</td>
-<td style="text-align: left;">Path to a dataset</td>
+<td style="text-align: left;">The file which holds the EEG data to train the GAN on.</td>
 <td style="text-align: left;">data\gansEEGTrainingData.csv</td>
 </tr>
 <tr>
 <td style="text-align: left;">ddp</td>
-<td style="text-align: left;">Activate distributed training</td>
+<td style="text-align: left;">*Use the distributed data parallel training paradigm for training the GAN on multiple GPUs.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">discriminator_lr</td>
-<td style="text-align: left;">Learning rate for the discriminator</td>
+<td style="text-align: left;">The learning rate for the discriminator.</td>
 <td style="text-align: left;">0.0001</td>
 </tr>
 <tr>
 <td style="text-align: left;">generator_lr</td>
-<td style="text-align: left;">Learning rate for the generator</td>
+<td style="text-align: left;">The learning rate for the generator.</td>
 <td style="text-align: left;">0.0001</td>
 </tr>
 <tr>
 <td style="text-align: left;">hidden_dim</td>
-<td style="text-align: left;">Hidden dimension of the GAN components</td>
+<td style="text-align: left;">The dimension of the hidden layers in the generator and discriminator.</td>
 <td style="text-align: left;">16</td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_channel</td>
-<td style="text-align: left;">Keyword to detect used channels</td>
+<td style="text-align: left;">The name of the channel column in the data to use for training the GAN.</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">kw_conditions</td>
+<td style="text-align: left;">**The names of the condition columns in the data to use for training the GAN.</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">kw_time</td>
+<td style="text-align: left;">The name of the time column in the data to use for training the GAN.</td>
+<td style="text-align: left;">Time</td>
+</tr>
+<tr>
+<td style="text-align: left;">n_epochs</td>
+<td style="text-align: left;">The number of epochs to train the GAN.</td>
+<td style="text-align: left;">100</td>
+</tr>
+<tr>
+<td style="text-align: left;">num_layers</td>
+<td style="text-align: left;">The number of hidden layers in the generator and discriminator.</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr>
+<td style="text-align: left;">patch_size</td>
+<td style="text-align: left;">The size of the patches used to split the data sequences (for more information read the TTS-GAN description (https://github.com/imics-lab/tts-gan)).</td>
+<td style="text-align: left;">20</td>
+</tr>
+<tr>
+<td style="text-align: left;">sample_interval</td>
+<td style="text-align: left;">The epoch interval at which to save samples of the generated data during training.</td>
+<td style="text-align: left;">100</td>
+</tr>
+<tr>
+<td style="text-align: left;">save_name</td>
+<td style="text-align: left;">The name to save the trained GAN.</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">seed</td>
+<td style="text-align: left;">The seed to use for reproducibility.</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<h2 id="vae-training">VAE Training</h2>
+<p>The VAE training function is used to train a Variational Autoencoder (VAE) on EEG data. The VAE is trained to generate realistic samples of EEG data. The function has the following parameters:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Description</th>
+<th style="text-align: left;">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">activation</td>
+<td style="text-align: left;">The activation function of the VAE-Decoder. Options: [<code>relu</code>, <code>leakyrelu</code>, <code>sigmoid</code>, <code>tanh</code>, <code>linear</code>]</td>
+<td style="text-align: left;">tanh</td>
+</tr>
+<tr>
+<td style="text-align: left;">batch_size</td>
+<td style="text-align: left;">The batch size to use during training.</td>
+<td style="text-align: left;">128</td>
+</tr>
+<tr>
+<td style="text-align: left;">data</td>
+<td style="text-align: left;">The file which holds the EEG data to train the VAE on.</td>
+<td style="text-align: left;">data\ganTrialElectrodeERP_p500_e1_SS100_Run00.csv</td>
+</tr>
+<tr>
+<td style="text-align: left;">encoded_dim</td>
+<td style="text-align: left;">The encoded dimension of mu and sigma used for generating new samples</td>
+<td style="text-align: left;">25</td>
+</tr>
+<tr>
+<td style="text-align: left;">hidden_dim</td>
+<td style="text-align: left;">The dimension of the hidden layers in the VAE.</td>
+<td style="text-align: left;">256</td>
+</tr>
+<tr>
+<td style="text-align: left;">kl_alpha</td>
+<td style="text-align: left;">The weight of the KL divergence in the loss computation</td>
+<td style="text-align: left;">5e-05</td>
+</tr>
+<tr>
+<td style="text-align: left;">kw_channel</td>
+<td style="text-align: left;">The name of the channel column in the data to use for training the VAE.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_conditions</td>
 <td style="text-align: left;">** Conditions to be used</td>
-<td style="text-align: left;"></td>
+<td style="text-align: left;">Condition</td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_time</td>
-<td style="text-align: left;">Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -&gt; use Time</td>
+<td style="text-align: left;">The name of the time column in the data to use for training the VAE.</td>
 <td style="text-align: left;">Time</td>
 </tr>
 <tr>
+<td style="text-align: left;">learning_rate</td>
+<td style="text-align: left;">The learning rate for the VAE.</td>
+<td style="text-align: left;">0.0003</td>
+</tr>
+<tr>
+<td style="text-align: left;">load_checkpoint</td>
+<td style="text-align: left;">*Whether to load a checkpoint for the autoencoder.</td>
+<td style="text-align: left;">False</td>
+</tr>
+<tr>
 <td style="text-align: left;">n_epochs</td>
-<td style="text-align: left;">Number of epochs</td>
-<td style="text-align: left;">100</td>
+<td style="text-align: left;">The number of epochs to train the VAE.</td>
+<td style="text-align: left;">1000</td>
 </tr>
 <tr>
-<td style="text-align: left;">num_layers</td>
-<td style="text-align: left;">Number of layers of the GAN components</td>
-<td style="text-align: left;">4</td>
-</tr>
-<tr>
-<td style="text-align: left;">patch_size</td>
-<td style="text-align: left;">Patch size of the divided sequence</td>
-<td style="text-align: left;">20</td>
+<td style="text-align: left;">path_checkpoint</td>
+<td style="text-align: left;">The file which holds a pre-trained VAE for further training.</td>
+<td style="text-align: left;">trained_ae\checkpoint.pt</td>
 </tr>
 <tr>
 <td style="text-align: left;">sample_interval</td>
-<td style="text-align: left;">Interval of epochs between saving samples</td>
+<td style="text-align: left;">The epoch interval at which to save samples of the generated data during training.</td>
 <td style="text-align: left;">100</td>
 </tr>
 <tr>
 <td style="text-align: left;">save_name</td>
-<td style="text-align: left;">Name to save model</td>
-<td style="text-align: left;"></td>
-</tr>
-<tr>
-<td style="text-align: left;">seed</td>
-<td style="text-align: left;">Set seed for reproducibility</td>
+<td style="text-align: left;">The name to save the trained VAE.</td>
 <td style="text-align: left;"></td>
 </tr>
 </tbody>
@@ -838,87 +945,87 @@
 <tbody>
 <tr>
 <td style="text-align: left;">average</td>
-<td style="text-align: left;">Average over all samples to get one averaged curve (per condition, if any is given)</td>
+<td style="text-align: left;">*Whether to plot the average of the data.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">channel_index</td>
-<td style="text-align: left;">**Index of the channel to be plotted; If -1, all channels will be plotted;</td>
+<td style="text-align: left;">**The index of the channels to visualize.</td>
 <td style="text-align: left;">-1</td>
 </tr>
 <tr>
 <td style="text-align: left;">channel_plots</td>
-<td style="text-align: left;">Plot each channel in a separate column</td>
+<td style="text-align: left;">*Whether to plot the channels.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">comp_data</td>
-<td style="text-align: left;">Path to a csv dataset for comparison; comparison only for t-SNE or PCA;</td>
+<td style="text-align: left;">The comparison data for <code>pca</code> or <code>tsne</code> to visualize.</td>
 <td style="text-align: left;">data\ganAverageERP.csv</td>
 </tr>
 <tr>
 <td style="text-align: left;">data</td>
-<td style="text-align: left;">Use samples from csv-file</td>
+<td style="text-align: left;">The file containing the EEG data to visualize (only <code>model</code> or <code>data</code>).</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">fft</td>
-<td style="text-align: left;">Use a FFT-histogram to visualize the frequency distribution of the data</td>
+<td style="text-align: left;">*Whether to plot FFT for visualization.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_channel</td>
-<td style="text-align: left;">Keyword to detect used channels</td>
+<td style="text-align: left;">The column name containing the channel label.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_conditions</td>
-<td style="text-align: left;">** Conditions to be used</td>
+<td style="text-align: left;">**The column names with the conditions.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_time</td>
-<td style="text-align: left;">Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -&gt; use Time</td>
+<td style="text-align: left;">The column names containing the time steps.</td>
 <td style="text-align: left;">Time</td>
 </tr>
 <tr>
 <td style="text-align: left;">loss</td>
-<td style="text-align: left;">Plot training loss</td>
+<td style="text-align: left;">*Whether to plot the loss of the model (<code>model</code> required).</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">model</td>
-<td style="text-align: left;">Use samples from checkpoint file</td>
+<td style="text-align: left;">The file containing the trained model with collected samples during training (only <code>model</code> or <code>data</code>).</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">n_samples</td>
-<td style="text-align: left;">Total number of samples to be plotted</td>
+<td style="text-align: left;">The number of samples to visualize.</td>
 <td style="text-align: left;">0</td>
 </tr>
 <tr>
 <td style="text-align: left;">pca</td>
-<td style="text-align: left;">Use PCA to reduce the dimensionality of the data</td>
+<td style="text-align: left;">*Whether to plot PCA for visualization (<code>comp_data</code> required).</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">spectogram</td>
-<td style="text-align: left;">Use spectogram to visualize the frequency distribution of the data</td>
+<td style="text-align: left;">*Whether to plot a spectogram for visualization.</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">tsne</td>
-<td style="text-align: left;">Use t-SNE to reduce the dimensionality of the data</td>
+<td style="text-align: left;">*Whether to plot t-SNE for visualization (<code>comp_data</code> required).</td>
 <td style="text-align: left;">False</td>
 </tr>
 <tr>
 <td style="text-align: left;">tsne_iterations</td>
-<td style="text-align: left;">Number of iterations of t-SNE</td>
+<td style="text-align: left;">The number of iterations to use for t-SNE.</td>
 <td style="text-align: left;">1000</td>
 </tr>
 <tr>
 <td style="text-align: left;">tsne_perplexity</td>
-<td style="text-align: left;">Perplexity of t-SNE</td>
+<td style="text-align: left;">The perplexity to use for t-SNE iterations.</td>
 <td style="text-align: left;">40</td>
 </tr>
 </tbody>
@@ -936,42 +1043,42 @@
 <tbody>
 <tr>
 <td style="text-align: left;">conditions</td>
-<td style="text-align: left;">** Specific numeric conditions</td>
+<td style="text-align: left;">**The numeric condition values to use for generating samples.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">kw_time</td>
-<td style="text-align: left;">Keyword for the time step of the dataset; to determine the sequence length</td>
+<td style="text-align: left;">The column name for the time steps to use for generating samples.</td>
 <td style="text-align: left;">Time</td>
 </tr>
 <tr>
 <td style="text-align: left;">model</td>
-<td style="text-align: left;">File which contains the trained model and its configuration</td>
+<td style="text-align: left;">The file containing the trained model to use for generating samples.</td>
 <td style="text-align: left;">trained_models\checkpoint.pt</td>
 </tr>
 <tr>
 <td style="text-align: left;">num_samples_parallel</td>
-<td style="text-align: left;">number of samples generated in parallel</td>
+<td style="text-align: left;">The number of samples to generate in parallel (to speed things up).</td>
 <td style="text-align: left;">50</td>
 </tr>
 <tr>
 <td style="text-align: left;">num_samples_total</td>
-<td style="text-align: left;">total number of generated samples</td>
+<td style="text-align: left;">The total number of samples to generate.</td>
 <td style="text-align: left;">1000</td>
 </tr>
 <tr>
 <td style="text-align: left;">save_name</td>
-<td style="text-align: left;">File where to store the generated samples; If None, then checkpoint name is used</td>
+<td style="text-align: left;">The name for the csv file to save the generated samples.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">seed</td>
-<td style="text-align: left;">Set seed for reproducibility</td>
+<td style="text-align: left;">The seed to use for reproducibility.</td>
 <td style="text-align: left;"></td>
 </tr>
 <tr>
 <td style="text-align: left;">sequence_length</td>
-<td style="text-align: left;">total sequence length of generated sample; if -1, then sequence length from training dataset</td>
+<td style="text-align: left;">The length of the sequence to generate.</td>
 <td style="text-align: left;">-1</td>
 </tr>
 </tbody>

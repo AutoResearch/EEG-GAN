@@ -638,10 +638,11 @@
 </tbody>
 </table>
 <h2 id="data-parameters">Data Parameters</h2>
-<p>The autoencoder and GAN functions require parameters to be set for the data structure. The following parameters inform the model which columns correspond to the condition(s), channels, and time series data. Other columns in the data file are ignored. Channel and Condition parameters are optional but the Time parameter is required and defaulted to <code>Time</code>.</p>
+<p>The autoencoder and GAN functions require parameters to be set for the data structure. The following parameters inform the model which columns correspond to the condition(s), channels, and time series data. Other columns in the data file are ignored. Channel (<code>kw_channel</code>) and Condition (<code>kw_condition</code>) parameters are optional but the Time (<code>kw_time</code>) parameter is required and defaulted to <code>Time</code>.</p>
 <p><code>kw_time = 'Time'</code> <br>
 <code>kw_channel = 'Electrode'</code> <br>
 <code>kw_condition = 'Condition'</code> <br></p>
+<p>The <code>kw_time</code> value corresponds to the substring which all time step columns have in common. This substring is required to be used only by the time step columns. The <code>kw_condition</code> can be given as a comma-separated list of multiple conditions e.g. <code>kw_condition=Condition1,Condition2</code>.</p>
 <p>Notes:</p>
 <ul>
 <li> The package does not consider individual differences of participant and so we do not provide it any participant IDs. </li>
