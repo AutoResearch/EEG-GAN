@@ -2,3 +2,11 @@ venv/
 .idea/
 .vscode/launch.json
 site/
+generated_samples/*
+trained_ae/*
+trained_models/*
+helpers/data/*
+data/*
+*/__pycache__/*
+__pycache__/*
+playground.py
