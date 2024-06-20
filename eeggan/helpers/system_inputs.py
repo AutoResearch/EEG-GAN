@@ -282,7 +282,7 @@ def default_inputs_training_gan():
 def default_inputs_training_autoencoder():
     kw_dict = {
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
-        'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
+        # 'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
         'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
         'data': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
         'checkpoint': [str, 'Path to a pre-trained AE', '', 'Using pre-trained AE: '],
@@ -307,9 +307,9 @@ def default_inputs_training_autoencoder():
 
 def default_inputs_training_vae():
     kw_dict = {
-        'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
-        'data': [str, 'Path to the dataset', os.path.join('data', 'ganTrialElectrodeERP_p500_e1_SS100_Run00.csv'), 'Dataset: '], #TODO: REMOVE THIS
-        'path_checkpoint': [str, 'Path to a trained model to continue training', os.path.join('trained_ae', 'checkpoint.pt'), 'Checkpoint: '],
+        # 'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
+        'data': [str, 'Path to the dataset', os.path.join('eeggan', 'data', 'eeggan_training_example.csv'), 'Dataset: '], #TODO: REMOVE THIS
+        'checkpoint': [str, 'Path to a trained model to continue training', '', 'Checkpoint: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'sample_interval': [int, 'Interval of epochs between saving samples', 100, 'Sample interval: '],
         'kw_channel': [str, 'Column name to detect used channels', '', 'Channel label: '],

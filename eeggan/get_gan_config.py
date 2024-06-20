@@ -2,6 +2,8 @@ import os
 import sys
 import torch
 
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
 from eeggan.helpers import system_inputs
 
 def main():

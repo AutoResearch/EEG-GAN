@@ -3,15 +3,14 @@ import sys
 import multiprocessing as mp
 from datetime import datetime
 
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
 from eeggan.helpers import system_inputs
 from eeggan.helpers.dataloader import Dataloader
 from eeggan.helpers.trainer import VAETrainer
-from eeggan.helpers.get_master import find_free_port
-from eeggan.helpers.ddp_training import run#, VAEDDPTrainer
 from eeggan.nn_architecture.vae_networks import VariationalAutoencoder
 
 def main(args=None):
@@ -27,13 +26,13 @@ def main(args=None):
 
     print('-----------------------------------------\n')
 
-    if default_args['load_checkpoint']:
-        print(f'Resuming training from checkpoint {default_args["path_checkpoint"]}.')
+    if default_args['checkpoint']!='':
+        print(f'Resuming training from checkpoint {default_args["checkpoint"]}.')
 
     #User input
     opt = {
         'data': default_args['data'],
-        'path_checkpoint': default_args['path_checkpoint'],
+        'checkpoint': default_args['checkpoint'],
         'save_name': default_args['save_name'],
         'sample_interval': default_args['sample_interval'],
         'kw_channel': default_args['kw_channel'],
@@ -81,10 +80,10 @@ def main(args=None):
     
     # Load VAE
     model_dict = None
-    if default_args['load_checkpoint'] and os.path.isfile(opt['path_checkpoint']):
-        model_dict = torch.load(opt['path_checkpoint'])
-    elif default_args['load_checkpoint'] and not os.path.isfile(opt['path_checkpoint']):
-        raise FileNotFoundError(f"Checkpoint file {opt['path_checkpoint']} not found.")
+    if default_args['checkpoint']!='' and os.path.isfile(default_args['checkpoint']):
+        model_dict = torch.load(default_args['checkpoint'])
+    elif default_args['checkpoint']!='' and not os.path.isfile(default_args['checkpoint']):
+        raise FileNotFoundError(f"Checkpoint file {default_args['checkpoint']} not found.")
     
     # Populate model configuration    
     history = {}
@@ -121,8 +120,8 @@ def main(args=None):
     print('-----------------------------------------\n')
     
     trainer = VAETrainer(model, opt)
-    if default_args['load_checkpoint']:
-        trainer.load_checkpoint(default_args['path_checkpoint'])
+    if default_args['checkpoint']!='':
+        trainer.load_checkpoint(default_args['checkpoint'])
     dataset = DataLoader(dataset, batch_size=trainer.batch_size, shuffle=True)
     gen_samples = trainer.training(dataset)
 
