@@ -7,6 +7,8 @@ import torch
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
 from eeggan.helpers.trainer import GANTrainer
 from eeggan.helpers.get_master import find_free_port
 from eeggan.helpers.ddp_training import run, GANDDPTrainer

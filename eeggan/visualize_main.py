@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import torch
 
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
 from eeggan.helpers import system_inputs
 from eeggan.helpers.dataloader import Dataloader
 from eeggan.helpers.visualize_pca import visualization_dim_reduction

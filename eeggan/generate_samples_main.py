@@ -7,6 +7,8 @@ import torch
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from torch.utils.data import DataLoader
 
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
 from eeggan.helpers import system_inputs
 from eeggan.helpers.dataloader import Dataloader
 from eeggan.helpers.initialize_gan import init_gan

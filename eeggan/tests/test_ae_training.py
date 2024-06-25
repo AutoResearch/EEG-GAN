@@ -10,8 +10,8 @@ if __name__ == '__main__':
         # configurations for normal GAN
         # 'target_time': ["data=data/gansMultiCondition_SHORT.csv", "target=time", "time_out=10", "save_name=ae_target_time.pt"],
         # 'target_channels': ["data=data/gansMultiCondition_SHORT.csv", "target=channels", "channels_out=1", "save_name=ae_target_channels.pt"],
-        'target_full': ["data=data/gansMultiCondition.csv", "target=full", "time_out=10", "channels_out=1", "save_name=ae_target_full.pt"],
-        # 'load_checkpoint': ["data=data/gansMultiCondition.csv", "checkpoint=x"],
+        'target_full': ["data=eeggan/data/eeggan_training_example.csv", "target=full", "time_out=10", "channels_out=1", "save_name=ae_target_full.pt"],
+        'load_checkpoint': ["data=eeggan/data/eeggan_training_example.csv", "checkpoint=ae_target_full.pt"],
     }
 
     # general parameters
