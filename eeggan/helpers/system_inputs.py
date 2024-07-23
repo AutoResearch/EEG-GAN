@@ -197,7 +197,8 @@ class HelperAutoencoder(Helper):
               '\n\t\ttarget, channels_out, timeseries_out. The remainder of the parameters will be used as normal.'
               '\n\t3.2 If you do not specify "path_checkpoint" the default path is "trained_ae/checkpoint.pt"')
         print('4.\tYou can specify which channels to recover by providing a list, or you can try to recover'
-              '\n\tall/none of the channels by providing True/False')
+              '\n\ta random portion of the channels, by passing a float value corresponding to the proportion of channels'
+              '\n\tthat you want the model to be trained to try to recover')
 
 
 class HelperVisualize(Helper):
@@ -276,7 +277,7 @@ def default_inputs_training_gan():
         'kw_time': [str, 'Keyword to detect the time steps of the dataset; e.g. if [Time1, Time2, ...] -> use Time', 'Time', 'Time label: '],
         'kw_channel': [str, 'Keyword to detect used channels', '', 'Channel label: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],
-        'recover_channels': [Union[bool, List[int]], 'Which channels to recover, if any', False, 'Recovering Channels: '],
+        'recover_channels': [Union[float, List[int]], 'Which channels to recover, if any', 0.0, 'Recovering Channels: '],
     }
 
     return kw_dict
@@ -304,7 +305,7 @@ def default_inputs_training_autoencoder():
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the AE', 0.0001, 'Learning rate: '],
-        'recover_channels': [Union[bool, List[int]], 'Which channels to recover, if any', False, 'Recovering Channels: '],
+        'recover_channels': [Union[float, List[int]], 'Which channels to recover, if any', 0.0, 'Recovering Channels: '],
     }
     return kw_dict
 
