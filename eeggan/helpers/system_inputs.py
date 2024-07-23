@@ -253,6 +253,8 @@ class HelperGenerateSamples(Helper):
         print('4.\tThe keyword "num_samples_parallel" defines the number of generated samples in one batch'
               '\n\tThis parameter should be set according to the processing power of the used machine'
               '\n\tEspecially, the generation of large number of sequences can be boosted by increasing this parameter')
+        print('5.\tYou can specify which channels to recover by providing a list, or you can try to recover'
+              '\n\tall/none of the channels by providing True/False')
 
 
 def default_inputs_training_gan():
@@ -301,6 +303,7 @@ def default_inputs_training_autoencoder():
         'num_heads': [int, 'Number of heads of the transformer', 8, 'Number of heads: '],
         'train_ratio': [float, 'Ratio of training data to total data', 0.8, 'Training ratio: '],
         'learning_rate': [float, 'Learning rate of the AE', 0.0001, 'Learning rate: '],
+        'recover_channels': [Union[bool, List[int]], 'Which channels to recover, if any', False, 'Recovering Channels: '],
     }
     return kw_dict
 
