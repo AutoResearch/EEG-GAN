@@ -130,6 +130,7 @@ class GANTrainer(Trainer):
                 'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else {},
+            'recover_channels': opt['recover_channels'],
         }
 
     def training(self, dataset: DataLoader):
@@ -501,6 +502,7 @@ class AETrainer(Trainer):
                 'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else None,
+            'recover_channels': opt['recover_channels'],
         }
 
     def training(self, train_data, test_data):
