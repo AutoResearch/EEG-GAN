@@ -5,9 +5,11 @@ hide:
 
 # Augmenting EEG with GANs
 
-**Package and Documentation are under construction**
+<center>
+**EEG-GAN v2.0 is now released! A manuscript is in preparation but you can get a sneak peak of the results in our**
 
-**EEG-GAN v2.0 coming soon!**
+**[Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick *(in prep)*](Research/EEG-GAN v2.md) page!**
+</center>
 
 ## <b>The GAN Package</b>
 
