@@ -35,7 +35,7 @@ nav:
     - Data Structure: 'HowToUse/datastructure.md'
     - Parameters: 'HowToUse/parameters.md'
   - Tutorials:
-    - GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
+    - EEG-GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
   - Research:
     - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
     - EEG-GAN v2 - 2024:
