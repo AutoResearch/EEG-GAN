@@ -17,7 +17,7 @@ def main():
         if len(args) > 2:
             args = args[2:]
         else:
-            args = None
+            args = []
     else:
         ValueError('No command provided. Available commands are: gan_training, autoencoder_training, vae_training, generate_samples, visualize. Type "eeggan <command> help" for more information on a specific command.')
         sys.exit(1)
