@@ -121,7 +121,7 @@ class HelperMain(Helper):
         print(
             '4.\tIf you want to use a different dataset, you can use the following command:'
             '\n\tpython gan_training_main.py data="path/to/file.csv"'
-            '\n\tThe default dataset is "data/gansEEGTrainingData.csv"')
+            '\n\tThe default dataset is "data/eeggan_training_example.csv"')
         print(
             '6.\tThe keyword "input_sequence_length" describes the length of a sequence taken as input for the generator.'
             '\n\t6.1 The "input_sequence_length" must be smaller than the total sequence length.'
@@ -175,7 +175,7 @@ class HelperVAE(Helper):
         print(
             '4.\tIf you want to use a different dataset, you can use the following command:'
             '\n\tpython gan_training_main.py path_dataset="path/to/file.csv"'
-            '\n\tThe default dataset is "data/gansEEGTrainingData.csv"')
+            '\n\tThe default dataset is "data/eeggan_training_example.csv"')
         self.start_line()
         self.end_line()
 
@@ -267,7 +267,7 @@ def default_inputs_training_gan():
         'patch_size': [int, 'Patch size of the divided sequence', 20, 'Patch size: '],
         'discriminator_lr': [float, 'Learning rate for the discriminator', 0.0001, 'Discriminator learning rate: '],
         'generator_lr': [float, 'Learning rate for the generator', 0.0001, 'Generator learning rate: '],
-        'data': [str, 'Path to a dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
+        'data': [str, 'Path to a dataset', os.path.join('data', 'eeggan_training_example.csv'), 'Dataset: '],
         'checkpoint': [str, 'Path to a pre-trained GAN', '', 'Using pre-trained GAN: '],
         'autoencoder': [str, 'Path to an autoencoder', '', 'Using autoencoder: '],
         'kw_conditions': [str, '** Conditions to be used', '', 'Conditions: '],
@@ -284,7 +284,7 @@ def default_inputs_training_autoencoder():
         'ddp': [bool, 'Activate distributed training', False, 'Distributed training is active'],
         # 'load_checkpoint': [bool, 'Load a pre-trained AE', False, 'Loading a trained autoencoder model'],
         'seed': [bool, 'Set seed for reproducibility', None, 'Manual seed: '],
-        'data': [str, 'Path to the dataset', os.path.join('data', 'gansEEGTrainingData.csv'), 'Dataset: '],
+        'data': [str, 'Path to the dataset', os.path.join('data', 'eeggan_training_example.csv'), 'Dataset: '],
         'checkpoint': [str, 'Path to a pre-trained AE', '', 'Using pre-trained AE: '],
         'save_name': [str, 'Name to save model', '', 'Model save name: '],
         'target': [str, 'Target dimension (channel, time, full) to encode; full is recommended for multi-channel data;', 'full', 'Target: '],
