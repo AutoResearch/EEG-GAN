@@ -1,0 +1,44 @@
+site_name: EEG-GAN
+
+theme:
+  name: material
+  features: 
+    - navigation.path
+    - navigation.indexes 
+    - tab: true
+  palette:
+    - scheme: default
+      toggle: 
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: indigo
+      accent: dark purple
+
+    - scheme: slate
+      toggle: 
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: indigo
+      accent: dark purple
+
+markdown_extensions:
+  - attr_list
+
+plugins:
+  - mkdocs-jupyter
+
+nav: 
+  - Introduction: 'index.md'
+  - How To Use: 
+    - Install: 'HowToUse/install.md'
+    - Functions: 'HowToUse/functions.md'
+    - Data Structure: 'HowToUse/datastructure.md'
+    - Parameters: 'HowToUse/parameters.md'
+  - Tutorials:
+    - GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
+  - Research:
+    - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
+    - EEG-GAN v2 - 2024:
+      - Manuscript: 'Research/EEG-GAN v2.md'
+      - Interactive Plot: 'Research/EEG-GAN v2 interactive.ipynb'
+  - Repository: https://github.com/AutoResearch/EEG-GAN" target="_blank
