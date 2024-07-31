@@ -1,19 +1,25 @@
 import sys
 import warnings
-
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 
-from helpers import system_inputs
-from helpers.dataloader import Dataloader
-from helpers.visualize_pca import visualization_dim_reduction
-from helpers.visualize_spectogram import plot_fft_hist, plot_spectogram
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
+from eeggan.helpers import system_inputs
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers.visualize_pca import visualization_dim_reduction
+from eeggan.helpers.visualize_spectogram import plot_fft_hist, plot_spectogram
 
 
-def main():
-    default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
+def main(args=None):
+    #Determine args
+    if args is None:
+        default_args = system_inputs.parse_arguments(sys.argv, file='visualize_main.py')
+    else:
+        default_args = system_inputs.parse_arguments(args, file='visualize_main.py')
 
     print('\n-----------------------------------------')
     print("System output:")

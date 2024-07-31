@@ -9,9 +9,9 @@ import torch
 from torch.utils.data import DataLoader
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
-import nn_architecture.losses as losses
-from nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
-from nn_architecture.models import DecoderGenerator, EncoderDiscriminator
+import eeggan.nn_architecture.losses as losses
+from eeggan.nn_architecture.losses import WassersteinGradientPenaltyLoss as Loss
+from eeggan.nn_architecture.models import DecoderGenerator, EncoderDiscriminator
 
 
 class Trainer:
@@ -611,6 +611,10 @@ class AETrainer(Trainer):
 
         if not (self.training_levels == 2 and self.training_level == 1) or 'checkpoint.pt' not in path_checkpoint:
             torch.save(checkpoint_dict, path_checkpoint)
+            
+            if update_history:
+                print(f"Checkpoint saved to {path_checkpoint}.")
+                print(f"Training complete in: {self.configuration['train_time']}")
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):
@@ -662,6 +666,7 @@ class VAETrainer(Trainer):
         self.rank = 0  # Device: cuda:0, cuda:1, ... --> Device: cuda:rank
         self.kl_alpha = opt['kl_alpha'] if 'kl_alpha' in opt else .00001
         self.n_conditions = len(opt['kw_conditions']) if 'kw_conditions' in opt else 0
+        self.start_time = time.time()
 
         # model
         self.model = model
@@ -692,7 +697,7 @@ class VAETrainer(Trainer):
             'trained_epochs': self.trained_epochs,
             'input_dim': opt['input_dim'],
             'save_name': opt['save_name'] if 'save_name' in opt else '',
-            
+            'activation': opt['activation'] if 'activation' in opt else 'tanh',
             'dataloader': {
                 'data': opt['data'] if 'data' in opt else None,
                 'diff_data': opt['diff_data'] if 'diff_data' in opt else None,
@@ -791,6 +796,7 @@ class VAETrainer(Trainer):
         if update_history:
             self.configuration['trained_epochs'] = self.trained_epochs
             self.configuration['history']['trained_epochs'] = self.configuration['history']['trained_epochs'] + [self.trained_epochs]
+            self.configuration['train_time'] = time.strftime('%H:%M:%S', time.gmtime(time.time() - self.start_time))
         
         checkpoint_dict = {
             'model': model.state_dict(),
@@ -802,6 +808,10 @@ class VAETrainer(Trainer):
         }
 
         torch.save(checkpoint_dict, path_checkpoint)
+
+        if update_history:
+            print(f"Checkpoint saved to {path_checkpoint}.")
+            print(f"Training complete in: {self.configuration['train_time']}")
 
     def load_checkpoint(self, path_checkpoint):
         if os.path.isfile(path_checkpoint):

@@ -11,21 +11,26 @@ from torch.utils.data import DataLoader
 from datetime import datetime
 import warnings
 
-from nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
-from helpers.dataloader import Dataloader
-from helpers import system_inputs
-from helpers.trainer import AETrainer
-from helpers.ddp_training import AEDDPTrainer, run
-from helpers.get_master import find_free_port
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
+from eeggan.nn_architecture.ae_networks import TransformerAutoencoder, TransformerDoubleAutoencoder
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers import system_inputs
+from eeggan.helpers.trainer import AETrainer
+from eeggan.helpers.ddp_training import AEDDPTrainer, run
+from eeggan.helpers.get_master import find_free_port
 
 
-def main():
+def main(args=None):
 
     # ------------------------------------------------------------------------------------------------------------------
     # Configure training parameters
     # ------------------------------------------------------------------------------------------------------------------
-
-    default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
+    
+    if args is None:
+        default_args = system_inputs.parse_arguments(sys.argv, file='autoencoder_training_main.py')
+    else:
+        default_args = system_inputs.parse_arguments(args, file='autoencoder_training_main.py')
     print('-----------------------------------------\n')
     
     # create directory 'trained_models' if not exists
@@ -33,14 +38,14 @@ def main():
         os.makedirs('trained_ae')
         print('Directory "../trained_ae" created to store checkpoints and final model.')
     
-    if default_args['load_checkpoint'] and default_args['checkpoint'] != '':
+    if default_args['checkpoint'] != '':
         # check if checkpoint exists and otherwise take trained_models/checkpoint.pt
         if not os.path.exists(default_args['checkpoint']):
             print(f"Checkpoint {default_args['checkpoint']} does not exist. Checkpoint is set to 'trained_models/checkpoint.pt'.")
             default_args['checkpoint'] = os.path.join('trained_ae', 'checkpoint.pt')
         print(f"Resuming training from checkpoint {default_args['checkpoint']}.")
-    else:
-        default_args['checkpoint'] = os.path.join('trained_ae', 'checkpoint.pt')
+    # else:
+    #     default_args['checkpoint'] = os.path.join('trained_ae', 'checkpoint.pt')
 
     # User inputs
     opt = {
@@ -122,8 +127,8 @@ def main():
 
     # Initiate autoencoder
     model_dict = None
-    if default_args['load_checkpoint'] and os.path.isfile(opt['checkpoint']):
-        model_dict = torch.load(opt['checkpoint'])
+    if default_args['checkpoint']!='' and os.path.isfile(default_args['checkpoint']):
+        model_dict = torch.load(default_args['checkpoint'])
 
         target_old = opt['target']
         channels_out_old = opt['channels_out']
@@ -134,15 +139,15 @@ def main():
         opt['time_out'] = model_dict['configuration']['time_out']
         
         # Report changes to user
-        print(f"Loading model {opt['checkpoint']}.\n\nInhereting the following parameters:")
+        print(f"Loading model {default_args['checkpoint']}.\n\nInhereting the following parameters:")
         print("parameter:\t\told value -> new value")
         print(f"target:\t\t\t{target_old} -> {opt['target']}")
         print(f"channels_out:\t{channels_out_old} -> {opt['channels_out']}")
         print(f"time_out:\t{time_out_old} -> {opt['time_out']}")
         print('-----------------------------------\n')
 
-    elif default_args['load_checkpoint'] and not os.path.isfile(opt['checkpoint']):
-        raise FileNotFoundError(f"Checkpoint file {opt['checkpoint']} not found.")
+    elif default_args['checkpoint']!='' and not os.path.isfile(default_args['checkpoint']):
+        raise FileNotFoundError(f"Checkpoint file {default_args['checkpoint']} not found.")
     
     # Add parameters for tracking
     opt['input_dim'] = opt['n_channels'] if opt['target'] in ['channels', 'full'] else opt['sequence_length']
@@ -232,7 +237,7 @@ def main():
             else:
                 trainer = AEDDPTrainer(model, opt)
                 
-            if default_args['load_checkpoint']:
+            if default_args['checkpoint']!='':
                 trainer.load_checkpoint(default_args['checkpoint'])
             mp.spawn(run, args=(opt['world_size'], find_free_port(), opt['ddp_backend'], trainer, opt),
                     nprocs=opt['world_size'], join=True)
@@ -263,7 +268,7 @@ def main():
             else:
                 trainer = AETrainer(model, opt)
                 
-            if default_args['load_checkpoint']:
+            if default_args['checkpoint']!='':
                 trainer.load_checkpoint(default_args['checkpoint'])
             samples = trainer.training(train_dataloader, test_dataloader)
 

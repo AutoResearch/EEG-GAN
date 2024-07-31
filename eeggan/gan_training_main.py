@@ -7,12 +7,14 @@ import torch
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader
 
-from helpers.trainer import GANTrainer
-from helpers.get_master import find_free_port
-from helpers.ddp_training import run, GANDDPTrainer
-from helpers.dataloader import Dataloader
-from helpers.initialize_gan import init_gan
-from helpers import system_inputs
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
+from eeggan.helpers.trainer import GANTrainer
+from eeggan.helpers.get_master import find_free_port
+from eeggan.helpers.ddp_training import run, GANDDPTrainer
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers.initialize_gan import init_gan
+from eeggan.helpers import system_inputs
 
 """Implementation of the training process of a GAN for the generation of synthetic sequential data.
 
@@ -25,7 +27,7 @@ Instructions to start the training:
   - set the configuration parameters (Training configuration; Data configuration; GAN configuration)"""
 
 
-def main():
+def main(args=None):
     """Main function of the training process. 
     For input help use the command 'python gan_training_main.py help' in the terminal."""
     
@@ -33,8 +35,10 @@ def main():
     if not os.path.exists('trained_models'):
         os.makedirs('trained_models')
         print('Directory "../trained_models" created to store checkpoints and final model.')
-    
-    default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
+    if args is None:
+        default_args = system_inputs.parse_arguments(sys.argv, file='gan_training_main.py')
+    else:
+        default_args = system_inputs.parse_arguments(args, file='gan_training_main.py')
 
     # ----------------------------------------------------------------------------------------------------------------------
     # Configure training parameters and load data

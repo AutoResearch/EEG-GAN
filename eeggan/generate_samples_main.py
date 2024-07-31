@@ -7,16 +7,23 @@ import torch
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 from torch.utils.data import DataLoader
 
-from helpers import system_inputs
-from helpers.dataloader import Dataloader
-from helpers.initialize_gan import init_gan
-from helpers.trainer import GANTrainer
-from nn_architecture.models import DecoderGenerator
-from nn_architecture.vae_networks import VariationalAutoencoder
+# add root directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir)))
+from eeggan.helpers import system_inputs
+from eeggan.helpers.dataloader import Dataloader
+from eeggan.helpers.initialize_gan import init_gan
+from eeggan.helpers.trainer import GANTrainer
+from eeggan.nn_architecture.models import DecoderGenerator
+from eeggan.nn_architecture.vae_networks import VariationalAutoencoder
 
 #another comment
-def main():
-    default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
+def main(args=None):
+
+    #Determine args
+    if args is None:
+        default_args = system_inputs.parse_arguments(sys.argv, file='generate_samples_main.py')
+    else:
+        default_args = system_inputs.parse_arguments(args, file='generate_samples_main.py')
 
     # set a seed for reproducibility if desired
     if default_args['seed'] is not None:

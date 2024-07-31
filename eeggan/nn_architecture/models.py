@@ -1,7 +1,7 @@
 from torch import nn
 
-from nn_architecture.ae_networks import Autoencoder
-from nn_architecture.tts_gan_components import Generator as TTSGenerator_Org, Discriminator as TTSDiscriminator_Org
+from eeggan.nn_architecture.ae_networks import Autoencoder
+from eeggan.nn_architecture.tts_gan_components import Generator as TTSGenerator_Org, Discriminator as TTSDiscriminator_Org
 
 # insert here all different kinds of generators and discriminators
 class Generator(nn.Module):

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from helpers import system_inputs
+from eeggan.helpers import system_inputs
 
 if __name__ == '__main__':
     """Bring the safed generated curves from a checkpoint file into a readable csv-format"""
