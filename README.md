@@ -1,54 +1,12 @@
 # EEG-GAN
 
-We here use Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g.,  Support Vector Machine, Neural Network).
+We here use Generative Adversarial Networks (GANs) to create trial-level synthetic EEG samples. We can then use these samples as extra data to train whichever classifier we want to use (e.g., Support Vector Machine, Neural Network).
 
-You can find out documentation [here](https://autoresearch.github.io/EEG-GAN/)
+GANs are machine learning frameworks that consist of two adversarial neural network agents, namely the generator and the discriminator. The generator is trained to create novel samples that are indiscernible from real samples. In the current context, the generator produces realistic continuous EEG activity, conditioned on a set of experimental variables, which contain underlying neural features representative of the outcomes being classified. For example, depression manifests as increased alpha oscillatory activity in the EEG signal, and thus, an ideal generator would produce continuous EEG that includes these alpha signatures. In contrast to the generator, the discriminator determines whether a given sample is real or synthetically produced by the generator. The core insight of GANs is that the generator can effectively learn from the discriminator. Specifically, the generator will consecutively produce more realistic synthetic samples with the goal of “fooling” the discriminator into believing them as real. Once it has achieved realistic samples that the discriminator cannot discern, it can be used to generate synthetic data—or in this context, synthetic EEG data.
+
+You can find our documentation [here](https://autoresearch.github.io/EEG-GAN/)
 
 Feel free to contribute!
-
-
-
-# Running GANs on Brown's Oscar Cluster with 8GPUs (internal information for current developpers)
-
-This method requires a different virtual environment than within the repo. Here are instructions on how to do this using Open on Demand (ood.ccv.brown.edu).
-
-First, start a Virtual Desktop by going to the 'My Interactive Sessions' tab at the top and then selecting Desktop (Advanced). You will then be confronted with a range of fields with defaults. Change 'Partition' to 'GPU' and insert '8' under Num GPUs. You can also change the number of CPUs and RAM ize if you like, but defaults should work. Hit the 'Launch' button at the bottom when you are ready and it will bring you back to your 'My Interactive Sessions' tab with a session for 'Desktop (Advanced)' starting. The session will eventually establish (should not take long) and a 'Launch Desktop (Advanced)' button will appear.
-
-Launching the desktop will take you to a virtual desktop. Open terminal and navigate to where you would like to create your virtual environment. You will then build the environment as such:
-
-## Load modules
-```
-Module load cuda/11.8.0-lpttyok
-Module load cudnn/8.7.0.84-11.8-lg2dpd5
-Module load gcc/10.1.0-mojgbnp
-
-```
-
-## Create and activate virtual environment
-```
-python3 -m venv myVirtualEnv
-
-source ./myVirtualEnv/bin/activate
-```
-
-## Install packages
-Note that the following packages are all the same as the requirements.txt except for torch, torchvision, torchaudio, torchsummary. TODO: Add new requirements.txt
-```
-pip3 install torch torchvision torchaudio torchsummary 
-pip install pandas==1.3.4
-pip install numpy==1.21.4
-pip install matplotlib==3.5.0
-pip install scipy==1.8.0
-pip install einops==0.4.1
-pip install scikit-learn==1.1.2
-```
-
-## Run gans training
-That should be all and now you should get no errors when running:
-```
-python gan_training_main.py ddp
-```
-
 
 # LICENSE
 
