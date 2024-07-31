@@ -1,44 +1,31 @@
----
-hide:
-    -toc
----
 # GAN Package Main Functions
 
 ## <b>GAN Package Details</b>
-<b>There are three main scripts from the GANs package: </b><br>
-&emsp;&emsp;```gan_training_main.py``` - This trains a GAN <br>
-&emsp;&emsp;```visualize_main.py``` - This trains a GAN <br>
-&emsp;&emsp;```generate_samples_main.py``` - This generates synthetic samples using the trained GAN
 
-<b>Arguments for these files are stated after the script filename, for example:</b><br>
-&emsp;&emsp;```python gan_training_main.py n_epochs=100```
+EEG-GAN is a command line interface (CLI) package that allows users to train a Generative Adversarial Network (GAN) on EEG data. Once installed, you can run `eeggan` functions `<function>` in your terminal or command prompt alongside their parameters `<params>`: `eeggan <function> <params>`. <br><br>
 
-<b>For the files in this package, you can use the help argument to see a list of possible arguments with a brief description:</b><br>
-&emsp;&emsp;```python gan_training_main.py help```
+`eeggan` has four functions:<br><br>
+&emsp;&emsp;`gan_training` - This trains a GAN <br>
+&emsp;&emsp;`autoencoder_training` - This trains an autoencoder <br>
+&emsp;&emsp;`visualize` - This visualizes components of a trained GAN, such as the training losses <br>
+&emsp;&emsp;`generate_samples` - This generates synthetic samples using the trained GAN<br>
 
-<details style="border-color:Grey;">
-    <summary style="background-color:transparent;"><b><font size = "4">GAN Training Help</font></b></summary>
-    <font size = "3">
-&emsp;&emsp;<code>python gan_training_main.py help</code><br>
-<img src="../Images/GAN-Training-Help.png" alt=""><br>
-<img src="../Images/GAN-Training-Help-2.png" alt=""><br>
-<img src="../Images/GAN-Training-Help-3.png" alt=""><br>
-</details>
+<br><b>Arguments</b><br>
 
-<details style="border-color:Grey;">
-    <summary style="background-color:transparent;"><b><font size = "4">Visualize Help</font></b></summary>
-    <font size = "3">
-&emsp;&emsp;<code>python visualize_main.py help</code><br>
-<img src="../Images/Visualize-Help.png" alt=""><br>
-<img src="../Images/Visualize-Help-2.png" alt=""><br>
-<img src="../Images/Visualize-Help-3.png" alt=""><br>
-</details>
+Each function can be followed by function parameters. Parameters are structured in that: <br>
+&emsp;&emsp;Boolean arguments are passed as their argument name (e.g., `ddp`): <br>
+&emsp;&emsp;&emsp;&emsp;`eeggan gan_training ddp` <br>
+&emsp;&emsp;While other arguments are passed with an equals sign `=`: <br>
+&emsp;&emsp;&emsp;&emsp;`eeggan gan_training data=data/eeg_training_data.csv`<br>
+&emsp;&emsp; Arguments are separated by a space:<br>
+&emsp;&emsp;&emsp;&emsp; `eeggan gan_training ddp data=data/eeg_training_data.csv`<br>
 
-<details style="border-color:Grey;">
-    <summary style="background-color:transparent;"><b><font size = "4">Generate Samples Help</font></b></summary>
-    <font size = "3">
-&emsp;&emsp;<code>python generate_samples_main.py help</code><br>
-<img src="../Images/Generate-Samples-Help.png" alt=""><br>
-<img src="../Images/Generate-Samples-Help-2.png" alt=""><br>
-<img src="../Images/Generate-Samples-Help-3.png" alt="">
-</details>
+<br><b>Parameters</b><br>
+
+You can use the help argument to see a list of possible parameters with a brief description:</b><br>
+&emsp;&emsp;`eeggan gan_training help`<br>
+&emsp;&emsp;`eeggan autoencoder_training help`<br>
+&emsp;&emsp;`eeggan visualize help`<br>
+&emsp;&emsp;`eeggan generate_samples help`<br>
+
+You can also see these parameters the [Parameters](../parameters) page.
