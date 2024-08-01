@@ -79,6 +79,7 @@ def main(args=None):
         'history': None,
         'trained_epochs': 0,
         'seed': default_args['seed'],
+        'recover_channels': default_args['recover_channels'],
     }
     
     # set a seed for reproducibility if desired

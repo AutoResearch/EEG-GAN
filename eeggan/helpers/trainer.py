@@ -130,6 +130,7 @@ class GANTrainer(Trainer):
                 'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else {},
+            'recover_channels': opt['recover_channels'],
         }
 
     def training(self, dataset: DataLoader):
@@ -450,6 +451,7 @@ class AETrainer(Trainer):
         self.training_levels = opt['training_levels']
         self.training_level = opt['training_level']
         self.start_time = time.time()
+        self.recover_channels = opt['recover_channels']
 
         # model
         self.model = model
@@ -501,6 +503,7 @@ class AETrainer(Trainer):
                 'kw_channel': opt['kw_channel'] if 'kw_channel' in opt else None,
             },
             'history': opt['history'] if 'history' in opt else None,
+            'recover_channels': opt['recover_channels'],
         }
 
     def training(self, train_data, test_data):
@@ -554,11 +557,22 @@ class AETrainer(Trainer):
     def train_model(self, data):
         self.model.train()
         total_loss = 0
-        for batch in data:
+        
+        if isinstance(self.recover_channels, float):
+            channel_deletion_prob = self.recover_channels
+            channels_to_del = torch.bernoulli(data.shape[1:], 1.0-channel_deletion_prob)
+        else:
+            channels_to_del = torch.ones_like(data)
+            channels_to_del[:,*self.recover_channels] = 0
+            
+        data_in = data * channels_to_del.unsqueeze(0).expand(data.shape[0], *channels_to_del.shape)
+        data_out = data
+        
+        for batch_in, batch_out in zip(data_in, data_out):
             self.optimizer.zero_grad()
-            inputs = batch.float().to(self.model.device)
+            inputs = batch_in.float().to(self.model.device)
             outputs = self.model(inputs)
-            loss = self.loss(outputs, inputs)
+            loss = self.loss(outputs, batch_out)
             loss.backward()
             self.optimizer.step()
             total_loss += loss.item()

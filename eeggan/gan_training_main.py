@@ -94,6 +94,7 @@ def main(args=None):
         'diff_data': diff_data,
         'seed': default_args['seed'],
         'save_name': default_args['save_name'],
+        'recover_channels': default_args['recover_channels'],
         'history': None,
     }
     
