@@ -158,8 +158,8 @@ def main():
             ax1.spines[['right', 'top']].set_visible(False)
                 
             #Plot legend on last subplot
-            if num_item == 5:
-                plt.legend(legendNames, bbox_to_anchor=(.9,1.11), frameon=False, fontsize=10)
+            if num_item == len(classifiers)*len(datasets):
+                plt.legend(legendNames, bbox_to_anchor=(.3,.9), frameon=False, fontsize=10)
                 
             #Plot y label on left subplot
             if (num_item == 1 or num_item == 6 or num_item == 11 or num_item == 16 or num_item == 21):
