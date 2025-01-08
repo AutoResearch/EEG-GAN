@@ -8,8 +8,6 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pywt
-import multiprocessing as mp
-import sklearn.manifold as sklm
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -385,9 +383,9 @@ def main(try_=None):
         
         #Labels
         if num_item > 12:
-            plt.xlabel('Time (ms)')
+            plt.xlabel('Time (ms)', fontsize=14)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel( r'Voltage ($\mu$V)')
+            plt.ylabel( r'Voltage ($\mu$V)', fontsize=14)
 
         #Legend
         if num_item == 3:
@@ -410,9 +408,9 @@ def main(try_=None):
 
         #Set xtick labels
         if num_item < 7:
-            plt.xticks(np.linspace(0,c0.shape[1],7), ['-200', '0', '200', '400', '600', '800', '1000'])
+            plt.xticks(np.linspace(0,c0.shape[1],7), ['-200', '0', '200', '400', '600', '800', '1000'], fontsize=14)
         else:
-            plt.xticks(np.linspace(0,c0.shape[1],6), ['-200', '0', '200', '400', '600', '800'])
+            plt.xticks(np.linspace(0,c0.shape[1],6), ['-200', '0', '200', '400', '600', '800'], fontsize=14)
 
     #Plot
     fig = plt.figure(figsize=(12,num_rows*3))

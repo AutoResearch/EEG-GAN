@@ -8,8 +8,6 @@ from scipy import signal
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pywt
-import multiprocessing as mp
-import sklearn.manifold as sklm
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -335,9 +333,9 @@ def main(try_=None):
         
         #Labels
         if num_item > 12:
-            plt.xlabel('Frequency (Hz)')
+            plt.xlabel('Frequency (Hz)', fontsize=14)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel( r'Power ($\mu$$V^2$) Difference')
+            plt.ylabel( r'Power ($\mu$$V^2$) Difference', fontsize=14)
 
         #Legend
         '''
@@ -361,7 +359,7 @@ def main(try_=None):
         ax1.spines.top.set_visible(False)
 
         #Set xtick labels
-        plt.xticks(np.arange(0,21,2))
+        plt.xticks(np.arange(0,21,2), fontsize=14)
 
     #Plot
     num_rows = 5

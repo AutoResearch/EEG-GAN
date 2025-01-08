@@ -377,17 +377,17 @@ def main(try_=None, load=True):
         
         #Labels
         if num_item > 12:
-            plt.xlabel('Time (ms)')
+            plt.xlabel('Time (ms)', fontsize=14)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel('Frequency (Hz)')
+            plt.ylabel('Frequency (Hz)', fontsize=14)
 
         #Format
         plt.ylim([0,20])
-        plt.yticks(np.linspace(0,20,5), ['0', '5', '10', '15', '20'])
+        plt.yticks(np.linspace(0,20,5), ['0', '5', '10', '15', '20'], fontsize=14)
         if num_item < 7:
-            plt.xticks(np.linspace(0,1,7), ['-200', '0', '200', '400', '600', '800', '1000'])
+            plt.xticks(np.linspace(0,1,7), ['-200', '0', '200', '400', '600', '800', '1000'], fontsize=14)
         else:
-            plt.xticks(np.linspace(0,1,6), ['-200', '0', '200', '400', '600', '800'])
+            plt.xticks(np.linspace(0,1,6), ['-200', '0', '200', '400', '600', '800'], fontsize=14)
         ax1.spines.right.set_visible(False)
         ax1.spines.top.set_visible(False)
 
