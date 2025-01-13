@@ -1,8 +1,13 @@
+###############################################
+## LOAD MODULES                              ##
+###############################################
 import os
 import pandas as pd
 import numpy as np
 
-np.random.seed(42)
+###############################################
+## FUNCTIONS                                 ##
+###############################################
 
 def bootstrap(data, n_iterations=10000):
 
@@ -40,8 +45,12 @@ def significant_format(x):
 
     return formatted_p
 
-if __name__ == '__main__':
-    
+###############################################
+## RUN BOOTSTRAP                             ##
+###############################################
+
+def main():
+
     datasets = ['Reinforcement Learning', 'Antisaccade', 'ERPCORE/N170', 'ERPCORE/N2PC']
     classifiers = ['NN', 'SVM', 'LR', 'RF', 'KNN']
     benchmarks = ['emp', 'vae', 'over', 'gaus', 'rev', 'neg', 'smooth']
@@ -158,6 +167,9 @@ if __name__ == '__main__':
     
     print('Bootstrap completed')
 
+if __name__ == '__main__':
+    np.random.seed(42)
+    main()
 
 
 
