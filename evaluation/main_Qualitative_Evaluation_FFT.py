@@ -295,7 +295,7 @@ def main(try_=None):
     #######################################
 
     #Plotting Function
-    def plot_FFT(c0, c1, num_item, ylim, num_rows=5):
+    def plot_FFT(c0, c1, num_item, ylim, num_rows=5, difference=False):
 
         #Setup
         ax1 = plt.subplot(num_rows, 3, num_item)
@@ -303,7 +303,11 @@ def main(try_=None):
         #Plot
         #plt.plot(np.log(np.mean(c0,axis=0)[:20]))
         #plt.plot(np.log(np.mean(c1,axis=0)[:20]))
-        plt.plot(np.mean(c0,axis=0)[:20] - np.mean(c1,axis=0)[:20])
+        if difference:
+            plt.plot(np.mean(c0,axis=0)[:20] - np.mean(c1,axis=0)[:20])
+        else:
+            plt.plot(np.mean(c0,axis=0)[:20])
+            plt.plot(np.mean(c1,axis=0)[:20])
 
         for i in np.arange(0,20,2):
             plt.axvline(x=i, color='grey', linestyle='--', alpha=.3)
@@ -335,21 +339,23 @@ def main(try_=None):
         if num_item > 12:
             plt.xlabel('Frequency (Hz)', fontsize=14)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel( r'Power ($\mu$$V^2$) Difference', fontsize=14)
+            if difference:
+                plt.ylabel( r'Power ($\mu$$V^2$) Difference', fontsize=14)
+            else:
+                plt.ylabel( r'Power ($\mu$$V^2$)', fontsize=14)
 
         #Legend
-        '''
-        if num_item == 3:
-            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
-        elif num_item == 6:
-            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
-        elif num_item == 9:
-            plt.legend(['Anti-Saccade', 'Pro-Saccade'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
-        elif num_item == 12:
-            plt.legend(['Face', 'Car'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
-        elif num_item == 15:
-            plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
-        '''
+        if difference == False:
+            if num_item == 3:
+                plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            elif num_item == 6:
+                plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            elif num_item == 9:
+                plt.legend(['Anti-Saccade', 'Pro-Saccade'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            elif num_item == 12:
+                plt.legend(['Face', 'Car'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            elif num_item == 15:
+                plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
            
         #Format
         #plt.ylim(ylim)
@@ -361,7 +367,38 @@ def main(try_=None):
         #Set xtick labels
         plt.xticks(np.arange(0,21,2), fontsize=14)
 
-    #Plot
+    #Plot diffs
+    num_rows = 5
+    fig = plt.figure(figsize=(12,num_rows*3))
+
+    plot_FFT(REWP_fft_c0, REWP_fft_c1, 1, [-2, 14], difference=True)
+    plot_FFT(gan_REWP_fft_c0, gan_REWP_fft_c1, 2, [-2, 14], difference=True)
+    plot_FFT(vae_REWP_fft_c0, vae_REWP_fft_c1, 3, [-2, 14], difference=True)
+    plot_FFT(REWP8_fft_c0, REWP8_fft_c1, 4, [-2, 14], difference=True)
+    plot_FFT(gan_REWP8_fft_c0, gan_REWP8_fft_c1, 5, [-2, 14], difference=True)
+    plot_FFT(vae_REWP8_fft_c0, vae_REWP8_fft_c1, 6, [-2, 14], difference=True)
+    plot_FFT(N2P3_fft_c0, N2P3_fft_c1, 7, [-3, 2], difference=True)
+    plot_FFT(gan_N2P3_fft_c0, gan_N2P3_fft_c1, 8, [-3, 2], difference=True)
+    plot_FFT(vae_N2P3_fft_c0, vae_N2P3_fft_c1, 9, [-3, 2], difference=True)
+    plot_FFT(N170_fft_c0, N170_fft_c1, 10, [-3, 10], difference=True)
+    plot_FFT(gan_N170_fft_c0, gan_N170_fft_c1, 11, [-3, 10], difference=True)
+    plot_FFT(vae_N170_fft_c0, vae_N170_fft_c1, 12, [-3, 10], difference=True)
+    plot_FFT(N2PC_fft_c0, N2PC_fft_c1, 13, [-3, 8], difference=True)
+    plot_FFT(gan_N2PC_fft_c0, gan_N2PC_fft_c1, 14, [-3, 8], difference=True)
+    plot_FFT(vae_N2PC_fft_c0, vae_N2PC_fft_c1, 15, [-3, 8], difference=True)
+
+    #Save
+    if not os.path.exists('figures'):
+        os.makedirs('figures')
+        
+    plt.tight_layout()
+    fig = plt.gcf()
+    fig.set_size_inches(12, num_rows*4)
+
+    fig.savefig(f'figures/Figure S1 - gan_fft_Evaluations.png', dpi=600)
+    plt.close()
+
+    #Plot conditionals
     num_rows = 5
     fig = plt.figure(figsize=(12,num_rows*3))
 
@@ -389,7 +426,8 @@ def main(try_=None):
     fig = plt.gcf()
     fig.set_size_inches(12, num_rows*4)
 
-    fig.savefig(f'figures/Figure S1 - gan_fft_Evaluations.png', dpi=600)
+    fig.savefig(f'figures/Figure S0 - gan_conditional_fft_Evaluations.png', dpi=600)
+    plt.close()
 
 if __name__ == '__main__':
     main()
