@@ -159,11 +159,11 @@ def main():
                 gray values indicate a non-significant difference in performance between the GAN and the comparison dataset,
                 and red values indicate a significant decrease in performance for the GAN relative to the corresponding comparison dataset.
                 SS = Sample Size, NN = Neural Network, SVM = Support Vector Machine, LR = Logistic Regression, RF = Random Forest, KNN = K-Nearest Neighbors."""
-    rl1_df.to_latex('classification/classification_results/rl1_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e1)'))
-    rl8_df.to_latex('classification/classification_results/rl8_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e8)'))
-    as_df.to_latex('classification/classification_results/as_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Anti-Saccade'))
-    fp_df.to_latex('classification/classification_results/fp_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Face Processing'))
-    vs_df.to_latex('classification/classification_results/vs_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Visual Search'))
+    rl1_df.to_latex('classification/classification_results/rl1_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e1)'), label='tab-S0A')
+    rl8_df.to_latex('classification/classification_results/rl8_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e8)'), label='tab-S0B')
+    as_df.to_latex('classification/classification_results/as_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Anti-Saccade'), label='tab-S0C')
+    fp_df.to_latex('classification/classification_results/fp_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Face Processing'), label='tab-S0D')
+    vs_df.to_latex('classification/classification_results/vs_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Visual Search'), label='tab-S0E')
     
     print('Bootstrap completed')
 
