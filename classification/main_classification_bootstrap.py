@@ -22,7 +22,9 @@ def bootstrap(data, n_iterations=10000):
     distribution = (gan_means - bench_means) - data_mean_diff
     
     p_value = np.mean(np.abs(distribution) >= np.abs(data_mean_diff))
-    p_value = f"{'+' if data_mean_diff > 0 else '-'}{p_value:.4f}"
+    sign = '+' if data_mean_diff > 0 else '-'
+    sign = '' if p_value > 0.05 else sign
+    p_value = f"{sign}{p_value:.4f}"
 
     return data_mean_diff, p_value
 
@@ -44,6 +46,16 @@ def significant_format(x):
         formatted_p = f'\\textcolor{{Gray}}{{{x}}}'
 
     return formatted_p
+
+def extract_significance(data, columns, benchmark=None):
+    if benchmark is not None:
+        data = data[data['Benchmark'] == benchmark]
+    bootstrap_results = data[columns]
+    bootstrap_results = bootstrap_results.melt(value_vars=columns)['value'].values
+    bootstrap_results = [x for x in bootstrap_results if x != '-']
+    bootstrap_positive = [x for x in bootstrap_results if x.startswith('+')]
+
+    return len(bootstrap_positive) / len(bootstrap_results) * 100
 
 ###############################################
 ## RUN BOOTSTRAP                             ##
@@ -130,8 +142,12 @@ def main():
                     comparison_df = pd.DataFrame([comparison_dict])
 
                     bootstrap_dataframe = pd.concat([bootstrap_dataframe, comparison_df], ignore_index=True)
-
-    #Prepare bootstrap_dataframe for latex        
+    
+    #Determine % of significant results for GAN improvement
+    empirical_significance = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030'], benchmark='emp')
+    all_significance = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030'])
+    significance = pd.DataFrame({'Empirical': [empirical_significance], 'All': [all_significance]})
+      
     bootstrap_dataframe = bootstrap_dataframe.replace('-', '999')
     for column in ['005', '010', '015', '020', '030', '060', '100']:
         bootstrap_dataframe[column] = bootstrap_dataframe[column].apply(lambda x: significant_format(x))
