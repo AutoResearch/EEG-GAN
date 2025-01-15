@@ -54,8 +54,12 @@ def extract_significance(data, columns, benchmark=None):
     bootstrap_results = bootstrap_results.melt(value_vars=columns)['value'].values
     bootstrap_results = [x for x in bootstrap_results if x != '-']
     bootstrap_positive = [x for x in bootstrap_results if x.startswith('+')]
+    bootstrap_negative = [x for x in bootstrap_results if x.startswith('-')]
+    
+    positive_results = len(bootstrap_positive) / len(bootstrap_results) * 100
+    negative_results = len(bootstrap_negative) / len(bootstrap_results) * 100
 
-    return len(bootstrap_positive) / len(bootstrap_results) * 100
+    return [positive_results, negative_results]
 
 ###############################################
 ## RUN BOOTSTRAP                             ##
@@ -144,10 +148,15 @@ def main():
                     bootstrap_dataframe = pd.concat([bootstrap_dataframe, comparison_df], ignore_index=True)
     
     #Determine % of significant results for GAN improvement
-    empirical_significance = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030'], benchmark='emp')
-    all_significance = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030'])
-    significance = pd.DataFrame({'Empirical': [empirical_significance], 'All': [all_significance]})
-      
+    empirical_sig_pos_reduced, empirical_sig_neg_reduced = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030'], benchmark='emp')
+    all_sig_pos_reduced, all_sig_neg_reduced = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030'])
+    empirical_sig_pos, empirical_sig_neg = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030', '060', '100'], benchmark='emp')
+    all_sig_pos, all_sig_neg = extract_significance(bootstrap_dataframe, columns=['005', '010', '015', '020', '030', '060', '100'])
+    significance_30andbelow = pd.DataFrame({'Empirical': [empirical_sig_pos_reduced, empirical_sig_neg_reduced], 'Benchmark': [all_sig_pos_reduced, all_sig_neg_reduced]})
+    significance_all = pd.DataFrame({'Empirical': [empirical_sig_pos, empirical_sig_neg], 'Benchmark': [all_sig_pos, all_sig_neg]})
+    significance_30andbelow.index = ['Positive', 'Negative']
+    significance_all.index = ['Positive', 'Negative']
+
     bootstrap_dataframe = bootstrap_dataframe.replace('-', '999')
     for column in ['005', '010', '015', '020', '030', '060', '100']:
         bootstrap_dataframe[column] = bootstrap_dataframe[column].apply(lambda x: significant_format(x))
@@ -175,11 +184,11 @@ def main():
                 gray values indicate a non-significant difference in performance between the GAN and the comparison dataset,
                 and red values indicate a significant decrease in performance for the GAN relative to the corresponding comparison dataset.
                 SS = Sample Size, NN = Neural Network, SVM = Support Vector Machine, LR = Logistic Regression, RF = Random Forest, KNN = K-Nearest Neighbors."""
-    rl1_df.to_latex('classification/classification_results/rl1_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e1)'), label='tab-S0A')
-    rl8_df.to_latex('classification/classification_results/rl8_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e8)'), label='tab-S0B')
-    as_df.to_latex('classification/classification_results/as_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Anti-Saccade'), label='tab-S0C')
-    fp_df.to_latex('classification/classification_results/fp_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Face Processing'), label='tab-S0D')
-    vs_df.to_latex('classification/classification_results/vs_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Visual Search'), label='tab-S0E')
+    rl1_df.to_latex('classification/classification_results/rl1_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e1)'), label='tab-S0A', column_format='llccccccc')
+    rl8_df.to_latex('classification/classification_results/rl8_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Reinforcement Learning (e8)'), label='tab-S0B', column_format='llccccccc')
+    as_df.to_latex('classification/classification_results/as_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Anti-Saccade'), label='tab-S0C', column_format='llccccccc')
+    fp_df.to_latex('classification/classification_results/fp_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Face Processing'), label='tab-S0D', column_format='llccccc')
+    vs_df.to_latex('classification/classification_results/vs_bootstrap_results.tex', index=False, caption=caption.replace('_DATASET_', 'Visual Search'), label='tab-S0E', column_format='llccccc')
     
     print('Bootstrap completed')
 
