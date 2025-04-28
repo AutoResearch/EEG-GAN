@@ -399,24 +399,3 @@ for i in range(number_of_runs):
     with open('evaluation/quantitative_evaluation_results.csv', 'a') as f:
         f.write(f'{dataset},{emp_predictScore},{gan_predictScore},{vae_predictScore}\n')
 
-#############################################################
-## ANALYZE RESULTS ##
-#############################################################
-
-#Load data
-results = pd.read_csv('evaluation/quantitative_evaluation_results.csv').values
-
-#Determine average predict scores per dataset and per column
-datasets = np.unique(results[:,0])
-emp_scores = []
-gan_scores = []
-vae_scores = []
-for dataset in datasets:
-    emp_scores.append(np.mean(results[results[:,0]==dataset,1]))
-    gan_scores.append(np.mean(results[results[:,0]==dataset,2]))
-    vae_scores.append(np.mean(results[results[:,0]==dataset,3]))
-
-#Create a pandas dataframe of results where rows are datasets and columns are methods
-results_df = pd.DataFrame(data={'empirical':emp_scores, 'GAN':gan_scores, 'VAE':vae_scores}, index=datasets)
-print(results_df)
-
