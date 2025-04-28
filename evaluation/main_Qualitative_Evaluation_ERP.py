@@ -354,9 +354,18 @@ def main(try_=None):
         ax1 = plt.subplot(num_rows, 3, num_item)
         time = np.linspace(0,c0.shape[1],c0.shape[1])
 
+        #Normalize the data
+        c0 = np.mean(c0, axis=0)
+        c1 = np.mean(c1, axis=0)
+        c0_min, c0_max = c0.min(), c0.max()
+        c1_min, c1_max = c1.min(), c1.max()
+        data_min, data_max = np.min((c0_min, c1_min)), np.max((c0_max, c1_max))
+        c0 = (c0-data_min) / (data_max-data_min)
+        c1 = (c1-data_min) / (data_max-data_min)
+
         #Plot
-        plt.plot(time, np.mean(c0,axis=0))
-        plt.plot(time, np.mean(c1,axis=0))
+        plt.plot(time, c0)
+        plt.plot(time, c1)
 
         #Title
         if num_item == 1:
@@ -371,9 +380,9 @@ def main(try_=None):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         if num_item == 4:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 7:
             plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
         elif num_item == 10:
@@ -385,7 +394,7 @@ def main(try_=None):
         if num_item > 12:
             plt.xlabel('Time (ms)', fontsize=14)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel( r'Voltage ($\mu$V)', fontsize=14)
+            plt.ylabel( r'Normalized Voltage ($\mu$V)', fontsize=14)
 
         #Legend
         if num_item == 3:
@@ -400,17 +409,17 @@ def main(try_=None):
             plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
            
         #Format
-        #plt.ylim(ylim)
-        plt.yticks([])
-        plt.xlim([0, c0.shape[1]])
+        plt.ylim([-.05, 1.05])
+        plt.yticks(fontsize=14)
+        plt.xlim([0, c0.shape[0]])
         ax1.spines.right.set_visible(False)
         ax1.spines.top.set_visible(False)
 
         #Set xtick labels
         if num_item < 7:
-            plt.xticks(np.linspace(0,c0.shape[1],7), ['-200', '0', '200', '400', '600', '800', '1000'], fontsize=14)
+            plt.xticks(np.linspace(0,c0.shape[0],7), ['-200', '0', '200', '400', '600', '800', '1000'], fontsize=14)
         else:
-            plt.xticks(np.linspace(0,c0.shape[1],6), ['-200', '0', '200', '400', '600', '800'], fontsize=14)
+            plt.xticks(np.linspace(0,c0.shape[0],6), ['-200', '0', '200', '400', '600', '800'], fontsize=14)
 
     #Plot
     fig = plt.figure(figsize=(12,num_rows*3))
