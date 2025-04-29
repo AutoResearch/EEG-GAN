@@ -4,6 +4,8 @@
 import os
 import pandas as pd
 import numpy as np
+import re
+import matplotlib.pyplot as plt
 
 ###############################################
 ## FUNCTIONS                                 ##
@@ -60,6 +62,82 @@ def extract_significance(data, columns, benchmark=None):
     negative_results = len(bootstrap_negative) / len(bootstrap_results) * 100
 
     return [positive_results, negative_results]
+
+def parse_latex_cell(cell):
+    match = re.match(r'\\textcolor\{(.*?)\}\{(.*?)\}', cell)
+    if match:
+        color, value = match.groups()
+        return color, value
+    else:
+        return None, None
+
+def plot_heatmap(data, dataset='Reinforcement Learning (e1)'):
+    data_ = data.copy()
+    columns = [col.replace('\\textbf{','').replace('}','') for col in data_.columns]
+    
+    data = data.iloc[:, 2:]
+    color_mapping = {'LimeGreen': '#98CC70', 'Gray': '#E5E4E2', 'Maroon': '#FBB982'}
+    parsed = data.map(parse_latex_cell).reset_index(drop=True)
+    colors = parsed.map(lambda x: x[0])
+    values = parsed.map(lambda x: x[1])
+
+    # Add two columns of None to colors and values for the first two text columns
+    colors = pd.concat([pd.DataFrame([[None, None] for _ in range(colors.shape[0])]), colors], axis=1)
+    values = pd.concat([pd.DataFrame([[None, None] for _ in range(values.shape[0])]), values], axis=1)
+    
+    # Fill in the first two columns
+    values.iloc[:, 0] = data_['\\textbf{Classifier}'].values
+    values.iloc[:, 0] = values.iloc[:, 0].replace('', None)
+    values.iloc[:, 1] = data_['\\textbf{Comparison}'].values
+    values.iloc[:, 1] = values.iloc[:, 1].replace('', None)
+    
+    # Clean up LaTeX bold from text
+    values.iloc[:, 0] = values.iloc[:, 0].apply(lambda x: x.replace('\\textbf{','').replace('}','') if x is not None else None)
+    values.iloc[:, 1] = values.iloc[:, 1].apply(lambda x: x.replace('\\textbf{','').replace('}','') if x is not None else None)
+
+    # === Create the heat map ===
+    n_rows, n_cols = data.shape[0], data.shape[1] + 2
+
+    # Wider figure size for better spacing
+    fig, ax = plt.subplots(figsize=(n_cols * 2.75, n_rows * 0.5))  # Widened more
+
+    # Loop through each cell to manually color
+    for i in range(n_rows):
+        for j in range(n_cols):
+            cell_color = color_mapping.get(colors.iat[i, j], '#FFFFFF')  # Default to white
+            rect = plt.Rectangle([j, i], 1, 1, facecolor=cell_color, edgecolor='white')
+            ax.add_patch(rect)
+
+            text = values.iat[i, j]
+            if text is not None:
+                # Bold text for the first two columns
+                fontweight = 'bold' if j < 2 else 'normal'
+                justify = 'left' if j == 1 else 'center'
+                offset = 0.1 if j == 1 else 0.5
+                ax.text(j + offset, i + 0.5, text, 
+                        va='center', ha=justify, color='black', fontsize=14, fontweight=fontweight)
+
+    # Adjust plot settings
+    ax.set_xlim(0, n_cols)
+    ax.set_ylim(0, n_rows)
+    ax.invert_yaxis()
+
+    # Set xticks
+    ax.set_xticks([i + 0.5 for i in range(n_cols)])
+    ax.set_xticklabels(columns, fontsize=14, fontweight='bold', ha='center')
+    ax.tick_params(axis='x', which='both', length=0)
+    ax.tick_params(left=False, bottom=False)
+    ax.xaxis.set_ticks_position('top')
+    ax.xaxis.set_label_position('top')
+    ax.axhline(y=-0.01, color='black', linewidth=2, clip_on=False)
+    ax.axhline(y=-.8, color='black', linewidth=2, clip_on=False)
+    ax.axhline(y=n_rows, color='black', linewidth=2, clip_on=False)
+    ax.set_yticks([])
+    ax.set_yticklabels([])
+    plt.box(False)
+
+    plt.savefig(f'figures/{dataset}_bootstrap_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 ###############################################
 ## RUN BOOTSTRAP                             ##
@@ -176,6 +254,13 @@ def main():
     fp_df = fp_df.drop(columns=['\\textbf{Dataset}', '\\textbf{SS 30}', '\\textbf{SS 60}', '\\textbf{SS 100}'])
     vs_df = bootstrap_dataframe[bootstrap_dataframe['\\textbf{Dataset}'].str.contains('VS')]
     vs_df = vs_df.drop(columns=['\\textbf{Dataset}', '\\textbf{SS 30}', '\\textbf{SS 60}', '\\textbf{SS 100}'])
+
+    #Create a heatmap of the results rl1_df
+    plot_heatmap(rl1_df, dataset='rl1')
+    plot_heatmap(rl8_df, dataset='rl8')
+    plot_heatmap(as_df, dataset='as')
+    plot_heatmap(fp_df, dataset='fp')
+    plot_heatmap(vs_df, dataset='vs')
 
     #Save to latex
     caption = """Bootstrap results of the _DATASET_ dataset for the comparison of GAN performance with empirical and benchmark performance across classifiers and sample sizes.
