@@ -365,21 +365,21 @@ def main(try_=None, load=True):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1: FCz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         if num_item == 4:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8: POz)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         elif num_item == 10:
-            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         elif num_item == 13:
-            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         
         #Labels
         if num_item > 12:
-            plt.xlabel('Time (ms)', fontsize=14)
+            plt.xlabel('Time (ms)', fontsize=16)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel('Frequency (Hz)', fontsize=14)
+            plt.ylabel('Frequency (Hz)', fontsize=16)
 
         #Format
         plt.ylim([0,20])

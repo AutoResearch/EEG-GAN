@@ -380,33 +380,33 @@ def main(try_=None):
 
         #Row labels
         if num_item == 1:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E1)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         if num_item == 4:
-            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Reinforcement\nLearning (E8)', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         elif num_item == 7:
-            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Anti-Saccade', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         elif num_item == 10:
-            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Face Perception', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         elif num_item == 13:
-            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=12, fontweight='bold')
+            plt.text(-0.2, 1.1, 'Visual Search', horizontalalignment='left', verticalalignment='center', transform=ax1.transAxes, fontsize=14, fontweight='bold')
         
         #Labels
         if num_item > 12:
-            plt.xlabel('Time (ms)', fontsize=14)
+            plt.xlabel('Time (ms)', fontsize=16)
         if num_item == 1 or num_item == 4 or num_item == 7 or num_item == 10 or num_item == 13:
-            plt.ylabel( r'Normalized Voltage ($\mu$V)', fontsize=14)
+            plt.ylabel( r'Normalized Voltage ($\mu$V)', fontsize=16)
 
         #Legend
         if num_item == 3:
-            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=14, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 6:
-            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Win', 'Lose'], loc='upper right', fontsize=14, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 9:
-            plt.legend(['Anti-Saccade', 'Pro-Saccade'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Anti-Saccade', 'Pro-Saccade'], loc='upper right', fontsize=14, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 12:
-            plt.legend(['Face', 'Car'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Face', 'Car'], loc='upper right', fontsize=14, frameon=False, bbox_to_anchor=(1.1, 1.2))
         elif num_item == 15:
-            plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=12, frameon=False, bbox_to_anchor=(1.1, 1.2))
+            plt.legend(['Ipsilateral', 'Contralateral'], loc='upper right', fontsize=14, frameon=False, bbox_to_anchor=(1.1, 1.2))
            
         #Format
         plt.ylim([-.05, 1.05])

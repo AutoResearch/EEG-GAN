@@ -84,9 +84,9 @@ def plotDiffData(empData, augData, ax2, xLabels):
     ax2.bar(xLabels,meanDiff,color='grey',width=4)
     for i in range(len(meanDataDSSyn_SynP100)):
         if meanDiff[i] > 0:
-            ax2.annotate(str(round(meanDiff[i]))+'%', (xLabels[i],meanDiff[i]+.6), ha='center', color='grey', size = 10)
+            ax2.annotate(str(round(meanDiff[i]))+'%', (xLabels[i],meanDiff[i]+.6), ha='center', color='grey', size = 12)
         else:
-            ax2.annotate(str(round(meanDiff[i]))+'%', (xLabels[i],.6), ha='center', color='grey', size = 10)   
+            ax2.annotate(str(round(meanDiff[i]))+'%', (xLabels[i],.6), ha='center', color='grey', size = 12)   
     
 def main():
     ###############################################
@@ -94,8 +94,8 @@ def main():
     ###############################################
 
     num_rows = 5
-    fig = plt.figure(figsize=(24, 3*num_rows), dpi=600)
-    fig.subplots_adjust(hspace=.3, bottom=0.2)
+    fig = plt.figure(figsize=(24, 3*num_rows), dpi=300)
+    
     plt.rcParams.update({'font.size': 5})  
 
     ylims = 80
@@ -148,26 +148,30 @@ def main():
             #Formal plot
             plt.ylim(40,ylims)
             plt.xlim(2.5,22.5)
-            plt.xticks(xLabels, fontsize = 10)
+            plt.xticks(xLabels, fontsize = 14)
             #change xtick labels to ['5','10','15','20','30','60','100']
             if dataset_index < 3:
-                plt.xticks(np.arange(5,40,5), ['5','10','15','20','30','60','100'], fontsize = 10)
+                plt.xticks(np.arange(5,40,5), ['5','10','15','20','30','60','100'], fontsize = 14)
                 plt.xlim(2.5,37.5)
 
-            plt.yticks(np.arange(50,ylims,5), fontsize = 10)
+            if classifier_index == 0:
+                plt.yticks(np.arange(50,ylims,5), fontsize = 14)
+            else:
+                #remove y tick labels but not ticks 
+                plt.yticks(np.arange(50,ylims,5), ['']*len(np.arange(50,ylims,5)), fontsize = 14)
             ax1.spines[['right', 'top']].set_visible(False)
                 
             #Plot legend on last subplot
             if num_item == len(classifiers)*len(datasets):
-                plt.legend(legendNames, bbox_to_anchor=(.3,.9), frameon=False, fontsize=10)
+                plt.legend(legendNames, bbox_to_anchor=(.1,.9), frameon=False, fontsize=14)
                 
             #Plot y label on left subplot
             if (num_item == 1 or num_item == 6 or num_item == 11 or num_item == 16 or num_item == 21):
-                plt.ylabel('Prediction Accuracy (%)', fontsize = 12)
+                plt.ylabel('Prediction\nAccuracy (%)', fontsize = 16)
                 
             #Plot x label on bottom subplots   
             if (num_item > 20):
-                plt.xlabel('Sample Size', fontsize = 12)
+                plt.xlabel('Sample Size', fontsize = 16)
                 
             #Add classifier titles
             if (num_item == 1):
@@ -212,8 +216,10 @@ def main():
     plt.tight_layout()
     fig = plt.gcf()
     fig.set_size_inches(16, 16)
-    plt.subplots_adjust(left=0.05)
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.05)
     fig.savefig(f'figures/Figure 4 - GAN Classification Results.png', dpi=600, facecolor='white', edgecolor='none')
+    plt.close()
 
 if __name__ == '__main__':  
     main()
+    print('')
