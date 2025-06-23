@@ -28,4 +28,4 @@ You can use the help argument to see a list of possible parameters with a brief 
 &emsp;&emsp;`eeggan visualize help`<br>
 &emsp;&emsp;`eeggan generate_samples help`<br>
 
-You can also see these parameters the [Parameters](../parameters) page.
+You can also see these parameters the [Parameters](parameters.md) page.

@@ -5,31 +5,34 @@ hide:
 
 # Research
 
-## <b>Enhancing EEG Data Classification Across Diverse Contexts Using Generative Adversarial Networks</b>
-### <i>Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick (in prep)</i>
+## <b>EEG-GAN: A Generative EEG Augmentation Toolkit for Enhancing Neural Classification.</b>
+### <i>Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick (2025). bioRxiv</i>
+
+<div style="text-align: center; margin-top: 1em;">
+  <a href="TBD" class="md-button">
+    Preprint
+  </a>
+</div>
 
 #### Abstract: ####
 
-Electroencephalography (EEG) is crucial for studying cognition and is widely used in neurotechnology applications. However, EEG data is challenging to interpret and utilize effectively in machine learning, which requires large datasets that are time-consuming and costly to collect. Recent generative artificial intelligence (AI) advancements offer a solution by creating realistic synthetic EEG samples to expand datasets, thereby improving classification performance. Foundational studies show the benefits of using generative AI in EEG-based machine learning, but they often focus on specific use cases, leaving the general robustness of these enhancements across various contexts to be determined. This study evaluated the application of a generative adversarial network (GAN) for producing realistic EEG samples and enhancing classification performance across four datasets, five classifiers, and seven sample sizes, comparing the results to six benchmark augmentation techniques. The augmentation led to performance gains of up to 16\%, with enhancements consistent across datasets but varying among classifiers. GAN augmentations were particularly effective for smaller sample sizes (30 and below), improving 90\% of classification analyses. GAN augmentation also surpassed the classification enhancements of six benchmark techniques 90\% of the time. These findings suggest that GANs can generate high-quality EEG data reliably, offering a cost-effective alternative to extensive data collection. Enhanced data quality from GANs can improve applications in brain-computer interfacing, educational training, and neurofeedback and has potential clinical implications for early diagnosis and treatment of neurological disorders.
+Electroencephalography (EEG) is a widely applied method for decoding neural activity, offering insights into cognitive function and driving advancements in neurotechnology. However, decoding EEG data remains challenging, as classification algorithms typically require large datasets that are expensive and time-consuming to collect. Recent advances in generative artificial intelligence have enabled the creation of realistic synthetic EEG data, yet no method has consistently demonstrated that such synthetic data can lead to improvements in EEG decodability across diverse datasets. Here, we introduce EEG-GAN, an open-source generative adversarial network (GAN) designed to augment EEG data. In the most comprehensive evaluation study to date, we assessed its capacity to generate realistic EEG samples and enhance classification performance across four datasets, five classifiers, and seven sample sizes, while benchmarking it against six established augmentation techniques. We found that EEG-GAN, when trained to generate raw single-trial EEG signals, produced signals that reproduce grand-averaged waveforms and time-frequency patterns of the original data. Furthermore, training classifiers on additional synthetic data improved their ability to decode held-out empirical data. EEG-GAN achieved up to a 16% improvement in decoding accuracy, with enhancements consistent across datasets but varying among classifiers. Data augmentations were particularly effective for smaller sample sizes (30 and below), significantly improving 70% of these classification analyses and only significantly impairing 4% of analyses. Moreover, EEG-GAN significantly outperformed all benchmark techniques in 69% of the comparisons across datasets, classifiers, and sample sizes and was only significantly outperformed in 3% of comparisons. These findings establish EEG-GAN as a robust toolkit for generating realistic EEG data, which can effectively reduce the costs associated with real-world EEG data collection for neural decoding tasks.
 
-<center> [Online Interactive Figure](EEG-GAN v2 interactive.ipynb){ .md-button } </center>
-
-<center> ![](./Images/Figure 4 - GAN Classification Results.png){: style="height:800px;width:800px"}</center> 
+![](./Images/Figure 4 - GAN Classification Results.png){: style="height:1200px;width:1200px"}
 
 ## <b>Script and Data Availability</b>
 
-### Script Repos
+<h3>Script Repos</h3>
+<div style="text-align: center; margin-bottom: 20px;">
+  <a href="https://github.com/AutoResearch/EEG-GAN/tree/manuscript-reinforcement_learning_task" class="md-button">Reinforcement Learning</a>
+  <a href="https://github.com/AutoResearch/EEG-GAN/tree/manuscript-antisaccade_task" class="md-button">Anti-Saccade</a>
+  <a href="https://github.com/AutoResearch/EEG-GAN/tree/manuscript-ERPCORE_tasks" class="md-button">Face Perception & Visual Search</a>
+  <a href="https://github.com/AutoResearch/EEG-GAN/tree/manuscript-results" class="md-button">Figures</a>
+</div>
 
-<center> 
-[Reinforcement Learning](https://github.com/AutoResearch/EEG-GAN/tree/manuscript-reinforcement_learning_task){ .md-button} 
-[Anti-Saccade](https://github.com/AutoResearch/EEG-GAN/tree/manuscript-antisaccade_task){ .md-button } 
-[Face Perception & Visual Search](https://github.com/AutoResearch/EEG-GAN/tree/manuscript-ERPCORE_tasks){ .md-button} 
-[Figures](https://github.com/AutoResearch/EEG-GAN/tree/manuscript-results){ .md-button} 
-</center>
-
-### Data and Models
-<center> 
-[Data & Classification Results](https://osf.io/mj9cz/){ .md-button} 
-[Autoencoders](https://osf.io/znv7k/){ .md-button} 
-[Generative Models and Data](https://osf.io/s4agq/){ .md-button} 
-</center>
+<h3>Data and Models</h3>
+<div style="text-align: center;">
+  <a href="https://osf.io/mj9cz/" class="md-button">Data & Classification Results</a>
+  <a href="https://osf.io/znv7k/" class="md-button">Autoencoders</a>
+  <a href="https://osf.io/s4agq/" class="md-button">Generative Models and Data</a>
+</div>
