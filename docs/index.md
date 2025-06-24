@@ -6,9 +6,16 @@ hide:
 # Augmenting EEG with GANs
 
 <center>
-**EEG-GAN v2.0 is now released! A manuscript is in preparation but you can get a sneak peak of the results in our**
+<b>EEG-GAN v2.0 is now released alongside our new preprint!</b><br><br>
 
-**[Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick *(in prep)*](Research/EEG-GAN v2.md) page!**
+<div style="text-align: center;">
+  <strong>
+    <a href="Research/EEG-GAN v2" class="md-button">
+      EEG-GAN: A Generative EEG Augmentation Toolkit for Enhancing Neural Classification.<br>
+      Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick (<em>2025, bioRxiv</em>)
+    </a>
+  </strong>
+</div>
 </center>
 
 ## <b>The GAN Package</b>
@@ -20,18 +27,29 @@ GANs are machine learning frameworks that consist of two adversarial neural netw
 ## <b>Publications of the EEG-GAN Package</b>
 
 <i><b>EEG-GAN v2.0:</b></i><br>
-<b>Enhancing EEG Data Classification Across Diverse Contexts Using Generative Adversarial Networks</b><br>
-&emsp;*Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick (*in prep*)*<br>
-<center>[Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick *(in prep)*](Research/EEG-GAN v2.md){ .md-button }</center>
+<div style="text-align: center;">
+  <strong>
+    <a href="Research/EEG-GAN v2" class="md-button">
+      EEG-GAN: A Generative EEG Augmentation Toolkit for Enhancing Neural Classification.<br>
+      Williams, Weinhardt, Hewson, Plomecka, Langer, & Musslick (<em>2025, bioRxiv</em>)
+    </a>
+  </strong>
+</div>
+</center>
 
 <i><b>EEG-GAN v1.0:</b></i><br>
-<b>Augmenting EEG with Generative Adversarial Networks Enhances Brain Decoding Across Classifiers and Sample Sizes</b><br>
-&emsp;*Williams, Weinhardt, Wirzberger, & Musslick (*2023*),  Proceedings of the Annual Meeting of the Cognitive Science Society*<br>
-<center>[Williams, Weinhardt, Wirzberger, & Musslick *(2023, Proceedings of the Annual Meeting of the Cognitive Science Society)*](Research/EEG-GAN v1.md){ .md-button }</center>
+<div style="text-align: center;">
+  <strong>
+    <a href="Research/EEG-GAN v1" class="md-button">
+      Augmenting EEG with Generative Adversarial Networks Enhances Brain Decoding Across Classifiers and Sample Sizes<br>
+      Williams, Weinhardt, Wirzberger, & Musslick (<em>2023, Proceedings of the Annual Meeting of the Cognitive Science Society</em>)
+    </a>
+  </strong>
+</div>
 
 ## <b>About</b>
 
-This project is in active development by the [Autonomous Empirical Research Group](https://musslick.github.io/AER_website/Research.html), led by [Sebastian Musslick](https://smusslick.com). The package was built by [Sebastian Musslick](https://smusslick.com), Daniel Weinhardt, and [Chad Williams](http://www.chadcwilliams.com).
+This project is in active development by the [Autonomous Empirical Research Group](https://musslick.github.io/AER_website/Research.html), led by [Sebastian Musslick](https://smusslick.com). The package was built by [Sebastian Musslick](https://smusslick.com), Daniel Weinhardt, and [Chad Williams](https://chadcwilliams.weebly.com/).
 
 This research program is supported by Schmidt Science Fellows, in partnership with the Rhodes Trust, as well as the Carney BRAINSTORM program at Brown University.
 

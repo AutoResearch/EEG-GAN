@@ -37,8 +37,8 @@ nav:
   - Tutorials:
     - EEG-GAN Tutorial: 'Tutorials/Tutorial_AEGAN.ipynb'
   - Research:
-    - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
-    - EEG-GAN v2 - 2024:
+    - EEG-GAN v2 - 2025:
       - Manuscript: 'Research/EEG-GAN v2.md'
       - Interactive Plot: 'Research/EEG-GAN v2 interactive.ipynb'
+    - EEG-GAN v1 - 2023: 'Research/EEG-GAN v1.md'
   - Repository: https://github.com/AutoResearch/EEG-GAN" target="_blank
